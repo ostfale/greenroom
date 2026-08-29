@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: greenroom
+      POSTGRES_USER: greenroom
+      POSTGRES_PASSWORD: greenroom
+    ports:
+      - "5432:5432"
+    volumes:
+      - greenroom-db:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U greenroom -d greenroom" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  greenroom-db:
