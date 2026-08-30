@@ -7,6 +7,9 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.library.GeneralCodingRules;
 import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition;
 
+import static com.tngtech.archunit.base.DescribedPredicate.not;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 
@@ -35,18 +38,42 @@ public class ArchitectureTest {
             .should().dependOnClassesThat().resideInAPackage("..adapter.(*)..")
             .because("adapters talk through the application layer, never to each other");
 
-    // --- the domain stays plain Java ----------------------------------------------
+    // --- the domain carries mapping, but no framework behaviour --------------------
+
+    /**
+     * Mapping annotations are welcome in the domain: the aggregates are the persistence
+     * model, and a second set of records plus mappers would buy nothing here. Everything
+     * else Spring stays out, so invariants and transitions remain testable without a
+     * context.
+     */
+    @ArchTest
+    static final ArchRule domainCarriesMappingOnly = noClasses()
+            .that().resideInAPackage("..greenroom.domain..")
+            .should().dependOnClassesThat(
+                    resideInAPackage("org.springframework..")
+                            .and(not(resideInAnyPackage(
+                                    "org.springframework.data.annotation..",
+                                    "org.springframework.data.relational.core.mapping.."))))
+            .because("the domain may be mapped, but must not be driven by the framework");
 
     @ArchTest
-    static final ArchRule domainIsFrameworkFree = noClasses()
+    static final ArchRule domainHasNoRepositories = noClasses()
             .that().resideInAPackage("..greenroom.domain..")
             .should().dependOnClassesThat().resideInAnyPackage(
-                    "org.springframework..",
+                    "org.springframework.data.repository..",
+                    "org.springframework.data.jdbc..")
+            .because("an aggregate does not know how it is loaded");
+
+    @ArchTest
+    static final ArchRule domainIsFreeOfTheRest = noClasses()
+            .that().resideInAPackage("..greenroom.domain..")
+            .should().dependOnClassesThat().resideInAnyPackage(
                     "jakarta..",
                     "javax..",
                     "com.fasterxml.jackson..",
+                    "org.thymeleaf..",
                     "org.slf4j..")
-            .because("the domain must survive a change of framework, persistence and UI");
+            .because("validation, serialisation, rendering and logging are adapter concerns");
 
     @ArchTest
     static final ArchRule domainUsesJavaTime = noClasses()
@@ -63,13 +90,19 @@ public class ArchitectureTest {
             .should().beAnnotatedWith("org.springframework.stereotype.Controller")
             .orShould().beAnnotatedWith("org.springframework.web.bind.annotation.RestController");
 
+    /**
+     * Repositories are declared where the use cases ask for them and implemented by
+     * Spring Data; the web, scheduling and importer adapters must not reach past the
+     * application layer to talk to the database.
+     */
     @ArchTest
-    static final ArchRule persistenceStaysInItsAdapter = noClasses()
-            .that().resideOutsideOfPackage("..adapter.out.persistence..")
+    static final ArchRule repositoriesLiveInPortOutOrPersistence = noClasses()
+            .that().resideInAPackage("..greenroom.adapter.in..")
             .should().dependOnClassesThat().resideInAnyPackage(
+                    "org.springframework.data.repository..",
                     "org.springframework.data.jdbc..",
-                    "org.springframework.data.relational..")
-            .because("Spring Data types must not leak past the persistence adapter");
+                    "javax.sql..")
+            .because("driving adapters go through use cases, never to the database");
 
     @ArchTest
     static final ArchRule outgoingPortsAreInterfaces = com.tngtech.archunit.lang.syntax

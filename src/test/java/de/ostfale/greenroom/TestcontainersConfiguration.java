@@ -10,11 +10,11 @@ import org.testcontainers.utility.DockerImageName;
  * Real PostgreSQL for every test that needs a database. Same major version as production.
  */
 @TestConfiguration(proxyBeanMethods = false)
-class TestcontainersConfiguration {
+public class TestcontainersConfiguration {
 
     @Bean
     @ServiceConnection
-    PostgreSQLContainer<?> postgresContainer() {
+    public PostgreSQLContainer<?> postgresContainer() {
         return new PostgreSQLContainer<>(DockerImageName.parse("postgres:17-alpine"));
     }
 }
