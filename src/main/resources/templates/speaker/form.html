@@ -9,7 +9,7 @@
 
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form method="post" th:action="@{/speaker}">
+    <form method="post" enctype="multipart/form-data" th:action="@{/speaker}">
         <label>Name
             <input type="text" name="name" required autofocus th:value="${submitted.name}">
         </label>
@@ -27,6 +27,10 @@
         </label>
         <label>Notizen
             <textarea name="notes" rows="3" th:text="${submitted.notes}"></textarea>
+        </label>
+
+        <label>Foto
+            <input type="file" name="photo" accept="image/jpeg,image/png,image/webp,image/gif">
         </label>
 
         <div class="actions">

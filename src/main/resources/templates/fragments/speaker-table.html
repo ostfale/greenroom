@@ -13,7 +13,7 @@
     </thead>
     <tbody>
     <tr th:each="speaker : ${speakers}">
-        <td th:text="${speaker.name}">Max Muster</td>
+        <td><a th:href="@{/speaker/{id}(id=${speaker.id})}" th:text="${speaker.name}">Max Muster</a></td>
         <td th:text="${speaker.company} ?: '—'">Musterfirma GmbH</td>
         <td><a th:href="'mailto:' + ${speaker.email}" th:text="${speaker.email}">max@example.org</a></td>
         <td th:text="${speaker.phone} ?: '—'">—</td>

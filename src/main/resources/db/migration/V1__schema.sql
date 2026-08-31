@@ -134,3 +134,14 @@ create unique index tag_name_unique on tag (lower(name));
 comment on index tag_name_unique is
     'Two tags that differ only in case are the same tag.';
 
+
+create table speaker_photo
+(
+    id           bigserial primary key,
+    speaker_id   bigint not null unique references speaker (id) on delete cascade,
+    content_type text   not null,
+    data         bytea  not null
+);
+
+comment on table speaker_photo is
+    'Apart from the speaker on purpose: the list of speakers must not carry the bytes along.';

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="speaker-photo" th:fragment="speaker-photo" class="photo">
+    <img th:if="${hasPhoto}" class="portrait"
+         th:src="@{/speaker/{id}/photo(id=${speaker.id},v=${#dates.createNow().time})}"
+         th:alt="${speaker.name}">
+    <div th:unless="${hasPhoto}" class="portrait placeholder"
+         th:text="${#strings.substring(speaker.name, 0, 1)}">M</div>
+
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <form method="post" enctype="multipart/form-data"
+          th:action="@{/speaker/{id}/photo(id=${speaker.id})}"
+          th:hx-post="@{/speaker/{id}/photo(id=${speaker.id})}"
+          hx-target="#speaker-photo"
+          hx-swap="outerHTML"
+          hx-encoding="multipart/form-data">
+        <label>Foto
+            <input type="file" name="photo" accept="image/jpeg,image/png,image/webp,image/gif" required>
+        </label>
+        <div class="actions">
+            <button type="submit">Hochladen</button>
+            <button type="button" class="link" th:if="${hasPhoto}"
+                    th:hx-post="@{/speaker/{id}/photo/remove(id=${speaker.id})}"
+                    hx-target="#speaker-photo"
+                    hx-swap="outerHTML">Entfernen</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

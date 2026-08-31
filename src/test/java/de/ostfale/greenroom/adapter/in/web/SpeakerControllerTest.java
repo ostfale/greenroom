@@ -12,11 +12,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -121,6 +124,171 @@ class SpeakerControllerTest {
         Document parsed = Jsoup.parseBodyFragment(fragment);
         assertThat(parsed.selectFirst("table#speaker-table")).isNotNull();
         assertThat(parsed.select("tbody tr td:first-child").eachText()).containsExactly("Anna Albers");
+    }
+
+    @Test
+    void aSpeakerCanBringAPictureAlongWhenCreated() throws Exception {
+        mvc.perform(multipart("/speaker")
+                        .file(new MockMultipartFile("photo", "max.png", "image/png", new byte[]{1, 2}))
+                        .param("name", "Max Muster")
+                        .param("email", "max@example.org")
+                        .param("company", "")
+                        .param("phone", "")
+                        .param("bio", "")
+                        .param("notes", ""))
+                .andExpect(redirectedUrl("/speaker"));
+
+        Long id = speakers.all().getFirst().id();
+        assertThat(speakers.photoOf(id)).isPresent();
+        mvc.perform(get("/speaker/{id}/photo", id))
+                .andExpect(content().contentType("image/png"))
+                .andExpect(content().bytes(new byte[]{1, 2}));
+    }
+
+    @Test
+    void creatingWithoutAPictureIsStillTheNormalCase() throws Exception {
+        mvc.perform(multipart("/speaker")
+                        .file(new MockMultipartFile("photo", "", "application/octet-stream", new byte[0]))
+                        .param("name", "Max Muster")
+                        .param("email", "max@example.org")
+                        .param("company", "")
+                        .param("phone", "")
+                        .param("bio", "")
+                        .param("notes", ""))
+                .andExpect(redirectedUrl("/speaker"));
+
+        assertThat(speakers.all()).hasSize(1);
+        assertThat(speakers.photoOf(speakers.all().getFirst().id())).isEmpty();
+    }
+
+    @Test
+    void aRefusedPictureLeavesNoHalfEnteredSpeakerBehind() throws Exception {
+        String html = mvc.perform(multipart("/speaker")
+                        .file(new MockMultipartFile("photo", "v.pdf", "application/pdf", new byte[]{1}))
+                        .param("name", "Max Muster")
+                        .param("email", "max@example.org")
+                        .param("company", "")
+                        .param("phone", "")
+                        .param("bio", "")
+                        .param("notes", ""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document page = Jsoup.parse(html);
+        assertThat(page.selectFirst("p.error").text())
+                .contains("JPEG")
+                .contains("nicht angelegt");
+        assertThat(page.selectFirst("input[name=name]").val()).isEqualTo("Max Muster");
+        assertThat(speakers.all()).isEmpty();
+    }
+
+    // --- the detail page and its picture ---------------------------------------------
+
+    @Test
+    void theListLinksToTheDetailPage() throws Exception {
+        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+
+        String html = mvc.perform(get("/speaker")).andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parse(html).selectFirst("#speaker-table tbody tr td a").attr("href"))
+                .isEqualTo("/speaker/" + id);
+    }
+
+    @Test
+    void theDetailPageShowsWhatIsKnownAboutTheSpeaker() throws Exception {
+        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")
+                .withContact("Musterfirma GmbH", "max@example.org", "040 123456")
+                .withBio("Schreibt Java, seit es Generics gibt.")).id();
+
+        String html = mvc.perform(get("/speaker/{id}", id)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document page = Jsoup.parse(html);
+        assertThat(page.selectFirst("h1").text()).isEqualTo("Max Muster");
+        assertThat(page.select(".details dd").eachText())
+                .containsExactly("Musterfirma GmbH", "max@example.org", "040 123456");
+        assertThat(page.selectFirst(".portrait").hasClass("placeholder")).isTrue();
+        assertThat(page.selectFirst(".portrait").text()).isEqualTo("M");
+    }
+
+    @Test
+    void anUnknownSpeakerSendsYouBackToTheList() throws Exception {
+        mvc.perform(get("/speaker/{id}", 999L))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/speaker"));
+    }
+
+    @Test
+    void anUploadedPictureIsServedBackWithItsOwnContentType() throws Exception {
+        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        byte[] bytes = {1, 2, 3, 4};
+
+        String fragment = mvc.perform(multipart("/speaker/{id}/photo", id)
+                        .file(new MockMultipartFile("photo", "max.png", "image/png", bytes)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("img.portrait")).isNotNull();
+
+        mvc.perform(get("/speaker/{id}/photo", id))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("image/png"))
+                .andExpect(content().bytes(bytes));
+    }
+
+    @Test
+    void aSecondUploadTakesThePlaceOfTheFirst() throws Exception {
+        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+
+        mvc.perform(multipart("/speaker/{id}/photo", id)
+                .file(new MockMultipartFile("photo", "alt.png", "image/png", new byte[]{1})));
+        mvc.perform(multipart("/speaker/{id}/photo", id)
+                .file(new MockMultipartFile("photo", "neu.jpg", "image/jpeg", new byte[]{2, 2})));
+
+        mvc.perform(get("/speaker/{id}/photo", id))
+                .andExpect(content().contentType("image/jpeg"))
+                .andExpect(content().bytes(new byte[]{2, 2}));
+        assertThat(speakers.photoOf(id)).isPresent();
+    }
+
+    @Test
+    void aFileThatIsNoPictureSaysSoAndChangesNothing() throws Exception {
+        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+
+        String fragment = mvc.perform(multipart("/speaker/{id}/photo", id)
+                        .file(new MockMultipartFile("photo", "vertrag.pdf", "application/pdf", new byte[]{1})))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("JPEG");
+        assertThat(speakers.photoOf(id)).isEmpty();
+    }
+
+    @Test
+    void aPictureCanBeTakenAwayAgain() throws Exception {
+        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        mvc.perform(multipart("/speaker/{id}/photo", id)
+                .file(new MockMultipartFile("photo", "max.png", "image/png", new byte[]{1})));
+
+        String fragment = mvc.perform(post("/speaker/{id}/photo/remove", id))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst(".portrait").hasClass("placeholder")).isTrue();
+        assertThat(speakers.photoOf(id)).isEmpty();
+        mvc.perform(get("/speaker/{id}/photo", id)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deletingASpeakerTakesThePictureWithIt() throws Exception {
+        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        mvc.perform(multipart("/speaker/{id}/photo", id)
+                .file(new MockMultipartFile("photo", "max.png", "image/png", new byte[]{1})));
+
+        repository.deleteById(id);
+
+        assertThat(speakers.photoOf(id)).isEmpty();
     }
 
     @Test

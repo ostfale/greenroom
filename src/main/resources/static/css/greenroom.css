@@ -355,3 +355,58 @@ dt {
 dd {
     margin: 0;
 }
+
+.columns {
+    display: grid;
+    grid-template-columns: 15rem 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.photo form {
+    max-width: none;
+    margin-top: 1rem;
+    padding: 1rem;
+    gap: .75rem;
+}
+
+.photo input[type=file] {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    font-size: .75rem;
+}
+
+.portrait {
+    display: block;
+    width: 15rem;
+    height: 15rem;
+    object-fit: cover;
+    border: 1px solid var(--line);
+    border-radius: .375rem;
+    background: var(--surface);
+}
+
+.portrait.placeholder {
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    font-size: 4rem;
+    font-weight: 600;
+}
+
+ul.plain {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.details h2:first-of-type {
+    margin-top: 1.5rem;
+}
+
+@media (max-width: 40rem) {
+    .columns {
+        grid-template-columns: 1fr;
+    }
+}
