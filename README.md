@@ -1,6 +1,6 @@
 # greenroom
 
-[![build](https://github.com/ostfale/greenroom/actions/workflows/build.yml/badge.svg)](https://github.com/ostfale/greenroom/actions/workflows/build.yml)
+[![build](https://github.com/ostfale/greenroom/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/ostfale/greenroom/actions/workflows/build.yml)
 
 Planning tool for the Java User Group Hamburg. It replaces an Obsidian vault: one user,
 running in a container on a Raspberry Pi 5 in a home network, no authentication by design.
