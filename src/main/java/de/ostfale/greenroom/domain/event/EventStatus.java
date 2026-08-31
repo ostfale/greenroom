@@ -29,4 +29,28 @@ public enum EventStatus {
     public boolean isClosed() {
         return this == DONE || this == CANCELLED;
     }
+
+    /** From here on the evening has a date. A draft is a topic, and a topic has no date. */
+    public boolean requiresADate() {
+        return switch (this) {
+            case DATE_CONFIRMED, VENUE_CONFIRMED, PUBLISHED, DONE -> true;
+            case DRAFT, POSTPONED, CANCELLED -> false;
+        };
+    }
+
+    /** From here on somebody has said yes to hosting it. */
+    public boolean requiresAVenue() {
+        return switch (this) {
+            case VENUE_CONFIRMED, PUBLISHED, DONE -> true;
+            case DRAFT, DATE_CONFIRMED, POSTPONED, CANCELLED -> false;
+        };
+    }
+
+    /** From here on the announcement is out, so every talk carries a title and an abstract. */
+    public boolean requiresPublishableTalks() {
+        return switch (this) {
+            case PUBLISHED, DONE -> true;
+            case DRAFT, DATE_CONFIRMED, VENUE_CONFIRMED, POSTPONED, CANCELLED -> false;
+        };
+    }
 }

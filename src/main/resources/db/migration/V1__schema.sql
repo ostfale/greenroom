@@ -60,3 +60,52 @@ create table contact_person
 
 comment on column contact_person.email is
     'Not optional: a host who cannot be written to cannot be asked for the room.';
+
+create table event
+(
+    id          bigserial primary key,
+    date        date,
+    motto       text,
+    status      text   not null,
+    mode        text   not null,
+    location_id bigint references location (id)
+);
+
+comment on table event is
+    'One evening. Has no title: it is called by its motto, otherwise by the title of its talk.';
+
+comment on column event.date is
+    'Null while the evening is still a topic. A DRAFT has no date.';
+
+create table talk
+(
+    id            bigserial primary key,
+    event         bigint not null references event (id) on delete cascade,
+    event_key     int    not null,
+    title         text,
+    abstract_text text,
+    unique (event, event_key)
+);
+
+comment on column event.motto is
+    'Optional name for the evening, used when it carries several talks.';
+
+create table talk_speaker
+(
+    talk          bigint not null references talk (id) on delete cascade,
+    talk_key      int    not null,
+    speaker_id    bigint not null references speaker (id),
+    announced_bio text,
+    primary key (talk, talk_key)
+);
+
+comment on column talk_speaker.speaker_id is
+    'No cascade on purpose: a speaker who once gave a talk cannot be deleted.';
+
+create table tag
+(
+    event     bigint not null references event (id) on delete cascade,
+    event_key int    not null,
+    name      text   not null,
+    primary key (event, event_key)
+);
