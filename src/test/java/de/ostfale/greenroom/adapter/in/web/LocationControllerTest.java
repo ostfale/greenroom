@@ -1,6 +1,7 @@
 package de.ostfale.greenroom.adapter.in.web;
 
-import de.ostfale.greenroom.TestcontainersConfiguration;
+import de.ostfale.greenroom.TestDatabase;
+import de.ostfale.greenroom.WebTest;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.out.LocationRepository;
 import de.ostfale.greenroom.domain.location.Address;
@@ -12,11 +13,10 @@ import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static de.ostfale.greenroom.Fixtures.aContact;
+import static de.ostfale.greenroom.Fixtures.aLocation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -27,12 +27,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * The whole slice: browser request, controller, use case, real Postgres — and back as
  * rendered HTML. What is asserted is what the page actually shows.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@WebTest
 class LocationControllerTest {
-
-    private static final ContactPerson HOST = ContactPerson.of("Max Muster", "max@example.org");
 
     @Autowired
     private MockMvc mvc;
@@ -43,9 +39,12 @@ class LocationControllerTest {
     @Autowired
     private LocationRepository repository;
 
+    @Autowired
+    private TestDatabase database;
+
     @BeforeEach
     void emptyTheTable() {
-        repository.deleteAll();
+        database.empty();
     }
 
     @Test
@@ -143,8 +142,8 @@ class LocationControllerTest {
 
     @Test
     void theListShowsEveryLocationAlphabeticallyWithItsAddress() throws Exception {
-        locations.add(Location.of("Zeise Kinos", HOST).withAddress("Friedensallee 7", "22765", "Hamburg"));
-        locations.add(Location.of("Adobe Hamburg", HOST));
+        locations.add(Location.of("Zeise Kinos", aContact()).withAddress("Friedensallee 7", "22765", "Hamburg"));
+        locations.add(Location.of("Adobe Hamburg", aContact()));
 
         String html = mvc.perform(get("/location"))
                 .andExpect(status().isOk())
@@ -178,7 +177,7 @@ class LocationControllerTest {
 
     @Test
     void aNewAddressBringsItsOwnNumberOfSeats() throws Exception {
-        Long id = locations.add(Location.of("Kuehne + Nagel", HOST)
+        Long id = locations.add(Location.of("Kuehne + Nagel", aContact())
                 .movedTo(Address.at("Grosser Grasbrook 11", "20457", "Hamburg").withCapacity(40))).id();
 
         mvc.perform(post("/location/{id}/address", id)
@@ -196,7 +195,7 @@ class LocationControllerTest {
 
     @Test
     void theDetailPageShowsEveryAddressAndWhichOneCountsNow() throws Exception {
-        Long id = locations.add(Location.of("Kuehne + Nagel", HOST)
+        Long id = locations.add(Location.of("Kuehne + Nagel", aContact())
                 .withAddress("Grosser Grasbrook 11", "20457", "Hamburg")
                 .movedTo(Address.at("Neuer Weg 2", "20095", "Hamburg"))).id();
 
@@ -212,7 +211,7 @@ class LocationControllerTest {
 
     @Test
     void anAddressChangeAlsoBringsTheSummaryTileUpToDate() throws Exception {
-        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)
+        Long id = locations.add(aLocation()
                 .movedTo(Address.at("Musterweg 1", "22179", "Hamburg").withCapacity(60))).id();
 
         String fragment = mvc.perform(post("/location/{id}/address", id)
@@ -235,7 +234,7 @@ class LocationControllerTest {
 
     @Test
     void theFieldsForAFurtherAddressStayFoldedAway() throws Exception {
-        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)
+        Long id = locations.add(aLocation()
                 .withAddress("Musterweg 1", "22179", "Hamburg")).id();
 
         String html = mvc.perform(get("/location/{id}", id)).andExpect(status().isOk())
@@ -259,7 +258,7 @@ class LocationControllerTest {
 
     @Test
     void aMoveRetiresTheEarlierAddressAndComesBackAsTheBareList() throws Exception {
-        Long id = locations.add(Location.of("Kuehne + Nagel", HOST)
+        Long id = locations.add(Location.of("Kuehne + Nagel", aContact())
                 .withAddress("Grosser Grasbrook 11", "20457", "Hamburg")).id();
 
         String fragment = mvc.perform(post("/location/{id}/address", id)
@@ -280,7 +279,7 @@ class LocationControllerTest {
 
     @Test
     void withoutTheMovedFlagTheSecondAddressIsASecondSite() throws Exception {
-        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)
+        Long id = locations.add(aLocation()
                 .withAddress("Musterweg 1", "22179", "Hamburg")).id();
 
         mvc.perform(post("/location/{id}/address", id)
@@ -295,7 +294,7 @@ class LocationControllerTest {
 
     @Test
     void anAddressWithoutStreetOrTownSaysSoAndChangesNothing() throws Exception {
-        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)
+        Long id = locations.add(aLocation()
                 .withAddress("Musterweg 1", "22179", "Hamburg")).id();
 
         String fragment = mvc.perform(post("/location/{id}/address", id)
@@ -312,7 +311,7 @@ class LocationControllerTest {
 
     @Test
     void anAddressCanBeStilledAndWokenUpAgain() throws Exception {
-        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)
+        Long id = locations.add(aLocation()
                 .withAddress("Musterweg 1", "22179", "Hamburg")).id();
 
         mvc.perform(post("/location/{id}/address/{position}", id, 0).param("active", "false"))
@@ -326,7 +325,7 @@ class LocationControllerTest {
 
     @Test
     void theListLinksToTheDetailPage() throws Exception {
-        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)).id();
+        Long id = locations.add(aLocation()).id();
 
         String html = mvc.perform(get("/location")).andReturn().getResponse().getContentAsString();
 
@@ -338,7 +337,7 @@ class LocationControllerTest {
 
     @Test
     void aContactCanBeAddedOnTheDetailPage() throws Exception {
-        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)).id();
+        Long id = locations.add(aLocation()).id();
 
         String fragment = mvc.perform(post("/location/{id}/contact", id)
                         .param("contactName", "Anna Albers")
@@ -355,7 +354,7 @@ class LocationControllerTest {
 
     @Test
     void aContactCanBeChangedInPlace() throws Exception {
-        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)).id();
+        Long id = locations.add(aLocation()).id();
 
         mvc.perform(post("/location/{id}/contact/{position}", id, 0)
                         .param("contactName", "Max Muster")
@@ -372,7 +371,7 @@ class LocationControllerTest {
 
     @Test
     void aContactCanBeRemovedAsLongAsOneIsLeft() throws Exception {
-        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)
+        Long id = locations.add(aLocation()
                 .withAdditionalContact(ContactPerson.of("Anna Albers", "anna@example.org"))).id();
 
         mvc.perform(post("/location/{id}/contact/{position}/remove", id, 0))
@@ -384,7 +383,7 @@ class LocationControllerTest {
 
     @Test
     void theLastContactIsRefusedWithAReasonAndNothingChanges() throws Exception {
-        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)).id();
+        Long id = locations.add(aLocation()).id();
 
         String fragment = mvc.perform(post("/location/{id}/contact/{position}/remove", id, 0))
                 .andExpect(status().isOk())
@@ -397,7 +396,7 @@ class LocationControllerTest {
 
     @Test
     void aContactWithoutAnAddressIsRefused() throws Exception {
-        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)).id();
+        Long id = locations.add(aLocation()).id();
 
         String fragment = mvc.perform(post("/location/{id}/contact", id)
                         .param("contactName", "Anna Albers")
@@ -413,7 +412,7 @@ class LocationControllerTest {
 
     @Test
     void theDetailPageOffersOneFormPerContactAndFoldsAwayTheOneToAdd() throws Exception {
-        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)
+        Long id = locations.add(aLocation()
                 .withAdditionalContact(ContactPerson.of("Anna Albers", "anna@example.org"))).id();
 
         String html = mvc.perform(get("/location/{id}", id)).andExpect(status().isOk())
@@ -434,8 +433,8 @@ class LocationControllerTest {
 
     @Test
     void theSearchNarrowsTheList() throws Exception {
-        locations.add(Location.of("Zeise Kinos", HOST).withAddress(null, null, "Hamburg"));
-        locations.add(Location.of("Adobe", HOST).withAddress(null, null, "Lüneburg"));
+        locations.add(Location.of("Zeise Kinos", aContact()).withAddress(null, null, "Hamburg"));
+        locations.add(Location.of("Adobe", aContact()).withAddress(null, null, "Lüneburg"));
 
         String html = mvc.perform(get("/location").param("search", "zeise"))
                 .andExpect(status().isOk())
@@ -447,7 +446,7 @@ class LocationControllerTest {
 
     @Test
     void anHtmxRequestGetsTheBareTableAndNoPageAroundIt() throws Exception {
-        locations.add(Location.of("Zeise Kinos", HOST));
+        locations.add(Location.of("Zeise Kinos", aContact()));
 
         String fragment = mvc.perform(get("/location").header("HX-Request", "true"))
                 .andExpect(status().isOk())

@@ -5,17 +5,17 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static de.ostfale.greenroom.Fixtures.aContact;
+import static de.ostfale.greenroom.Fixtures.aLocation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Plain Java, no Spring: that is the point of keeping the rules in the records. */
 class LocationTest {
 
-    private static final ContactPerson HOST = ContactPerson.of("Max Muster", "max@example.org");
-
     @Test
     void aLocationNeedsAName() {
-        assertThatThrownBy(() -> Location.of("  ", HOST))
+        assertThatThrownBy(() -> Location.of("  ", aContact()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("name");
     }
@@ -33,7 +33,7 @@ class LocationTest {
 
     @Test
     void theContactPersonCannotBeTakenAwayAgain() {
-        assertThatThrownBy(() -> Location.of("Musterfirma GmbH", HOST).withContacts(List.of()))
+        assertThatThrownBy(() -> aLocation().withContacts(List.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("contact person");
     }
@@ -51,7 +51,7 @@ class LocationTest {
 
     @Test
     void theAddressMayStillBeMissing() {
-        Location location = Location.of("Musterfirma GmbH", HOST);
+        Location location = aLocation();
 
         assertThat(location.addresses()).isEmpty();
         assertThat(location.currentAddress()).isNull();
@@ -60,7 +60,7 @@ class LocationTest {
 
     @Test
     void theAddressLineLeavesOutWhatIsNotKnownYet() {
-        Location location = Location.of("Musterfirma GmbH", HOST);
+        Location location = aLocation();
 
         assertThat(location.withAddress("Musterweg 1", "22179", "Hamburg").addressLine())
                 .isEqualTo("Musterweg 1, 22179 Hamburg");
@@ -72,7 +72,7 @@ class LocationTest {
 
     @Test
     void theSeatsBelongToTheAddress() {
-        Location location = Location.of("Musterfirma GmbH", HOST);
+        Location location = aLocation();
 
         assertThat(location.currentCapacity()).isNull();
         assertThat(location.withAddress("Musterweg 1", "22179", "Hamburg").currentCapacity()).isNull();
@@ -93,7 +93,7 @@ class LocationTest {
 
     @Test
     void aMoveCanBringADifferentNumberOfSeats() {
-        Location location = Location.of("Kuehne + Nagel", HOST)
+        Location location = Location.of("Kuehne + Nagel", aContact())
                 .movedTo(Address.at("Grosser Grasbrook 11", "20457", "Hamburg").withCapacity(40))
                 .movedTo(Address.at("Neuer Weg 2", "20095", "Hamburg").withCapacity(120));
 
@@ -103,7 +103,7 @@ class LocationTest {
 
     @Test
     void blankOptionalFieldsBecomeNull() {
-        Location location = Location.of("Musterfirma GmbH", HOST)
+        Location location = aLocation()
                 .withAddress("  ", "", "Hamburg")
                 .withNotes(" ");
 
@@ -114,7 +114,7 @@ class LocationTest {
 
     @Test
     void surroundingWhitespaceIsStripped() {
-        Location location = Location.of("  Musterfirma GmbH ", HOST)
+        Location location = Location.of("  Musterfirma GmbH ", aContact())
                 .withAddress(" Musterweg 1 ", null, " Hamburg ");
 
         assertThat(location.name()).isEqualTo("Musterfirma GmbH");
@@ -133,7 +133,7 @@ class LocationTest {
 
     @Test
     void movingRetiresTheEarlierAddressInsteadOfDeletingIt() {
-        Location location = Location.of("Kuehne + Nagel", HOST)
+        Location location = Location.of("Kuehne + Nagel", aContact())
                 .withAddress("Grosser Grasbrook 11", "20457", "Hamburg")
                 .movedTo(Address.at("Neuer Weg 2", "20095", "Hamburg"));
 
@@ -146,7 +146,7 @@ class LocationTest {
 
     @Test
     void aSecondSiteDoesNotRetireTheFirst() {
-        Location location = Location.of("Musterfirma GmbH", HOST)
+        Location location = aLocation()
                 .withAddress("Musterweg 1", "22179", "Hamburg")
                 .withAdditionalAddress(Address.at("Zweigweg 5", "21073", "Hamburg"));
 
@@ -156,7 +156,7 @@ class LocationTest {
 
     @Test
     void anAddressCanBeSwitchedOffAndOnAgain() {
-        Location location = Location.of("Musterfirma GmbH", HOST)
+        Location location = aLocation()
                 .withAddress("Musterweg 1", "22179", "Hamburg");
 
         Location quiet = location.withAddressActive(0, false);
@@ -169,7 +169,7 @@ class LocationTest {
 
     @Test
     void thereIsNoAddressAtAPositionThatDoesNotExist() {
-        Location location = Location.of("Musterfirma GmbH", HOST);
+        Location location = aLocation();
 
         assertThatThrownBy(() -> location.withAddressActive(0, false))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -180,7 +180,7 @@ class LocationTest {
 
     @Test
     void aContactCanBeAddedAndChanged() {
-        Location location = Location.of("Musterfirma GmbH", HOST)
+        Location location = aLocation()
                 .withAdditionalContact(ContactPerson.of("Anna Albers", "anna@example.org"));
 
         assertThat(location.contacts()).extracting(ContactPerson::name)
@@ -194,7 +194,7 @@ class LocationTest {
 
     @Test
     void aContactCanBeRemovedAsLongAsOneIsLeft() {
-        Location location = Location.of("Musterfirma GmbH", HOST)
+        Location location = aLocation()
                 .withAdditionalContact(ContactPerson.of("Anna Albers", "anna@example.org"));
 
         assertThat(location.withContactRemoved(0).contacts())
@@ -204,7 +204,7 @@ class LocationTest {
 
     @Test
     void theLastContactCannotBeRemoved() {
-        Location location = Location.of("Musterfirma GmbH", HOST);
+        Location location = aLocation();
 
         assertThatThrownBy(() -> location.withContactRemoved(0))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -213,22 +213,22 @@ class LocationTest {
 
     @Test
     void thereIsNoContactAtAPositionThatDoesNotExist() {
-        Location location = Location.of("Musterfirma GmbH", HOST);
+        Location location = aLocation();
 
         assertThatThrownBy(() -> location.withContactRemoved(3))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("position");
-        assertThatThrownBy(() -> location.withContactChanged(3, HOST))
+        assertThatThrownBy(() -> location.withContactChanged(3, aContact()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("position");
     }
 
     @Test
     void contactsAreNeverSharedWithTheCaller() {
-        List<ContactPerson> mutable = new ArrayList<>(List.of(HOST));
-        Location location = Location.of("Musterfirma GmbH", HOST).withContacts(mutable);
+        List<ContactPerson> mutable = new ArrayList<>(List.of(aContact()));
+        Location location = aLocation().withContacts(mutable);
         mutable.clear();
 
-        assertThat(location.contacts()).containsExactly(HOST);
+        assertThat(location.contacts()).containsExactly(aContact());
     }
 }

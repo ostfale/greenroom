@@ -2,26 +2,23 @@ package de.ostfale.greenroom.domain.event;
 
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import static de.ostfale.greenroom.Fixtures.EVENING;
+import static de.ostfale.greenroom.Fixtures.aReadyTalk;
+import static de.ostfale.greenroom.Fixtures.aTalk;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Plain Java, no Spring: the evening carries its own rules. */
 class EventTest {
 
-    private static final LocalDate EVENING = LocalDate.of(2026, 9, 24);
-
-    private static Talk readyTalk() {
-        return Talk.by(TalkSpeaker.of(1L))
-                .withTitle("Records in Java 25")
-                .withAbstract("Warum Records mehr sind als weniger Tippen.");
-    }
+    /** Any stored speaker will do here — the evening is what is under test. */
+    private static final Long SPEAKER = 1L;
 
     private static Event published() {
-        return Event.draftFor(readyTalk())
+        return Event.draftFor(aReadyTalk(SPEAKER))
                 .withDate(EVENING)
                 .moveTo(EventStatus.DATE_CONFIRMED)
                 .withLocation(7L)
@@ -33,7 +30,7 @@ class EventTest {
 
     @Test
     void aTopicIsADraftWithoutADateOrAVenue() {
-        Event event = Event.draftFor(Talk.by(TalkSpeaker.of(1L)));
+        Event event = Event.draftFor(aTalk(SPEAKER));
 
         assertThat(event.status()).isEqualTo(EventStatus.DRAFT);
         assertThat(event.date()).isNull();
@@ -50,7 +47,7 @@ class EventTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("talk");
 
-        assertThatThrownBy(() -> Event.draftFor(readyTalk()).withTalks(List.of()))
+        assertThatThrownBy(() -> Event.draftFor(aReadyTalk(SPEAKER)).withTalks(List.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("talk");
     }
@@ -59,7 +56,7 @@ class EventTest {
 
     @Test
     void aConfirmedDateCannotBeMissing() {
-        Event topic = Event.draftFor(readyTalk());
+        Event topic = Event.draftFor(aReadyTalk(SPEAKER));
 
         assertThatThrownBy(() -> topic.moveTo(EventStatus.DATE_CONFIRMED))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -68,7 +65,7 @@ class EventTest {
 
     @Test
     void theDateCannotBeTakenAwayFromASettledEvening() {
-        Event settled = Event.draftFor(readyTalk()).withDate(EVENING).moveTo(EventStatus.DATE_CONFIRMED);
+        Event settled = Event.draftFor(aReadyTalk(SPEAKER)).withDate(EVENING).moveTo(EventStatus.DATE_CONFIRMED);
 
         assertThatThrownBy(() -> settled.withDate(null))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -77,7 +74,7 @@ class EventTest {
 
     @Test
     void aConfirmedVenueCannotBeMissing() {
-        Event settled = Event.draftFor(readyTalk()).withDate(EVENING).moveTo(EventStatus.DATE_CONFIRMED);
+        Event settled = Event.draftFor(aReadyTalk(SPEAKER)).withDate(EVENING).moveTo(EventStatus.DATE_CONFIRMED);
 
         assertThatThrownBy(() -> settled.moveTo(EventStatus.VENUE_CONFIRMED))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -86,12 +83,12 @@ class EventTest {
 
     @Test
     void anAnnouncedEveningNeedsATitleAndAnAbstractOnEveryTalk() {
-        Event hosted = Event.draftFor(readyTalk())
+        Event hosted = Event.draftFor(aReadyTalk(SPEAKER))
                 .withDate(EVENING)
                 .moveTo(EventStatus.DATE_CONFIRMED)
                 .withLocation(7L)
                 .moveTo(EventStatus.VENUE_CONFIRMED)
-                .withAdditionalTalk(Talk.by(TalkSpeaker.of(2L)).withTitle("Ohne Abstract"));
+                .withAdditionalTalk(aTalk(2L).withTitle("Ohne Abstract"));
 
         assertThat(hosted.allTalksAreReadyToPublish()).isFalse();
         assertThatThrownBy(() -> hosted.moveTo(EventStatus.PUBLISHED))
@@ -109,7 +106,7 @@ class EventTest {
 
     @Test
     void aStepTheStateMachineForbidsIsRefused() {
-        Event topic = Event.draftFor(readyTalk());
+        Event topic = Event.draftFor(aReadyTalk(SPEAKER));
 
         assertThatThrownBy(() -> topic.moveTo(EventStatus.PUBLISHED))
                 .isInstanceOf(IllegalStateException.class)
@@ -121,7 +118,7 @@ class EventTest {
 
     @Test
     void aTopicThatCameToNothingIsCancelledWithoutADate() {
-        Event dropped = Event.draftFor(Talk.by(TalkSpeaker.of(1L))).moveTo(EventStatus.CANCELLED);
+        Event dropped = Event.draftFor(aTalk(SPEAKER)).moveTo(EventStatus.CANCELLED);
 
         assertThat(dropped.status()).isEqualTo(EventStatus.CANCELLED);
         assertThat(dropped.date()).isNull();
@@ -131,34 +128,34 @@ class EventTest {
 
     @Test
     void theMottoNamesTheEveningWhenThereIsOne() {
-        Event event = Event.draftFor(readyTalk()).withMotto("Java-Herbst");
+        Event event = Event.draftFor(aReadyTalk(SPEAKER)).withMotto("Java-Herbst");
 
         assertThat(event.displayName()).isEqualTo("Java-Herbst");
     }
 
     @Test
     void withoutAMottoTheTalkNamesTheEvening() {
-        assertThat(Event.draftFor(readyTalk()).displayName()).isEqualTo("Records in Java 25");
+        assertThat(Event.draftFor(aReadyTalk(SPEAKER)).displayName()).isEqualTo("Records in Java 25");
     }
 
     @Test
     void aTopicWithoutATitleHasNoNameYet() {
-        assertThat(Event.draftFor(Talk.by(TalkSpeaker.of(1L))).displayName()).isNull();
+        assertThat(Event.draftFor(aTalk(SPEAKER)).displayName()).isNull();
     }
 
     @Test
     void severalTalksMakeItASpecialDay() {
-        Event event = Event.draftFor(readyTalk());
+        Event event = Event.draftFor(aReadyTalk(SPEAKER));
 
         assertThat(event.hasSeveralTalks()).isFalse();
-        assertThat(event.withAdditionalTalk(Talk.by(TalkSpeaker.of(2L))).hasSeveralTalks()).isTrue();
+        assertThat(event.withAdditionalTalk(aTalk(2L)).hasSeveralTalks()).isTrue();
     }
 
     // --- tags -----------------------------------------------------------------------
 
     @Test
     void theKeywordsAreCopiedOntoTheEveningNotReferenced() {
-        Event event = Event.draftFor(readyTalk()).withTags(List.of("Java", "Records"));
+        Event event = Event.draftFor(aReadyTalk(SPEAKER)).withTags(List.of("Java", "Records"));
 
         assertThat(event.tags()).containsExactly("Java", "Records");
         assertThat(event.carries("java")).isTrue();
@@ -167,7 +164,7 @@ class EventTest {
 
     @Test
     void theSameKeywordCannotBeOnTheEveningTwice() {
-        Event event = Event.draftFor(readyTalk());
+        Event event = Event.draftFor(aReadyTalk(SPEAKER));
 
         assertThatThrownBy(() -> event.withTags(List.of("Spring", "spring")))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -176,7 +173,7 @@ class EventTest {
 
     @Test
     void aKeywordIsAWordOrItIsNotThere() {
-        Event event = Event.draftFor(readyTalk());
+        Event event = Event.draftFor(aReadyTalk(SPEAKER));
 
         assertThatThrownBy(() -> event.withTags(List.of("  ")))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -187,7 +184,7 @@ class EventTest {
     @Test
     void tagsAreNeverSharedWithTheCaller() {
         List<String> mutable = new ArrayList<>(List.of("Java"));
-        Event event = Event.draftFor(readyTalk()).withTags(mutable);
+        Event event = Event.draftFor(aReadyTalk(SPEAKER)).withTags(mutable);
         mutable.clear();
 
         assertThat(event.tags()).containsExactly("Java");
@@ -197,12 +194,12 @@ class EventTest {
 
     @Test
     void aBlankMottoIsNoMotto() {
-        assertThat(Event.draftFor(readyTalk()).withMotto("  ").motto()).isNull();
+        assertThat(Event.draftFor(aReadyTalk(SPEAKER)).withMotto("  ").motto()).isNull();
     }
 
     @Test
     void theModeIsKeptForTheImportedYears() {
-        Event online = Event.draftFor(readyTalk()).withMode(EventMode.ONLINE);
+        Event online = Event.draftFor(aReadyTalk(SPEAKER)).withMode(EventMode.ONLINE);
 
         assertThat(online.mode()).isEqualTo(EventMode.ONLINE);
     }

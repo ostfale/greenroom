@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.application.port.out;
 
+import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.TestcontainersConfiguration;
 import de.ostfale.greenroom.domain.speaker.Speaker;
 import de.ostfale.greenroom.domain.speaker.SpeakerLink;
@@ -12,6 +13,7 @@ import org.springframework.context.annotation.Import;
 
 import java.util.List;
 
+import static de.ostfale.greenroom.Fixtures.aSpeaker;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Against a real Postgres — the mapping of the link list is the part worth proving. */
@@ -23,14 +25,17 @@ class SpeakerRepositoryTest {
     @Autowired
     private SpeakerRepository speakers;
 
+    @Autowired
+    private TestDatabase database;
+
     @BeforeEach
     void emptyTheTable() {
-        speakers.deleteAll();
+        database.empty();
     }
 
     @Test
     void storesAndReadsBackASpeaker() {
-        Speaker saved = speakers.save(Speaker.of("Max Muster", "max@example.org")
+        Speaker saved = speakers.save(aSpeaker()
                 .withContact("Musterfirma GmbH", "max@example.org", null)
                 .withBio("Schreibt Java, seit es Generics gibt."));
 
@@ -46,7 +51,7 @@ class SpeakerRepositoryTest {
 
     @Test
     void keepsTheOrderOfTheLinks() {
-        Speaker saved = speakers.save(Speaker.of("Max Muster", "max@example.org").withLinks(List.of(
+        Speaker saved = speakers.save(aSpeaker().withLinks(List.of(
                 new SpeakerLink("https://example.org", "Blog"),
                 SpeakerLink.of("https://example.org/talk"))));
 
@@ -61,7 +66,7 @@ class SpeakerRepositoryTest {
 
     @Test
     void replacingTheLinksLeavesNoOrphansBehind() {
-        Speaker saved = speakers.save(Speaker.of("Max Muster", "max@example.org")
+        Speaker saved = speakers.save(aSpeaker()
                 .withLinks(List.of(SpeakerLink.of("https://example.org"))));
 
         Speaker updated = speakers.save(saved.withLinks(List.of(SpeakerLink.of("https://example.com"))));
@@ -73,7 +78,7 @@ class SpeakerRepositoryTest {
 
     @Test
     void deletingASpeakerTakesTheLinksWithIt() {
-        Speaker saved = speakers.save(Speaker.of("Max Muster", "max@example.org")
+        Speaker saved = speakers.save(aSpeaker()
                 .withLinks(List.of(SpeakerLink.of("https://example.org"))));
 
         speakers.deleteById(saved.id());

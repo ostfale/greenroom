@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.application.port.out;
 
+import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.TestcontainersConfiguration;
 import de.ostfale.greenroom.domain.event.Event;
 import de.ostfale.greenroom.domain.event.EventStatus;
@@ -16,9 +17,11 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 
-import java.time.LocalDate;
 import java.util.List;
 
+import static de.ostfale.greenroom.Fixtures.EVENING;
+import static de.ostfale.greenroom.Fixtures.aReadyTalk;
+import static de.ostfale.greenroom.Fixtures.aSpeaker;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -30,8 +33,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(TestcontainersConfiguration.class)
 class EventRepositoryTest {
-
-    private static final LocalDate EVENING = LocalDate.of(2026, 9, 24);
 
     @Autowired
     private EventRepository events;
@@ -47,23 +48,21 @@ class EventRepositoryTest {
 
     // Nothing is committed: @DataJdbcTest rolls every test back, so the events never
     // outlive their test and the other repository tests still find empty tables.
+    @Autowired
+    private TestDatabase database;
+
     @BeforeEach
     void aSpeakerAndAVenueToPointAt() {
-        speakerId = speakers.save(Speaker.of("Max Muster", "max@example.org")
+        database.empty();
+        speakerId = speakers.save(aSpeaker()
                 .withBio("Schreibt Java, seit es Generics gibt.")).id();
         locationId = locations.save(Location.of("Musterfirma GmbH",
                 ContactPerson.of("Anna Albers", "anna@example.org"))).id();
     }
 
-    private Talk readyTalk() {
-        return Talk.by(TalkSpeaker.of(speakerId))
-                .withTitle("Records in Java 25")
-                .withAbstract("Warum Records mehr sind als weniger Tippen.");
-    }
-
     @Test
     void storesAndReadsBackAWholeEvening() {
-        Event saved = events.save(Event.draftFor(readyTalk())
+        Event saved = events.save(Event.draftFor(aReadyTalk(speakerId))
                 .withDate(EVENING)
                 .withMotto("Java-Herbst")
                 .withTags(List.of("Java", "Records"))
@@ -94,7 +93,7 @@ class EventRepositoryTest {
     void keepsTheOrderOfTheTalksAndOfTheirSpeakers() {
         Long second = speakers.save(Speaker.of("Zoe Zimmer", "zoe@example.org")).id();
 
-        Event saved = events.save(Event.draftFor(readyTalk())
+        Event saved = events.save(Event.draftFor(aReadyTalk(speakerId))
                 .withAdditionalTalk(Talk.by(TalkSpeaker.of(second))
                         .withAdditionalSpeaker(TalkSpeaker.of(speakerId))
                         .withTitle("Zweiter Vortrag")));
@@ -123,7 +122,7 @@ class EventRepositoryTest {
 
     @Test
     void replacingTheTalksLeavesNoOrphansBehind() {
-        Event saved = events.save(Event.draftFor(readyTalk()));
+        Event saved = events.save(Event.draftFor(aReadyTalk(speakerId)));
 
         Event updated = events.save(saved.withTalks(
                 List.of(Talk.by(TalkSpeaker.of(speakerId)).withTitle("Doch etwas anderes"))));
@@ -135,7 +134,7 @@ class EventRepositoryTest {
 
     @Test
     void deletingAnEveningTakesItsTalksWithIt() {
-        Event saved = events.save(Event.draftFor(readyTalk()));
+        Event saved = events.save(Event.draftFor(aReadyTalk(speakerId)));
 
         events.deleteById(saved.id());
 
@@ -145,7 +144,7 @@ class EventRepositoryTest {
 
     @Test
     void aSpeakerWhoOnceGaveATalkCannotBeDeleted() {
-        events.save(Event.draftFor(readyTalk()));
+        events.save(Event.draftFor(aReadyTalk(speakerId)));
 
         assertThatThrownBy(() -> speakers.deleteById(speakerId))
                 .isInstanceOf(DataIntegrityViolationException.class);
@@ -153,9 +152,9 @@ class EventRepositoryTest {
 
     @Test
     void listsTheNewestEveningFirstAndTheTopicsWithoutADateLast() {
-        events.save(Event.draftFor(readyTalk()).withDate(EVENING.minusMonths(1)));
-        events.save(Event.draftFor(readyTalk()).withDate(EVENING));
-        events.save(Event.draftFor(readyTalk()).withMotto("Noch ohne Termin"));
+        events.save(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING.minusMonths(1)));
+        events.save(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING));
+        events.save(Event.draftFor(aReadyTalk(speakerId)).withMotto("Noch ohne Termin"));
 
         assertThat(events.allNewestFirst()).extracting(Event::date)
                 .containsExactly(EVENING, EVENING.minusMonths(1), null);
@@ -163,9 +162,9 @@ class EventRepositoryTest {
 
     @Test
     void findsEverythingPlannedForOneEvening() {
-        events.save(Event.draftFor(readyTalk()).withDate(EVENING).withMotto("Erster"));
-        events.save(Event.draftFor(readyTalk()).withDate(EVENING).withMotto("Zweiter"));
-        events.save(Event.draftFor(readyTalk()).withDate(EVENING.plusDays(1)));
+        events.save(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING).withMotto("Erster"));
+        events.save(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING).withMotto("Zweiter"));
+        events.save(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING.plusDays(1)));
 
         assertThat(events.findByDate(EVENING)).extracting(Event::motto)
                 .containsExactlyInAnyOrder("Erster", "Zweiter");

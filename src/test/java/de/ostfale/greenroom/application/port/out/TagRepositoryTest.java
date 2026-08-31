@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.application.port.out;
 
+import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.TestcontainersConfiguration;
 import de.ostfale.greenroom.domain.tag.Tag;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,9 +23,12 @@ class TagRepositoryTest {
     @Autowired
     private TagRepository tags;
 
+    @Autowired
+    private TestDatabase database;
+
     @BeforeEach
     void emptyTheTable() {
-        tags.deleteAll();
+        database.empty();
     }
 
     @Test

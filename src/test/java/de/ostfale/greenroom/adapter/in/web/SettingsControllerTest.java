@@ -1,17 +1,14 @@
 package de.ostfale.greenroom.adapter.in.web;
 
-import de.ostfale.greenroom.TestcontainersConfiguration;
+import de.ostfale.greenroom.TestDatabase;
+import de.ostfale.greenroom.WebTest;
 import de.ostfale.greenroom.application.port.in.ManageTags;
-import de.ostfale.greenroom.application.port.out.TagRepository;
 import de.ostfale.greenroom.domain.tag.Tag;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,9 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * The whole slice: browser request, controller, use case, real Postgres — and back as
  * rendered HTML. What is asserted is what the page actually shows.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@WebTest
 class SettingsControllerTest {
 
     @Autowired
@@ -36,11 +31,11 @@ class SettingsControllerTest {
     private ManageTags tags;
 
     @Autowired
-    private TagRepository tagRepository;
+    private TestDatabase database;
 
     @BeforeEach
     void emptyTheList() {
-        tagRepository.deleteAll();
+        database.empty();
     }
 
     @Test

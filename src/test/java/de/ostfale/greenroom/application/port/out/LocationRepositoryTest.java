@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.application.port.out;
 
+import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.TestcontainersConfiguration;
 import de.ostfale.greenroom.domain.location.Address;
 import de.ostfale.greenroom.domain.location.ContactPerson;
@@ -13,6 +14,8 @@ import org.springframework.context.annotation.Import;
 
 import java.util.List;
 
+import static de.ostfale.greenroom.Fixtures.aContact;
+import static de.ostfale.greenroom.Fixtures.aLocation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Against a real Postgres — the mapping of the contact list is the part worth proving. */
@@ -21,19 +24,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(TestcontainersConfiguration.class)
 class LocationRepositoryTest {
 
-    private static final ContactPerson HOST = ContactPerson.of("Max Muster", "max@example.org");
-
     @Autowired
     private LocationRepository locations;
 
+    @Autowired
+    private TestDatabase database;
+
     @BeforeEach
     void emptyTheTable() {
-        locations.deleteAll();
+        database.empty();
     }
 
     @Test
     void storesAndReadsBackALocation() {
-        Location saved = locations.save(Location.of("Musterfirma GmbH", HOST)
+        Location saved = locations.save(aLocation()
                 .movedTo(Address.at("Musterweg 1", "22179", "Hamburg").withCapacity(80))
                 .withNotes("Parken im Hof, Beamer vorhanden."));
 
@@ -48,7 +52,7 @@ class LocationRepositoryTest {
 
     @Test
     void keepsTheOrderOfTheContacts() {
-        Location saved = locations.save(Location.of("Musterfirma GmbH", HOST).withContacts(List.of(
+        Location saved = locations.save(aLocation().withContacts(List.of(
                 new ContactPerson("Anna Albers", "anna@example.org", "040 123456"),
                 ContactPerson.of("Zoe Zimmer", "zoe@example.org"))));
 
@@ -62,7 +66,7 @@ class LocationRepositoryTest {
 
     @Test
     void replacingTheContactsLeavesNoOrphansBehind() {
-        Location saved = locations.save(Location.of("Musterfirma GmbH", HOST));
+        Location saved = locations.save(aLocation());
 
         Location updated = locations.save(saved.withContacts(
                 List.of(ContactPerson.of("Anna Albers", "anna@example.org"))));
@@ -74,7 +78,7 @@ class LocationRepositoryTest {
 
     @Test
     void deletingALocationTakesTheContactsWithIt() {
-        Location saved = locations.save(Location.of("Musterfirma GmbH", HOST));
+        Location saved = locations.save(aLocation());
 
         locations.deleteById(saved.id());
 
@@ -83,7 +87,7 @@ class LocationRepositoryTest {
 
     @Test
     void keepsEveryAddressAPlaceEverHadAndRemembersWhichOneCountsNow() {
-        Location saved = locations.save(Location.of("Kühne + Nagel", HOST)
+        Location saved = locations.save(Location.of("Kühne + Nagel", aContact())
                 .withAddress("Großer Grasbrook 11", "20457", "Hamburg")
                 .movedTo(Address.at("Neuer Weg 2", "20095", "Hamburg")));
 
@@ -98,7 +102,7 @@ class LocationRepositoryTest {
 
     @Test
     void aPlaceCanHaveTwoActiveSites() {
-        Location saved = locations.save(Location.of("Musterfirma GmbH", HOST)
+        Location saved = locations.save(aLocation()
                 .withAddress("Musterweg 1", "22179", "Hamburg")
                 .withAdditionalAddress(Address.at("Zweigweg 5", "21073", "Hamburg")));
 
@@ -109,7 +113,7 @@ class LocationRepositoryTest {
 
     @Test
     void deletingALocationTakesTheAddressesWithIt() {
-        Location saved = locations.save(Location.of("Musterfirma GmbH", HOST)
+        Location saved = locations.save(aLocation()
                 .withAddress("Musterweg 1", "22179", "Hamburg"));
 
         locations.deleteById(saved.id());
@@ -119,8 +123,8 @@ class LocationRepositoryTest {
 
     @Test
     void listsAlphabetically() {
-        locations.save(Location.of("Zeise Kinos", HOST));
-        locations.save(Location.of("Adobe Hamburg", HOST));
+        locations.save(Location.of("Zeise Kinos", aContact()));
+        locations.save(Location.of("Adobe Hamburg", aContact()));
 
         assertThat(locations.findAllByOrderByNameAsc())
                 .extracting(Location::name)
@@ -129,8 +133,8 @@ class LocationRepositoryTest {
 
     @Test
     void searchesNameAndTownIgnoringCase() {
-        locations.save(Location.of("Zeise Kinos", HOST).withAddress(null, null, "Hamburg"));
-        locations.save(Location.of("Adobe", HOST).withAddress(null, null, "Lüneburg"));
+        locations.save(Location.of("Zeise Kinos", aContact()).withAddress(null, null, "Hamburg"));
+        locations.save(Location.of("Adobe", aContact()).withAddress(null, null, "Lüneburg"));
 
         assertThat(locations.search("zeise")).extracting(Location::name).containsExactly("Zeise Kinos");
         assertThat(locations.search("LÜNEBURG")).extracting(Location::name).containsExactly("Adobe");

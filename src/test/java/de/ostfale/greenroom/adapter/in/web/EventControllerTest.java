@@ -1,11 +1,11 @@
 package de.ostfale.greenroom.adapter.in.web;
 
-import de.ostfale.greenroom.TestcontainersConfiguration;
+import de.ostfale.greenroom.TestDatabase;
+import de.ostfale.greenroom.WebTest;
 import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.out.EventRepository;
-import de.ostfale.greenroom.application.port.out.LocationRepository;
 import de.ostfale.greenroom.application.port.out.SpeakerRepository;
 import de.ostfale.greenroom.domain.event.Event;
 import de.ostfale.greenroom.domain.event.EventStatus;
@@ -16,18 +16,14 @@ import de.ostfale.greenroom.domain.location.Location;
 import de.ostfale.greenroom.domain.speaker.Speaker;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDate;
-import java.util.List;
-
+import static de.ostfale.greenroom.Fixtures.EVENING;
+import static de.ostfale.greenroom.Fixtures.aReadyTalk;
+import static de.ostfale.greenroom.Fixtures.aSpeaker;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -38,12 +34,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * The whole slice: browser request, controller, use case, real Postgres — and back as
  * rendered HTML. What is asserted is what the page actually shows.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@WebTest
 class EventControllerTest {
-
-    private static final LocalDate EVENING = LocalDate.of(2026, 9, 24);
 
     @Autowired
     private MockMvc mvc;
@@ -63,32 +55,15 @@ class EventControllerTest {
     @Autowired
     private SpeakerRepository speakerRepository;
 
-    @Autowired
-    private LocationRepository locationRepository;
-
     private Long speakerId;
+
+    @Autowired
+    private TestDatabase database;
 
     @BeforeEach
     void aSpeakerToPointAt() {
-        eventRepository.deleteAll();
-        speakerRepository.deleteAll();
-        locationRepository.deleteAll();
-        speakerId = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
-    }
-
-    /**
-     * @SpringBootTest commits for real, so the events have to go before another test tries
-     * to empty the speaker table — a speaker who gave a talk cannot be deleted.
-     */
-    @AfterEach
-    void leaveNoEventsBehind() {
-        eventRepository.deleteAll();
-    }
-
-    private Talk readyTalk() {
-        return Talk.by(TalkSpeaker.of(speakerId))
-                .withTitle("Records in Java 25")
-                .withAbstract("Warum Records mehr sind als weniger Tippen.");
+        database.empty();
+        speakerId = speakers.add(aSpeaker()).id();
     }
 
     @Test
@@ -182,7 +157,7 @@ class EventControllerTest {
     void theListShowsDateNameStatusAndVenue() throws Exception {
         Long locationId = locations.add(Location.of("Musterfirma GmbH",
                 ContactPerson.of("Anna Albers", "anna@example.org"))).id();
-        events.add(Event.draftFor(readyTalk())
+        events.add(Event.draftFor(aReadyTalk(speakerId))
                 .withDate(EVENING)
                 .withMotto("Java-Herbst")
                 .withLocation(locationId)
@@ -210,8 +185,8 @@ class EventControllerTest {
 
     @Test
     void theFilterHidesWhatIsOverAndDoneWith() throws Exception {
-        events.add(Event.draftFor(readyTalk()).withMotto("Noch offen"));
-        events.add(Event.draftFor(readyTalk()).withMotto("Abgesagt").moveTo(EventStatus.CANCELLED));
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Noch offen"));
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Abgesagt").moveTo(EventStatus.CANCELLED));
 
         String all = mvc.perform(get("/event")).andReturn().getResponse().getContentAsString();
         assertThat(Jsoup.parse(all).select("#event-table tbody tr td:nth-child(2)").eachText())
@@ -225,7 +200,7 @@ class EventControllerTest {
 
     @Test
     void anHtmxRequestGetsTheBareTableAndNoPageAroundIt() throws Exception {
-        events.add(Event.draftFor(readyTalk()));
+        events.add(Event.draftFor(aReadyTalk(speakerId)));
 
         String fragment = mvc.perform(get("/event").header("HX-Request", "true"))
                 .andExpect(status().isOk())
@@ -253,9 +228,9 @@ class EventControllerTest {
 
     @Test
     void theListIsNewestFirstWithTheUndatedTopicsLast() throws Exception {
-        events.add(Event.draftFor(readyTalk()).withMotto("Ohne Termin"));
-        events.add(Event.draftFor(readyTalk()).withMotto("Alt").withDate(EVENING.minusMonths(1)));
-        events.add(Event.draftFor(readyTalk()).withMotto("Neu").withDate(EVENING));
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Ohne Termin"));
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Alt").withDate(EVENING.minusMonths(1)));
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Neu").withDate(EVENING));
 
         String html = mvc.perform(get("/event")).andReturn().getResponse().getContentAsString();
 

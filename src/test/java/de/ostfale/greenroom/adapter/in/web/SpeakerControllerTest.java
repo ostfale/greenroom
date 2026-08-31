@@ -1,9 +1,9 @@
 package de.ostfale.greenroom.adapter.in.web;
 
-import de.ostfale.greenroom.TestcontainersConfiguration;
+import de.ostfale.greenroom.TestDatabase;
+import de.ostfale.greenroom.WebTest;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.in.ManageEvents;
-import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.application.port.out.SpeakerRepository;
 import de.ostfale.greenroom.domain.event.Event;
 import de.ostfale.greenroom.domain.event.Talk;
@@ -14,9 +14,6 @@ import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
 
 import javax.imageio.ImageIO;
@@ -25,6 +22,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static de.ostfale.greenroom.Fixtures.aSpeaker;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -37,9 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * The whole slice: browser request, controller, use case, real Postgres — and back as
  * rendered HTML. What is asserted is what the page actually shows.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@WebTest
 class SpeakerControllerTest {
 
     @Autowired
@@ -54,9 +50,6 @@ class SpeakerControllerTest {
     @Autowired
     private ManageEvents events;
 
-    @Autowired
-    private EventRepository eventRepository;
-
     /** A real picture — the scaler reads the bytes, it does not trust a content type. */
     private static byte[] picture(int width, int height) throws Exception {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -68,10 +61,12 @@ class SpeakerControllerTest {
         return ImageIO.read(new ByteArrayInputStream(data));
     }
 
+    @Autowired
+    private TestDatabase database;
+
     @BeforeEach
     void emptyTheTable() {
-        eventRepository.deleteAll();
-        repository.deleteAll();
+        database.empty();
     }
 
     @Test
@@ -213,7 +208,7 @@ class SpeakerControllerTest {
 
     @Test
     void theDetailFormWritesTheChangedFieldsBack() throws Exception {
-        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        Long id = speakers.add(aSpeaker()).id();
 
         mvc.perform(post("/speaker/{id}", id)
                         .param("name", "Max Mustermann")
@@ -235,7 +230,7 @@ class SpeakerControllerTest {
 
     @Test
     void aChangeThatBreaksTheRulesSaysSoAndChangesNothing() throws Exception {
-        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        Long id = speakers.add(aSpeaker()).id();
 
         String fragment = mvc.perform(post("/speaker/{id}", id)
                         .param("name", "Max Muster")
@@ -254,7 +249,7 @@ class SpeakerControllerTest {
 
     @Test
     void aSpeakerWhoNeverSpokeCanBeRemoved() throws Exception {
-        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        Long id = speakers.add(aSpeaker()).id();
 
         mvc.perform(post("/speaker/{id}/remove", id))
                 .andExpect(status().is3xxRedirection())
@@ -265,7 +260,7 @@ class SpeakerControllerTest {
 
     @Test
     void aSpeakerAnnouncedOnATalkStays() throws Exception {
-        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        Long id = speakers.add(aSpeaker()).id();
         events.add(Event.draftFor(Talk.by(TalkSpeaker.of(id)).withTitle("Records in Java 25")));
 
         String fragment = mvc.perform(post("/speaker/{id}/remove", id))
@@ -279,7 +274,7 @@ class SpeakerControllerTest {
 
     @Test
     void removingASpeakerTakesThePictureWithThem() throws Exception {
-        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        Long id = speakers.add(aSpeaker()).id();
         mvc.perform(multipart("/speaker/{id}/photo", id)
                 .file(new MockMultipartFile("photo", "max.png", "image/png", picture(80, 80))));
 
@@ -292,7 +287,7 @@ class SpeakerControllerTest {
 
     @Test
     void theListLinksToTheDetailPage() throws Exception {
-        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        Long id = speakers.add(aSpeaker()).id();
 
         String html = mvc.perform(get("/speaker")).andReturn().getResponse().getContentAsString();
 
@@ -331,7 +326,7 @@ class SpeakerControllerTest {
 
     @Test
     void anUploadedPictureIsServedBackWithItsOwnContentType() throws Exception {
-        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        Long id = speakers.add(aSpeaker()).id();
 
         String fragment = mvc.perform(multipart("/speaker/{id}/photo", id)
                         .file(new MockMultipartFile("photo", "max.png", "image/png", picture(1600, 800))))
@@ -352,7 +347,7 @@ class SpeakerControllerTest {
 
     @Test
     void aSecondUploadTakesThePlaceOfTheFirst() throws Exception {
-        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        Long id = speakers.add(aSpeaker()).id();
 
         mvc.perform(multipart("/speaker/{id}/photo", id)
                 .file(new MockMultipartFile("photo", "alt.png", "image/png", picture(100, 100))));
@@ -369,7 +364,7 @@ class SpeakerControllerTest {
 
     @Test
     void aFileThatIsNoPictureSaysSoAndChangesNothing() throws Exception {
-        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        Long id = speakers.add(aSpeaker()).id();
 
         String fragment = mvc.perform(multipart("/speaker/{id}/photo", id)
                         .file(new MockMultipartFile("photo", "vertrag.pdf", "application/pdf", new byte[]{1})))
@@ -383,7 +378,7 @@ class SpeakerControllerTest {
 
     @Test
     void aPictureCanBeTakenAwayAgain() throws Exception {
-        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        Long id = speakers.add(aSpeaker()).id();
         mvc.perform(multipart("/speaker/{id}/photo", id)
                 .file(new MockMultipartFile("photo", "max.png", "image/png", picture(80, 80))));
 
@@ -398,7 +393,7 @@ class SpeakerControllerTest {
 
     @Test
     void deletingASpeakerTakesThePictureWithIt() throws Exception {
-        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        Long id = speakers.add(aSpeaker()).id();
         mvc.perform(multipart("/speaker/{id}/photo", id)
                 .file(new MockMultipartFile("photo", "max.png", "image/png", picture(80, 80))));
 
