@@ -94,6 +94,8 @@ UI texts, in Thymeleaf templates and in the data itself.
 - An event has exactly one location
 - a location has at least one contact person
 - each, a contact person and a speaker have at least an email adress
+- a `Tag` belongs to the Event, not to the Talk
+- a Talk has no duration — how long somebody speaks is not planned here
 
 
 ## Database
