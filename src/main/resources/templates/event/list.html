@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Events')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main>
+    <div class="headline">
+        <h1>Events</h1>
+        <a class="button" th:href="@{/event/new}">Neues Thema</a>
+    </div>
+
+    <label class="toggle">
+        <input type="checkbox" name="hideClosed" value="true" th:checked="${hideClosed}"
+               th:hx-get="@{/event}"
+               hx-target="#event-table"
+               hx-swap="outerHTML"
+               hx-trigger="change">
+        Abgesagte und gelaufene Events ausblenden
+    </label>
+
+    <div th:replace="~{fragments/event-table :: event-table}"></div>
+</main>
+</body>
+</html>

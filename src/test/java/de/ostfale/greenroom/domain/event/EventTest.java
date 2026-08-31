@@ -159,25 +159,25 @@ class EventTest {
     void theSameTagCannotBeOnTheEveningTwice() {
         Event event = Event.draftFor(readyTalk());
 
-        assertThatThrownBy(() -> event.withTags(List.of(Tag.of("Spring"), Tag.of("spring"))))
+        assertThatThrownBy(() -> event.withTags(List.of(EventTag.of(1L), EventTag.of(1L))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("twice");
     }
 
     @Test
-    void aTagIsFoundRegardlessOfHowItWasTyped() {
-        Event event = Event.draftFor(readyTalk()).withTags(List.of(Tag.of("Spring"), Tag.of("Architektur")));
+    void theEveningKnowsWhichTagsItCarries() {
+        Event event = Event.draftFor(readyTalk()).withTags(List.of(EventTag.of(1L), EventTag.of(2L)));
 
-        assertThat(event.carries(Tag.of("spring"))).isTrue();
-        assertThat(event.carries(Tag.of("Testing"))).isFalse();
-        assertThat(event.tags()).extracting(Tag::name).containsExactly("Spring", "Architektur");
+        assertThat(event.carries(1L)).isTrue();
+        assertThat(event.carries(3L)).isFalse();
+        assertThat(event.tags()).extracting(EventTag::tagId).containsExactly(1L, 2L);
     }
 
     @Test
-    void aTagNeedsAName() {
-        assertThatThrownBy(() -> Tag.of("  "))
+    void aTagOnAnEveningAlwaysPointsAtAStoredTag() {
+        assertThatThrownBy(() -> EventTag.of(null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("name");
+                .hasMessageContaining("tag");
     }
 
     // --- the rest -------------------------------------------------------------------

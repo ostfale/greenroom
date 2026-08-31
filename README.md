@@ -39,7 +39,11 @@ vendored htmx. No JPA, no Lombok, no npm, no build step for the frontend.
 
 ## Status
 
-Early. Speakers (`/speaker`) and locations (`/location`) can be listed, searched and
-created through the UI — both slices run from the Thymeleaf form through the use case down
-to Postgres and are covered end to end. `Event`, `Talk`, `Activity` and `PlanningSettings`
-are not built yet, and nothing can be edited or deleted so far.
+Early. Events (`/event`), speakers (`/speaker`), locations (`/location`) and the list of
+tags (`/settings`) can be listed and created through the UI — every slice runs from the
+Thymeleaf form through the use case down to Postgres and is covered end to end.
+
+What is missing is the event detail page, and with it everything that moves an evening
+along: status transitions, assigning a venue, adding an abstract, a motto, tags, further
+talks. `Activity` and `PlanningSettings` are not built yet, and nothing can be edited or
+deleted so far.

@@ -1,7 +1,5 @@
 package de.ostfale.greenroom.domain.event;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.annotation.Id;
 
 import java.time.LocalDate;
@@ -31,12 +29,9 @@ public record Event(
         EventMode mode,
         Long locationId,
         List<Talk> talks,
-        List<Tag> tags) {
+        List<EventTag> tags) {
 
     public Event {
-
-        final Logger log = LoggerFactory.getLogger(getClass());
-
         if (status == null) {
             throw new IllegalArgumentException("Event :: an event needs a status");
         }
@@ -105,7 +100,7 @@ public record Event(
         return withTalks(more);
     }
 
-    public Event withTags(List<Tag> newTags) {
+    public Event withTags(List<EventTag> newTags) {
         return new Event(id, date, motto, status, mode, locationId, talks, newTags);
     }
 
@@ -124,15 +119,15 @@ public record Event(
         return talks.size() > 1;
     }
 
-    public boolean carries(Tag tag) {
-        return tags.stream().anyMatch(own -> own.isSameAs(tag));
+    public boolean carries(Long tagId) {
+        return tags.stream().anyMatch(own -> own.tagId().equals(tagId));
     }
 
-    private static List<Tag> withoutDuplicates(List<Tag> tags) {
-        List<Tag> kept = new ArrayList<>();
-        for (Tag tag : tags) {
-            if (kept.stream().anyMatch(seen -> seen.isSameAs(tag))) {
-                throw new IllegalArgumentException("Event :: the tag " + tag.name() + " is on this event twice");
+    private static List<EventTag> withoutDuplicates(List<EventTag> tags) {
+        List<EventTag> kept = new ArrayList<>();
+        for (EventTag tag : tags) {
+            if (kept.stream().anyMatch(seen -> seen.tagId().equals(tag.tagId()))) {
+                throw new IllegalArgumentException("Event :: the tag " + tag.tagId() + " is on this event twice");
             }
             kept.add(tag);
         }

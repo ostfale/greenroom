@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="tag-list" th:fragment="tag-list">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <p class="hint" th:if="${#lists.isEmpty(tags)}">Noch keine Schlagwörter angelegt.</p>
+
+    <ul class="tags" th:unless="${#lists.isEmpty(tags)}">
+        <li th:each="tag : ${tags}"><span class="badge" th:text="${tag.name}">Spring</span></li>
+    </ul>
+</div>
+</body>
+</html>

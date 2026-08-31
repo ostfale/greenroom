@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Einstellungen')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main>
+    <h1>Einstellungen</h1>
+
+    <section>
+        <h2>Schlagwörter</h2>
+        <p class="hint">
+            Die Liste, aus der ein Event seine Schlagwörter bekommt. Groß- und Kleinschreibung
+            spielt keine Rolle: dasselbe Wort gibt es nur einmal.
+        </p>
+
+        <form class="inline" method="post" th:action="@{/settings/tag}"
+              th:hx-post="@{/settings/tag}"
+              hx-target="#tag-list"
+              hx-swap="outerHTML"
+              hx-on::after-request="this.reset()">
+            <label>Neues Schlagwort
+                <input type="text" name="name" required placeholder="Spring"
+                       th:value="${submittedName}">
+            </label>
+            <button type="submit">Hinzufügen</button>
+        </form>
+
+        <div th:replace="~{fragments/tag-list :: tag-list}"></div>
+    </section>
+</main>
+</body>
+</html>

@@ -83,6 +83,8 @@ The `Event` has no title. Its display name is the `motto` if one is set, otherwi
 title of its single talk. With one talk nothing is maintained twice; with several the
 evening gets a name of its own.
 
+In the German UI an `Event` is called "Event", not "Abend".
+
 Everything in the source tree is English: package names, class names, enum constants,
 method names, table and column names, migration file names. German appears only in
 UI texts, in Thymeleaf templates and in the data itself.
@@ -94,7 +96,8 @@ UI texts, in Thymeleaf templates and in the data itself.
 - An event has exactly one location
 - a location has at least one contact person
 - each, a contact person and a speaker have at least an email adress
-- a `Tag` belongs to the Event, not to the Talk
+- a `Tag` belongs to the Event, not to the Talk. Tags are one maintained list, edited in
+  the settings; an event points at entries of that list rather than repeating the word
 - a Talk has no duration — how long somebody speaks is not planned here
 
 

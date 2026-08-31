@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Neues Thema')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main>
+    <h1>Neues Thema</h1>
+
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <div th:if="${#lists.isEmpty(speakers)}">
+        <p class="error">Es ist noch kein Referent erfasst. Ein Thema entsteht immer mit einer Person.</p>
+        <p><a class="button" th:href="@{/speaker/new}">Referent anlegen</a></p>
+    </div>
+
+    <form th:unless="${#lists.isEmpty(speakers)}" method="post" th:action="@{/event}">
+        <label>Referent
+            <select name="speakerId" required autofocus>
+                <option value="">Bitte auswählen</option>
+                <option th:each="speaker : ${speakers}"
+                        th:value="${speaker.id}"
+                        th:selected="${submitted.speakerId} == ${speaker.id}"
+                        th:text="${speaker.company} != null
+                                 ? ${speaker.name} + ' – ' + ${speaker.company}
+                                 : ${speaker.name}">Max Muster</option>
+            </select>
+        </label>
+        <label>Titel des Vortrags
+            <input type="text" name="title" placeholder="Kann noch offen bleiben"
+                   th:value="${submitted.title}">
+        </label>
+        <label>Datum
+            <input type="date" name="date" class="narrow" th:value="${submitted.date}">
+        </label>
+
+        <p class="hint">
+            Das Event wird als Thema angelegt. Termin, Ort und Abstract kommen später dazu.
+        </p>
+
+        <div class="actions">
+            <button type="submit">Speichern</button>
+            <a th:href="@{/event}">Abbrechen</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

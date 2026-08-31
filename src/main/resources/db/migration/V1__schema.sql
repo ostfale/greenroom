@@ -102,10 +102,25 @@ create table talk_speaker
 comment on column talk_speaker.speaker_id is
     'No cascade on purpose: a speaker who once gave a talk cannot be deleted.';
 
+-- The maintained list of keywords, edited in the settings.
 create table tag
+(
+    id   bigserial primary key,
+    name text not null
+);
+
+create unique index tag_name_unique on tag (lower(name));
+
+comment on index tag_name_unique is
+    'Two tags that differ only in case are the same tag.';
+
+create table event_tag
 (
     event     bigint not null references event (id) on delete cascade,
     event_key int    not null,
-    name      text   not null,
+    tag_id    bigint not null references tag (id),
     primary key (event, event_key)
 );
+
+comment on column event_tag.tag_id is
+    'No cascade on purpose: a tag that is in use cannot be deleted.';
