@@ -38,6 +38,11 @@ header {
     text-decoration: none;
 }
 
+nav {
+    display: flex;
+    gap: 1.25rem;
+}
+
 nav a {
     color: var(--muted);
     text-decoration: none;
@@ -129,15 +134,24 @@ form {
 label {
     display: grid;
     gap: .35rem;
+    /* A grid item defaults to min-width:auto, and an input brings its own intrinsic
+       width along. Without this the field pushes its column past the form. */
+    min-width: 0;
     font-size: .875rem;
     color: var(--muted);
 }
 
 label input, label textarea {
+    width: 100%;
+    min-width: 0;
     padding: .5rem .75rem;
     color: var(--ink);
     border: 1px solid var(--line);
     border-radius: .375rem;
+}
+
+label input.narrow {
+    width: 8rem;
 }
 
 label input:focus, label textarea:focus, input[type=search]:focus {
@@ -171,4 +185,37 @@ button, .button {
     background: #fdf2f1;
     border: 1px solid #f2d3d0;
     border-radius: .375rem;
+}
+
+/* Postal code stays narrow, the town gets the room it needs for "Hamburg-Wandsbek". */
+.row {
+    display: grid;
+    grid-template-columns: minmax(0, 7rem) minmax(0, 1fr);
+    gap: 1rem;
+}
+
+fieldset {
+    display: grid;
+    gap: 1rem;
+    /* A fieldset is min-width:min-content by default and would overflow too. */
+    min-width: 0;
+    margin: 0;
+    padding: 1rem 1.25rem 1.25rem;
+    border: 1px solid var(--line);
+    border-radius: .375rem;
+}
+
+legend {
+    padding: 0 .5rem;
+    font-size: .8125rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+@media (max-width: 30rem) {
+    .row {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }

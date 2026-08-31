@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Neuer Ort')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main>
+    <h1>Neuer Ort</h1>
+
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <form method="post" th:action="@{/location}">
+        <label>Name
+            <input type="text" name="name" required autofocus th:value="${submitted.name}">
+        </label>
+        <label>Straße und Hausnummer
+            <input type="text" name="street" th:value="${submitted.street}">
+        </label>
+        <div class="row">
+            <label>PLZ
+                <input type="text" name="postalCode" inputmode="numeric"
+                       th:value="${submitted.postalCode}">
+            </label>
+            <label>Stadt
+                <input type="text" name="city" th:value="${submitted.city}">
+            </label>
+        </div>
+        <label>Plätze
+            <input type="number" name="capacity" min="1" class="narrow"
+                   th:value="${submitted.capacity}">
+        </label>
+        <label>Notizen
+            <textarea name="notes" rows="3" placeholder="Anfahrt, Technik, Parken"
+                      th:text="${submitted.notes}"></textarea>
+        </label>
+
+        <fieldset>
+            <legend>Ansprechpartner</legend>
+            <label>Name
+                <input type="text" name="contactName" required th:value="${submitted.contactName}">
+            </label>
+            <label>E-Mail
+                <input type="email" name="contactEmail" required th:value="${submitted.contactEmail}">
+            </label>
+            <label>Telefon
+                <input type="tel" name="contactPhone" th:value="${submitted.contactPhone}">
+            </label>
+        </fieldset>
+
+        <div class="actions">
+            <button type="submit">Speichern</button>
+            <a th:href="@{/location}">Abbrechen</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Orte')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main>
+    <div class="headline">
+        <h1>Orte</h1>
+        <a class="button" th:href="@{/location/new}">Neuer Ort</a>
+    </div>
+
+    <input type="search" name="search" placeholder="Ort oder Stadt" aria-label="Orte durchsuchen"
+           th:value="${search}"
+           th:hx-get="@{/location}"
+           hx-target="#location-table"
+           hx-swap="outerHTML"
+           hx-trigger="input changed delay:300ms, search">
+
+    <div th:replace="~{fragments/location-table :: location-table}"></div>
+</main>
+</body>
+</html>

@@ -1,5 +1,8 @@
 package de.ostfale.greenroom.domain.speaker;
 
+import static de.ostfale.greenroom.domain.Texts.optional;
+import static de.ostfale.greenroom.domain.Texts.required;
+
 /**
  * Somewhere the speaker can be found: a homepage, a talk recording, a profile.
  * The label is what we show instead of the bare URL.
@@ -9,11 +12,8 @@ public record SpeakerLink(
         String label) {
 
     public SpeakerLink {
-        if (url == null || url.isBlank()) {
-            throw new IllegalArgumentException("a link needs a URL");
-        }
-        url = url.strip();
-        label = label == null || label.isBlank() ? null : label.strip();
+        url = required(url, "SpeakerLink :: a link needs a URL");
+        label = optional(label);
     }
 
     public static SpeakerLink of(String url) {

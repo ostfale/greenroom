@@ -4,6 +4,9 @@ import org.springframework.data.annotation.Id;
 
 import java.util.List;
 
+import static de.ostfale.greenroom.domain.Texts.optional;
+import static de.ostfale.greenroom.domain.Texts.required;
+
 /**
  * A person who gives talks. Kept for good: even after the last talk, the entry stays,
  * because the history of an evening points at it.
@@ -22,18 +25,12 @@ public record Speaker(
         List<SpeakerLink> links) {
 
     public Speaker {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Speaker :: a speaker needs a name");
-        }
-        if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("Speaker :: a speaker needs an email address");
-        }
-        name = name.strip();
-        email = email.strip();
-        company = blankToNull(company);
-        phone = blankToNull(phone);
-        bio = blankToNull(bio);
-        notes = blankToNull(notes);
+        name = required(name, "Speaker :: a speaker needs a name");
+        email = required(email, "Speaker :: a speaker needs an email address");
+        company = optional(company);
+        phone = optional(phone);
+        bio = optional(bio);
+        notes = optional(notes);
         links = links == null ? List.of() : List.copyOf(links);
     }
 
@@ -52,9 +49,5 @@ public record Speaker(
 
     public Speaker withLinks(List<SpeakerLink> newLinks) {
         return new Speaker(id, name, company, email, phone, bio, notes, newLinks);
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.strip();
     }
 }

@@ -33,3 +33,30 @@ create table speaker_link
 
 comment
 on column speaker_link.speaker_key is 'Position in the list, kept by Spring Data JDBC.';
+
+create table location
+(
+    id          bigserial primary key,
+    name        text not null,
+    street      text,
+    postal_code text,
+    city        text,
+    capacity    int,
+    notes       text
+);
+
+comment on table location is
+    'A place that hosts an evening. Exists independently of any event and is reused for years.';
+
+create table contact_person
+(
+    location     bigint not null references location (id) on delete cascade,
+    location_key int    not null,
+    name         text   not null,
+    email        text   not null,
+    phone        text,
+    primary key (location, location_key)
+);
+
+comment on column contact_person.email is
+    'Not optional: a host who cannot be written to cannot be asked for the room.';
