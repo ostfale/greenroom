@@ -1,5 +1,7 @@
 # greenroom
 
+[![build](https://github.com/ostfale/greenroom/actions/workflows/build.yml/badge.svg)](https://github.com/ostfale/greenroom/actions/workflows/build.yml)
+
 Planning tool for the Java User Group Hamburg. It replaces an Obsidian vault: one user,
 running in a container on a Raspberry Pi 5 in a home network, no authentication by design.
 
@@ -12,6 +14,10 @@ ubiquitous language and the architectural decisions behind it.
     mvn spring-boot:run      # starts Postgres via compose automatically, profile dev
     docker compose up -d db  # database only
     mvn verify               # build and all tests
+
+Every push and pull request runs `mvn verify` on GitHub. The tests bring their own
+Postgres through Testcontainers, so the workflow needs nothing but Docker, which the
+runner already has.
 
 The application listens on port 8383, actuator on 8382 under `/mgmt`.
 
