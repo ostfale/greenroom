@@ -1,0 +1,9 @@
+# Local development. Activated by `mvn spring-boot:run` through the Boot plugin, never
+# baked into application.yml — on the Raspberry Pi the application runs without a profile.
+spring:
+  flyway:
+    # Lets DevFlywayConfiguration rebuild the schema after V1__schema.sql was edited.
+    # Development only: this permits dropping the whole database.
+    clean-disabled: false
+  thymeleaf:
+    cache: false

@@ -1,4 +1,0 @@
-spring:
-  application:
-    name: greenroom
-    version: "@project.version@"

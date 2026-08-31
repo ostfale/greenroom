@@ -1,13 +1,17 @@
 package de.ostfale.greenroom;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class GreenroomApplication {
 
-    public static void main(String[] args) {
+    private static final Logger log = LoggerFactory.getLogger(GreenroomApplication.class);
+
+    static void main(String[] args) {
+        log.info("Starting GreenroomApplication");
         SpringApplication.run(GreenroomApplication.class, args);
     }
-
 }

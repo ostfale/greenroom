@@ -30,7 +30,7 @@ class SpeakerRepositoryTest {
 
     @Test
     void storesAndReadsBackASpeaker() {
-        Speaker saved = speakers.save(Speaker.named("Max Muster")
+        Speaker saved = speakers.save(Speaker.of("Max Muster", "max@example.org")
                 .withContact("Musterfirma GmbH", "max@example.org", null)
                 .withBio("Schreibt Java, seit es Generics gibt."));
 
@@ -39,13 +39,14 @@ class SpeakerRepositoryTest {
         Speaker loaded = speakers.findById(saved.id()).orElseThrow();
         assertThat(loaded.name()).isEqualTo("Max Muster");
         assertThat(loaded.company()).isEqualTo("Musterfirma GmbH");
+        assertThat(loaded.email()).isEqualTo("max@example.org");
         assertThat(loaded.bio()).isEqualTo("Schreibt Java, seit es Generics gibt.");
         assertThat(loaded.phone()).isNull();
     }
 
     @Test
     void keepsTheOrderOfTheLinks() {
-        Speaker saved = speakers.save(Speaker.named("Max Muster").withLinks(List.of(
+        Speaker saved = speakers.save(Speaker.of("Max Muster", "max@example.org").withLinks(List.of(
                 new SpeakerLink("https://example.org", "Blog"),
                 SpeakerLink.of("https://example.org/talk"))));
 
@@ -60,7 +61,7 @@ class SpeakerRepositoryTest {
 
     @Test
     void replacingTheLinksLeavesNoOrphansBehind() {
-        Speaker saved = speakers.save(Speaker.named("Max Muster")
+        Speaker saved = speakers.save(Speaker.of("Max Muster", "max@example.org")
                 .withLinks(List.of(SpeakerLink.of("https://example.org"))));
 
         Speaker updated = speakers.save(saved.withLinks(List.of(SpeakerLink.of("https://example.com"))));
@@ -72,7 +73,7 @@ class SpeakerRepositoryTest {
 
     @Test
     void deletingASpeakerTakesTheLinksWithIt() {
-        Speaker saved = speakers.save(Speaker.named("Max Muster")
+        Speaker saved = speakers.save(Speaker.of("Max Muster", "max@example.org")
                 .withLinks(List.of(SpeakerLink.of("https://example.org"))));
 
         speakers.deleteById(saved.id());
@@ -82,8 +83,8 @@ class SpeakerRepositoryTest {
 
     @Test
     void listsAlphabetically() {
-        speakers.save(Speaker.named("Zoe Zimmer"));
-        speakers.save(Speaker.named("Anna Albers"));
+        speakers.save(Speaker.of("Zoe Zimmer", "zoe@example.org"));
+        speakers.save(Speaker.of("Anna Albers", "anna@example.org"));
 
         assertThat(speakers.findAllByOrderByNameAsc())
                 .extracting(Speaker::name)
@@ -92,8 +93,10 @@ class SpeakerRepositoryTest {
 
     @Test
     void searchesNameAndCompanyIgnoringCase() {
-        speakers.save(Speaker.named("Anna Albers").withContact("Musterfirma GmbH", null, null));
-        speakers.save(Speaker.named("Zoe Zimmer").withContact("Nordsee GmbH", null, null));
+        speakers.save(Speaker.of("Anna Albers", "anna@example.org")
+                .withContact("Musterfirma GmbH", "anna@example.org", null));
+        speakers.save(Speaker.of("Zoe Zimmer", "zoe@example.org")
+                .withContact("Nordsee GmbH", "zoe@example.org", null));
 
         assertThat(speakers.search("albers")).extracting(Speaker::name).containsExactly("Anna Albers");
         assertThat(speakers.search("NORDSEE")).extracting(Speaker::name).containsExactly("Zoe Zimmer");

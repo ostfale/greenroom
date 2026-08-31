@@ -19,6 +19,7 @@ of an evening easier than a Markdown note would — that is the only benchmark.
 - Code, identifiers, comments, commit messages, log messages: English.
 - UI texts and Thymeleaf templates: German.
 - Talk to me in German.
+- git commit messages should be short and precise
 
 ## Stack
 
@@ -31,8 +32,12 @@ of an evening easier than a Markdown note would — that is the only benchmark.
 ## Commands
 
 - `mvn verify` — build and all tests
-- `mvn spring-boot:run` — starts Postgres via compose automatically
+- `mvn spring-boot:run` — starts Postgres via compose automatically, profile `dev`
 - `docker compose up -d db` — database only
+
+The `dev` profile is activated by the Boot Maven plugin, not by `application.yml`: on the
+Pi the application runs without a profile. It lets Flyway drop and rebuild the schema when
+`V1__schema.sql` changed, and turns the Thymeleaf cache off. Never activate it there.
 
 ## Architecture: ports and adapters
 
@@ -67,9 +72,6 @@ Use these names — they come from the domain, not from the framework:
 - `Activity` is append-only: entries are never edited or deleted.
 - Domain events are named after what happened: `SpeakerConfirmed`, `VenueConfirmed`.
 
-There is **no `Idea` aggregate**. A topic that has no date yet is an `Event` in state
-`DRAFT` with no date; a topic that came to nothing is `CANCELLED` without a date. There is
-no `DROPPED` state either.
 
 An `Event` has **at least one** `Talk`, and a `Talk` has **at least one** `Speaker` — from
 the moment it is created, in every state. Both are invariants, not just the common case,
@@ -81,51 +83,27 @@ The `Event` has no title. Its display name is the `motto` if one is set, otherwi
 title of its single talk. With one talk nothing is maintained twice; with several the
 evening gets a name of its own.
 
-There is no `EventFormat`. Whether an evening is the regular one or a special day is
-read off the number of talks, not stored a second time.
-
 Everything in the source tree is English: package names, class names, enum constants,
 method names, table and column names, migration file names. German appears only in
 UI texts, in Thymeleaf templates and in the data itself.
 
-German term → name in code:
-
-| Vortrag | Anfrage | Ort, Gastgeber | Ansprechpartner |
-|---|---|---|---|
-| `Talk` | `Inquiry` | `Location` | `ContactPerson` |
-
-| Verlauf, Log | Schlagwort | Fälligkeit | Vorlaufzeit | Überbuchung | Motto |
-|---|---|---|---|---|---|
-| `Activity` | `Tag` | `TaskState`, `DueDateCalculator` | `LeadTime` | `OverbookingFactor` | `motto` |
-
 ## Domain model
 
-The binding design is the artifact "greenroom Domänenmodell", Fassung 2:
-https://claude.ai/code/artifact/e9bf33f6-b890-42e0-8b4c-683d18cc8a00
+- Event consists of at least one talk
+- each talk has at least one speaker
+- An event has exactly one location
+- a location has at least one contact person
+- each, a contact person and a speaker have at least an email adress
 
-It carries the five aggregates, the state machine, the invariants with their requirement
-ids (A1, B2, C4, …) and the port cut. Consult it before designing schema or use cases.
-
-**Where this file deviates from the artifact, this file wins.** Two points so far:
-
-- The artifact drops `Idea`; that stands. The artifact still shows `Talk` as `0..n`
-  ("Fishbowl und Spieleabend haben keinen") — superseded by the `1..n` rule above, chosen
-  for simplicity. An evening without a talk is not planned in greenroom.
-- Consequently D1/D2 collapses: `PUBLISHED` requires every talk to have a title and an
-  abstract. The speaker is already guaranteed by the invariant.
-- The artifact's `Event` has neither `motto` nor a title; `motto` is added here. Its
-  `EventFormat` is dropped.
-
-- Due dates are **calculated** from the event date and `PlanningSettings`, never stored.
-  Only the deviation is stored in `TaskState`: done, or moved.
-- Lead times are global, not per event.
-- Two events on the same evening are a warning in the use case, never a rejected
-  invariant.
 
 ## Database
 
 - Migrations in `src/main/resources/db/migration`, named `V<n>__snake_case.sql`.
-- Never edit an applied migration. Add a new one.
+- While in development there is one script, `V1__schema.sql`, holding the whole schema.
+  It is extended in place; no `V2`, `V3`, … is added. After a change the dev database is
+  thrown away (`docker compose down -v`) instead of migrated.
+- Once the application is in use on the Pi, this flips: never edit an applied migration,
+  add a new one.
 - Tables and columns snake_case, table names singular.
 - Event dates are `date`, not timestamps. Application timezone is Europe/Berlin.
 

@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: greenroom
+    version: "@project.version@"
+
+server:
+  port: ${PORT:8383}
+
+management:
+  server:
+    port: ${MANAGEMENT_PORT:8382}
+  endpoints:
+    web:
+      base-path: /mgmt
+      exposure:
+        include: info,health,prometheus,mappings
+  endpoint:
+    health:
+      show-details: always

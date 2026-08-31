@@ -13,39 +13,54 @@ class SpeakerTest {
 
     @Test
     void aSpeakerNeedsAName() {
-        assertThatThrownBy(() -> Speaker.named("  "))
+        assertThatThrownBy(() -> Speaker.of("  ", "max@example.org"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("name");
     }
 
     @Test
+    void aSpeakerNeedsAnEmailAddress() {
+        assertThatThrownBy(() -> Speaker.of("Max Muster", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("email");
+
+        assertThatThrownBy(() -> Speaker.of("Max Muster", " "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("email");
+    }
+
+    @Test
+    void theAddressCannotBeTakenAwayAgain() {
+        Speaker speaker = Speaker.of("Max Muster", "max@example.org");
+
+        assertThatThrownBy(() -> speaker.withContact("Musterfirma GmbH", null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("email");
+    }
+
+    @Test
     void blankOptionalFieldsBecomeNull() {
-        Speaker speaker = Speaker.named("Max Muster").withContact("  ", "", null);
+        Speaker speaker = Speaker.of("Max Muster", "max@example.org")
+                .withContact("  ", "max@example.org", "");
 
         assertThat(speaker.company()).isNull();
-        assertThat(speaker.email()).isNull();
         assertThat(speaker.phone()).isNull();
     }
 
     @Test
     void surroundingWhitespaceIsStripped() {
-        assertThat(Speaker.named("  Max Muster ").name()).isEqualTo("Max Muster");
-    }
+        Speaker speaker = Speaker.of("  Max Muster ", " max@example.org ");
 
-    @Test
-    void withoutAMailAddressNobodyCanBeAsked() {
-        assertThat(Speaker.named("Max Muster").isReachable()).isFalse();
-        assertThat(Speaker.named("Max Muster")
-                .withContact(null, "max@example.org", null)
-                .isReachable()).isTrue();
+        assertThat(speaker.name()).isEqualTo("Max Muster");
+        assertThat(speaker.email()).isEqualTo("max@example.org");
     }
 
     @Test
     void linksAreNeverNullAndNeverSharedWithTheCaller() {
-        assertThat(Speaker.named("Max Muster").links()).isEmpty();
+        assertThat(Speaker.of("Max Muster", "max@example.org").links()).isEmpty();
 
         List<SpeakerLink> mutable = new ArrayList<>(List.of(SpeakerLink.of("https://example.org")));
-        Speaker speaker = Speaker.named("Max Muster").withLinks(mutable);
+        Speaker speaker = Speaker.of("Max Muster", "max@example.org").withLinks(mutable);
         mutable.clear();
 
         assertThat(speaker.links()).hasSize(1);

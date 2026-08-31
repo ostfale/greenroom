@@ -1,8 +1,6 @@
 package de.ostfale.greenroom.domain.speaker;
 
 import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.MappedCollection;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.util.List;
 
@@ -13,7 +11,6 @@ import java.util.List;
  * <p>Everything here is the <em>current</em> state. What was announced for a particular
  * evening lives in the event and is never updated from this record again.
  */
-@Table("speaker")
 public record Speaker(
         @Id Long id,
         String name,
@@ -22,24 +19,27 @@ public record Speaker(
         String phone,
         String bio,
         String notes,
-        @MappedCollection(idColumn = "speaker_id", keyColumn = "position") List<SpeakerLink> links) {
+        List<SpeakerLink> links) {
 
     public Speaker {
         if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("a speaker needs a name");
+            throw new IllegalArgumentException("Speaker :: a speaker needs a name");
+        }
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Speaker :: a speaker needs an email address");
         }
         name = name.strip();
+        email = email.strip();
         company = blankToNull(company);
-        email = blankToNull(email);
         phone = blankToNull(phone);
         bio = blankToNull(bio);
         notes = blankToNull(notes);
         links = links == null ? List.of() : List.copyOf(links);
     }
 
-    /** A new speaker, not yet stored. */
-    public static Speaker named(String name) {
-        return new Speaker(null, name, null, null, null, null, null, List.of());
+    /** A new speaker, not yet stored. An inquiry needs a way out, so the address is not optional. */
+    public static Speaker of(String name, String email) {
+        return new Speaker(null, name, null, email, null, null, null, List.of());
     }
 
     public Speaker withBio(String newBio) {
@@ -52,11 +52,6 @@ public record Speaker(
 
     public Speaker withLinks(List<SpeakerLink> newLinks) {
         return new Speaker(id, name, company, email, phone, bio, notes, newLinks);
-    }
-
-    /** Whether we can write to this person at all — an inquiry needs a way out. */
-    public boolean isReachable() {
-        return email != null;
     }
 
     private static String blankToNull(String value) {
