@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 @Controller
 @RequestMapping("/location")
@@ -141,6 +142,57 @@ public class LocationController {
                                    Model model) {
         model.addAttribute("location", locations.setAddressActive(id, position, active));
         return "fragments/address-list :: address-list";
+    }
+
+    @PostMapping("/{id}/contact")
+    public String addContact(@PathVariable Long id,
+                             @RequestParam(defaultValue = "") String contactName,
+                             @RequestParam(defaultValue = "") String contactEmail,
+                             @RequestParam(defaultValue = "") String contactPhone,
+                             Model model) {
+        return contactFragment(id, model, () -> locations.addContact(id,
+                new ContactPerson(contactName, contactEmail, contactPhone)));
+    }
+
+    @PostMapping("/{id}/contact/{position}")
+    public String changeContact(@PathVariable Long id,
+                                @PathVariable int position,
+                                @RequestParam(defaultValue = "") String contactName,
+                                @RequestParam(defaultValue = "") String contactEmail,
+                                @RequestParam(defaultValue = "") String contactPhone,
+                                Model model) {
+        return contactFragment(id, model, () -> locations.changeContact(id, position,
+                new ContactPerson(contactName, contactEmail, contactPhone)));
+    }
+
+    @PostMapping("/{id}/contact/{position}/remove")
+    public String removeContact(@PathVariable Long id, @PathVariable int position, Model model) {
+        return contactFragment(id, model, () -> locations.removeContact(id, position));
+    }
+
+    /**
+     * Every contact change answers with the same list. On a refusal the stored state comes
+     * back unchanged, together with the reason.
+     */
+    private String contactFragment(Long id, Model model, Supplier<Location> change) {
+        try {
+            model.addAttribute("location", change.get());
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", contactMessage(e));
+            locations.byId(id).ifPresent(location -> model.addAttribute("location", location));
+        }
+        return "fragments/contact-list :: contact-list";
+    }
+
+    private static String contactMessage(IllegalArgumentException e) {
+        String reason = e.getMessage() == null ? "" : e.getMessage();
+        if (reason.contains("at least one contact person")) {
+            return "Der letzte Ansprechpartner kann nicht entfernt werden — ohne ihn ist der Ort nicht nutzbar.";
+        }
+        if (reason.contains("email")) {
+            return "Ein Ansprechpartner braucht eine E-Mail-Adresse.";
+        }
+        return "Ein Ansprechpartner braucht einen Namen.";
     }
 
     private void fill(Model model, String search) {

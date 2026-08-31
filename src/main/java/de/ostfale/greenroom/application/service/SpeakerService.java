@@ -1,6 +1,7 @@
 package de.ostfale.greenroom.application.service;
 
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
+import de.ostfale.greenroom.application.port.out.ScaleImages;
 import de.ostfale.greenroom.application.port.out.SpeakerPhotoRepository;
 import de.ostfale.greenroom.application.port.out.SpeakerRepository;
 import de.ostfale.greenroom.domain.speaker.Speaker;
@@ -19,12 +20,19 @@ public class SpeakerService implements ManageSpeakers {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
+    /** Big enough for the detail page on a sharp screen, small enough to forget about. */
+    private static final int PHOTO_EDGE = 600;
+
     private final SpeakerRepository speakerRepository;
     private final SpeakerPhotoRepository photoRepository;
+    private final ScaleImages images;
 
-    public SpeakerService(SpeakerRepository speakerRepository, SpeakerPhotoRepository photoRepository) {
+    public SpeakerService(SpeakerRepository speakerRepository,
+                          SpeakerPhotoRepository photoRepository,
+                          ScaleImages images) {
         this.speakerRepository = speakerRepository;
         this.photoRepository = photoRepository;
+        this.images = images;
     }
 
     @Override
@@ -51,12 +59,16 @@ public class SpeakerService implements ManageSpeakers {
 
     @Override
     public SpeakerPhoto storePhoto(Long speakerId, String contentType, byte[] data) {
+        // contentType is what the browser claimed; the scaler trusts the bytes instead.
         if (byId(speakerId).isEmpty()) {
             throw new IllegalArgumentException("SpeakerService :: there is no speaker " + speakerId);
         }
+        // Shrunk before it is stored, and re-encoded as JPEG on the way. Reading the bytes
+        // is also the better check: a PDF renamed to .png passes any content type, not this.
+        byte[] small = images.toJpegAtMost(data, PHOTO_EDGE);
         // One picture per speaker: the new one takes the place of the old.
         photoRepository.deleteBySpeakerId(speakerId);
-        return photoRepository.save(SpeakerPhoto.of(speakerId, contentType, data));
+        return photoRepository.save(SpeakerPhoto.of(speakerId, "image/jpeg", small));
     }
 
     @Override

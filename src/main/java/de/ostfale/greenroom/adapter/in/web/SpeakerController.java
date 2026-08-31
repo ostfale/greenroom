@@ -130,10 +130,14 @@ public class SpeakerController {
 
     /** Creating fails either on the speaker or on the picture — say which. */
     private static String addMessage(Exception e) {
-        String reason = e.getMessage() == null ? "" : e.getMessage();
-        return reason.contains("SpeakerPhoto")
+        return aboutThePicture(e)
                 ? photoMessage(e) + " Der Referent wurde nicht angelegt."
                 : "Name und E-Mail-Adresse sind Pflichtfelder.";
+    }
+
+    /** Every complaint about the file carries the word, whether it came from the record or the scaler. */
+    private static boolean aboutThePicture(Exception e) {
+        return e.getMessage() != null && e.getMessage().contains("picture");
     }
 
     private static String photoMessage(Exception e) {

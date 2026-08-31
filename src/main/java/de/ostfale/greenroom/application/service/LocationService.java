@@ -3,6 +3,7 @@ package de.ostfale.greenroom.application.service;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.out.LocationRepository;
 import de.ostfale.greenroom.domain.location.Address;
+import de.ostfale.greenroom.domain.location.ContactPerson;
 import de.ostfale.greenroom.domain.location.Location;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +57,21 @@ public class LocationService implements ManageLocations {
     @Override
     public Location setAddressActive(Long locationId, int position, boolean active) {
         return locationRepository.save(known(locationId).withAddressActive(position, active));
+    }
+
+    @Override
+    public Location addContact(Long locationId, ContactPerson contact) {
+        return locationRepository.save(known(locationId).withAdditionalContact(contact));
+    }
+
+    @Override
+    public Location changeContact(Long locationId, int position, ContactPerson contact) {
+        return locationRepository.save(known(locationId).withContactChanged(position, contact));
+    }
+
+    @Override
+    public Location removeContact(Long locationId, int position) {
+        return locationRepository.save(known(locationId).withContactRemoved(position));
     }
 
     private Location known(Long locationId) {

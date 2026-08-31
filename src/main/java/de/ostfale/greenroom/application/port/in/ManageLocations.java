@@ -1,6 +1,7 @@
 package de.ostfale.greenroom.application.port.in;
 
 import de.ostfale.greenroom.domain.location.Address;
+import de.ostfale.greenroom.domain.location.ContactPerson;
 import de.ostfale.greenroom.domain.location.Location;
 
 import java.util.List;
@@ -27,4 +28,14 @@ public interface ManageLocations {
 
     /** Turns the address at that position on or off. */
     Location setAddressActive(Long locationId, int position, boolean active);
+
+    Location addContact(Long locationId, ContactPerson contact);
+
+    Location changeContact(Long locationId, int position, ContactPerson contact);
+
+    /**
+     * @throws IllegalArgumentException if it was the last contact person — every location
+     *                                  keeps somebody to ask
+     */
+    Location removeContact(Long locationId, int position);
 }

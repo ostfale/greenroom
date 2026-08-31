@@ -293,6 +293,100 @@ class LocationControllerTest {
                 .isEqualTo("/location/" + id);
     }
 
+    // --- the contacts on the detail page ---------------------------------------------
+
+    @Test
+    void aContactCanBeAddedOnTheDetailPage() throws Exception {
+        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)).id();
+
+        String fragment = mvc.perform(post("/location/{id}/contact", id)
+                        .param("contactName", "Anna Albers")
+                        .param("contactEmail", "anna@example.org")
+                        .param("contactPhone", "040 123456"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(fragment.strip()).startsWith("<div").doesNotContain("<html");
+        assertThat(locations.byId(id).orElseThrow().contacts())
+                .extracting(ContactPerson::name)
+                .containsExactly("Max Muster", "Anna Albers");
+    }
+
+    @Test
+    void aContactCanBeChangedInPlace() throws Exception {
+        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)).id();
+
+        mvc.perform(post("/location/{id}/contact/{position}", id, 0)
+                        .param("contactName", "Max Muster")
+                        .param("contactEmail", "neu@example.org")
+                        .param("contactPhone", "040 999"))
+                .andExpect(status().isOk());
+
+        assertThat(locations.byId(id).orElseThrow().contacts()).singleElement()
+                .satisfies(contact -> {
+                    assertThat(contact.email()).isEqualTo("neu@example.org");
+                    assertThat(contact.phone()).isEqualTo("040 999");
+                });
+    }
+
+    @Test
+    void aContactCanBeRemovedAsLongAsOneIsLeft() throws Exception {
+        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)
+                .withAdditionalContact(ContactPerson.of("Anna Albers", "anna@example.org"))).id();
+
+        mvc.perform(post("/location/{id}/contact/{position}/remove", id, 0))
+                .andExpect(status().isOk());
+
+        assertThat(locations.byId(id).orElseThrow().contacts())
+                .extracting(ContactPerson::name).containsExactly("Anna Albers");
+    }
+
+    @Test
+    void theLastContactIsRefusedWithAReasonAndNothingChanges() throws Exception {
+        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)).id();
+
+        String fragment = mvc.perform(post("/location/{id}/contact/{position}/remove", id, 0))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("letzte Ansprechpartner");
+        assertThat(locations.byId(id).orElseThrow().contacts()).hasSize(1);
+    }
+
+    @Test
+    void aContactWithoutAnAddressIsRefused() throws Exception {
+        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)).id();
+
+        String fragment = mvc.perform(post("/location/{id}/contact", id)
+                        .param("contactName", "Anna Albers")
+                        .param("contactEmail", "")
+                        .param("contactPhone", ""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("E-Mail-Adresse");
+        assertThat(locations.byId(id).orElseThrow().contacts()).hasSize(1);
+    }
+
+    @Test
+    void theDetailPageOffersOneFormPerContactPlusOneToAdd() throws Exception {
+        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)
+                .withAdditionalContact(ContactPerson.of("Anna Albers", "anna@example.org"))).id();
+
+        String html = mvc.perform(get("/location/{id}", id)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document page = Jsoup.parse(html);
+        assertThat(page.select("#contact-list form")).hasSize(3);
+        // The last form is the empty one to add with, so it carries no value at all.
+        assertThat(page.select("#contact-list input[name=contactName]").eachAttr("value"))
+                .containsExactly("Max Muster", "Anna Albers");
+        assertThat(page.select("#contact-list form").last()
+                .selectFirst("input[name=contactName]").hasAttr("value")).isFalse();
+    }
+
     @Test
     void theSearchNarrowsTheList() throws Exception {
         locations.add(Location.of("Zeise Kinos", HOST).withAddress(null, null, "Hamburg"));

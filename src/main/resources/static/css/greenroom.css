@@ -410,3 +410,17 @@ ul.plain {
         grid-template-columns: 1fr;
     }
 }
+
+form.inline.contact {
+    margin: .75rem 0;
+    align-items: flex-end;
+}
+
+form.inline.contact label {
+    /* Narrow enough that the two buttons stay on the same line as the fields. */
+    flex: 1 1 9rem;
+}
+
+form.inline.contact.new {
+    border-style: dashed;
+}

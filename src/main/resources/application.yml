@@ -4,10 +4,10 @@ spring:
     version: "@project.version@"
   servlet:
     multipart:
-      # A little above what SpeakerPhoto accepts, so the record can refuse the file with
-      # a German sentence instead of the container refusing it with a 500.
-      max-file-size: 3MB
-      max-request-size: 3MB
+      # Room for a photo straight from a phone. It is scaled down before it is stored,
+      # so what ends up in the database is a few dozen kilobytes.
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 server:
   port: ${PORT:8383}

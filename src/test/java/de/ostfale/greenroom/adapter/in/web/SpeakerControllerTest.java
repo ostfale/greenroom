@@ -13,6 +13,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,6 +45,17 @@ class SpeakerControllerTest {
 
     @Autowired
     private SpeakerRepository repository;
+
+    /** A real picture — the scaler reads the bytes, it does not trust a content type. */
+    private static byte[] picture(int width, int height) throws Exception {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), "png", bytes);
+        return bytes.toByteArray();
+    }
+
+    private static BufferedImage read(byte[] data) throws Exception {
+        return ImageIO.read(new ByteArrayInputStream(data));
+    }
 
     @BeforeEach
     void emptyTheTable() {
@@ -129,7 +145,7 @@ class SpeakerControllerTest {
     @Test
     void aSpeakerCanBringAPictureAlongWhenCreated() throws Exception {
         mvc.perform(multipart("/speaker")
-                        .file(new MockMultipartFile("photo", "max.png", "image/png", new byte[]{1, 2}))
+                        .file(new MockMultipartFile("photo", "max.png", "image/png", picture(80, 80)))
                         .param("name", "Max Muster")
                         .param("email", "max@example.org")
                         .param("company", "")
@@ -141,8 +157,7 @@ class SpeakerControllerTest {
         Long id = speakers.all().getFirst().id();
         assertThat(speakers.photoOf(id)).isPresent();
         mvc.perform(get("/speaker/{id}/photo", id))
-                .andExpect(content().contentType("image/png"))
-                .andExpect(content().bytes(new byte[]{1, 2}));
+                .andExpect(content().contentType("image/jpeg"));
     }
 
     @Test
@@ -221,19 +236,22 @@ class SpeakerControllerTest {
     @Test
     void anUploadedPictureIsServedBackWithItsOwnContentType() throws Exception {
         Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
-        byte[] bytes = {1, 2, 3, 4};
 
         String fragment = mvc.perform(multipart("/speaker/{id}/photo", id)
-                        .file(new MockMultipartFile("photo", "max.png", "image/png", bytes)))
+                        .file(new MockMultipartFile("photo", "max.png", "image/png", picture(1600, 800))))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
         assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("img.portrait")).isNotNull();
 
-        mvc.perform(get("/speaker/{id}/photo", id))
+        byte[] served = mvc.perform(get("/speaker/{id}/photo", id))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType("image/png"))
-                .andExpect(content().bytes(bytes));
+                .andExpect(content().contentType("image/jpeg"))
+                .andReturn().getResponse().getContentAsByteArray();
+
+        // Shrunk on the way in: 1600 pixels went in, 600 come back.
+        assertThat(read(served).getWidth()).isEqualTo(600);
+        assertThat(read(served).getHeight()).isEqualTo(300);
     }
 
     @Test
@@ -241,13 +259,15 @@ class SpeakerControllerTest {
         Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
 
         mvc.perform(multipart("/speaker/{id}/photo", id)
-                .file(new MockMultipartFile("photo", "alt.png", "image/png", new byte[]{1})));
+                .file(new MockMultipartFile("photo", "alt.png", "image/png", picture(100, 100))));
         mvc.perform(multipart("/speaker/{id}/photo", id)
-                .file(new MockMultipartFile("photo", "neu.jpg", "image/jpeg", new byte[]{2, 2})));
+                .file(new MockMultipartFile("photo", "neu.png", "image/png", picture(200, 100))));
 
-        mvc.perform(get("/speaker/{id}/photo", id))
+        byte[] served = mvc.perform(get("/speaker/{id}/photo", id))
                 .andExpect(content().contentType("image/jpeg"))
-                .andExpect(content().bytes(new byte[]{2, 2}));
+                .andReturn().getResponse().getContentAsByteArray();
+
+        assertThat(read(served).getWidth()).isEqualTo(200);
         assertThat(speakers.photoOf(id)).isPresent();
     }
 
@@ -269,7 +289,7 @@ class SpeakerControllerTest {
     void aPictureCanBeTakenAwayAgain() throws Exception {
         Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
         mvc.perform(multipart("/speaker/{id}/photo", id)
-                .file(new MockMultipartFile("photo", "max.png", "image/png", new byte[]{1})));
+                .file(new MockMultipartFile("photo", "max.png", "image/png", picture(80, 80))));
 
         String fragment = mvc.perform(post("/speaker/{id}/photo/remove", id))
                 .andExpect(status().isOk())
@@ -284,7 +304,7 @@ class SpeakerControllerTest {
     void deletingASpeakerTakesThePictureWithIt() throws Exception {
         Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
         mvc.perform(multipart("/speaker/{id}/photo", id)
-                .file(new MockMultipartFile("photo", "max.png", "image/png", new byte[]{1})));
+                .file(new MockMultipartFile("photo", "max.png", "image/png", picture(80, 80))));
 
         repository.deleteById(id);
 

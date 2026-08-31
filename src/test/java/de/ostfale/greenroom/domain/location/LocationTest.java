@@ -176,6 +176,53 @@ class LocationTest {
                 .hasMessageContaining("position");
     }
 
+    // --- keeping the contacts up to date ---------------------------------------------
+
+    @Test
+    void aContactCanBeAddedAndChanged() {
+        Location location = Location.of("Musterfirma GmbH", HOST)
+                .withAdditionalContact(ContactPerson.of("Anna Albers", "anna@example.org"));
+
+        assertThat(location.contacts()).extracting(ContactPerson::name)
+                .containsExactly("Max Muster", "Anna Albers");
+
+        Location changed = location.withContactChanged(1,
+                new ContactPerson("Anna Albers", "anna@nordsee.example", "040 123456"));
+        assertThat(changed.contacts().getLast().email()).isEqualTo("anna@nordsee.example");
+        assertThat(changed.contacts().getLast().phone()).isEqualTo("040 123456");
+    }
+
+    @Test
+    void aContactCanBeRemovedAsLongAsOneIsLeft() {
+        Location location = Location.of("Musterfirma GmbH", HOST)
+                .withAdditionalContact(ContactPerson.of("Anna Albers", "anna@example.org"));
+
+        assertThat(location.withContactRemoved(0).contacts())
+                .extracting(ContactPerson::name)
+                .containsExactly("Anna Albers");
+    }
+
+    @Test
+    void theLastContactCannotBeRemoved() {
+        Location location = Location.of("Musterfirma GmbH", HOST);
+
+        assertThatThrownBy(() -> location.withContactRemoved(0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("at least one contact person");
+    }
+
+    @Test
+    void thereIsNoContactAtAPositionThatDoesNotExist() {
+        Location location = Location.of("Musterfirma GmbH", HOST);
+
+        assertThatThrownBy(() -> location.withContactRemoved(3))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("position");
+        assertThatThrownBy(() -> location.withContactChanged(3, HOST))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("position");
+    }
+
     @Test
     void contactsAreNeverSharedWithTheCaller() {
         List<ContactPerson> mutable = new ArrayList<>(List.of(HOST));

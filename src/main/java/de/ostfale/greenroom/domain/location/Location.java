@@ -86,6 +86,38 @@ public record Location(
         return new Location(id, name, notes, addresses, newContacts);
     }
 
+    public Location withAdditionalContact(ContactPerson contact) {
+        List<ContactPerson> more = new ArrayList<>(contacts);
+        more.add(contact);
+        return withContacts(more);
+    }
+
+    /** Replaces the contact at that position — a new phone number, a new person. */
+    public Location withContactChanged(int position, ContactPerson contact) {
+        List<ContactPerson> changed = new ArrayList<>(contacts);
+        changed.set(known(position), contact);
+        return withContacts(changed);
+    }
+
+    /**
+     * Drops the contact at that position.
+     *
+     * @throws IllegalArgumentException if it was the last one — a location nobody can be
+     *                                  asked about is not a location we can use
+     */
+    public Location withContactRemoved(int position) {
+        List<ContactPerson> left = new ArrayList<>(contacts);
+        left.remove(known(position));
+        return withContacts(left);
+    }
+
+    private int known(int position) {
+        if (position < 0 || position >= contacts.size()) {
+            throw new IllegalArgumentException("Location :: there is no contact person at position " + position);
+        }
+        return position;
+    }
+
     /** Everything that counts right now — usually one, two when a place has two sites. */
     public List<Address> activeAddresses() {
         return addresses.stream().filter(Address::active).toList();

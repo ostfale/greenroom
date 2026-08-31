@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="contact-list" th:fragment="contact-list">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <form class="inline wrap contact" method="post"
+          th:each="contact, i : ${location.contacts}"
+          th:action="@{/location/{id}/contact/{pos}(id=${location.id},pos=${i.index})}"
+          th:hx-post="@{/location/{id}/contact/{pos}(id=${location.id},pos=${i.index})}"
+          hx-target="#contact-list"
+          hx-swap="outerHTML">
+        <label>Name
+            <input type="text" name="contactName" required th:value="${contact.name}">
+        </label>
+        <label>E-Mail
+            <input type="email" name="contactEmail" required th:value="${contact.email}">
+        </label>
+        <label>Telefon
+            <input type="tel" name="contactPhone" th:value="${contact.phone}">
+        </label>
+        <button type="submit">Speichern</button>
+        <button type="button" class="link"
+                th:hx-post="@{/location/{id}/contact/{pos}/remove(id=${location.id},pos=${i.index})}"
+                hx-target="#contact-list"
+                hx-swap="outerHTML">Entfernen</button>
+    </form>
+
+    <form class="inline wrap contact new" method="post"
+          th:action="@{/location/{id}/contact(id=${location.id})}"
+          th:hx-post="@{/location/{id}/contact(id=${location.id})}"
+          hx-target="#contact-list"
+          hx-swap="outerHTML"
+          hx-on::after-request="this.reset()">
+        <label>Name
+            <input type="text" name="contactName" required>
+        </label>
+        <label>E-Mail
+            <input type="email" name="contactEmail" required>
+        </label>
+        <label>Telefon
+            <input type="tel" name="contactPhone">
+        </label>
+        <button type="submit">Hinzufügen</button>
+    </form>
+</div>
+</body>
+</html>
