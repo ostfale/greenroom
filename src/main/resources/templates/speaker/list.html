@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Referenten')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main>
+    <div class="headline">
+        <h1>Referenten</h1>
+        <a class="button" th:href="@{/speaker/new}">Neuer Referent</a>
+    </div>
+
+    <input type="search" name="search" placeholder="Name oder Firma" aria-label="Referenten durchsuchen"
+           th:value="${search}"
+           th:hx-get="@{/speaker}"
+           hx-target="#speaker-table"
+           hx-swap="outerHTML"
+           hx-trigger="input changed delay:300ms, search">
+
+    <div th:replace="~{fragments/speaker-table :: speaker-table}"></div>
+</main>
+</body>
+</html>

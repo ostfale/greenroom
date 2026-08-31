@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Neuer Referent')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+
+<main>
+    <h1>Neuer Referent</h1>
+
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <form method="post" th:action="@{/speaker}">
+        <label>Name
+            <input type="text" name="name" required autofocus th:value="${submitted.name}">
+        </label>
+        <label>E-Mail
+            <input type="email" name="email" required th:value="${submitted.email}">
+        </label>
+        <label>Firma
+            <input type="text" name="company" th:value="${submitted.company}">
+        </label>
+        <label>Telefon
+            <input type="tel" name="phone" th:value="${submitted.phone}">
+        </label>
+        <label>Kurzvita
+            <textarea name="bio" rows="4" th:text="${submitted.bio}"></textarea>
+        </label>
+        <label>Notizen
+            <textarea name="notes" rows="3" th:text="${submitted.notes}"></textarea>
+        </label>
+
+        <div class="actions">
+            <button type="submit">Speichern</button>
+            <a th:href="@{/speaker}">Abbrechen</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

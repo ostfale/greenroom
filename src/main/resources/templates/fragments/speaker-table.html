@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<table id="speaker-table" th:fragment="speaker-table">
+    <caption th:if="${#lists.isEmpty(speakers)}">Keine Referenten gefunden.</caption>
+    <thead th:unless="${#lists.isEmpty(speakers)}">
+    <tr>
+        <th>Name</th>
+        <th>Firma</th>
+        <th>E-Mail</th>
+        <th>Telefon</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="speaker : ${speakers}">
+        <td th:text="${speaker.name}">Max Muster</td>
+        <td th:text="${speaker.company} ?: '—'">Musterfirma GmbH</td>
+        <td><a th:href="'mailto:' + ${speaker.email}" th:text="${speaker.email}">max@example.org</a></td>
+        <td th:text="${speaker.phone} ?: '—'">—</td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>

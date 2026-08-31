@@ -1,0 +1,174 @@
+/* One user, one screen. Enough structure to read a list quickly, nothing more. */
+
+:root {
+    --ink: #1c1f23;
+    --muted: #6b7280;
+    --line: #dfe3e8;
+    --accent: #1f6f4a;
+    --accent-ink: #ffffff;
+    --surface: #ffffff;
+    --ground: #f6f7f8;
+    --error: #a3241d;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+header {
+    display: flex;
+    align-items: baseline;
+    gap: 2rem;
+    padding: 1rem 1.5rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+}
+
+.wordmark {
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--accent);
+    text-decoration: none;
+}
+
+nav a {
+    color: var(--muted);
+    text-decoration: none;
+}
+
+nav a:hover {
+    color: var(--ink);
+}
+
+main {
+    max-width: 56rem;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+}
+
+h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.headline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+input, textarea, button, .button {
+    font: inherit;
+}
+
+input[type=search] {
+    width: 100%;
+    padding: .5rem .75rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--line);
+    border-radius: .375rem;
+    background: var(--surface);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: .375rem;
+}
+
+caption {
+    padding: 1.5rem;
+    color: var(--muted);
+    text-align: left;
+}
+
+th, td {
+    padding: .625rem .875rem;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+}
+
+th {
+    font-size: .8125rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+td a {
+    color: var(--accent);
+}
+
+form {
+    display: grid;
+    gap: 1rem;
+    max-width: 34rem;
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: .375rem;
+}
+
+label {
+    display: grid;
+    gap: .35rem;
+    font-size: .875rem;
+    color: var(--muted);
+}
+
+label input, label textarea {
+    padding: .5rem .75rem;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: .375rem;
+}
+
+label input:focus, label textarea:focus, input[type=search]:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+button, .button {
+    padding: .5rem 1rem;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border: none;
+    border-radius: .375rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.actions a {
+    color: var(--muted);
+}
+
+.error {
+    padding: .75rem 1rem;
+    color: var(--error);
+    background: #fdf2f1;
+    border: 1px solid #f2d3d0;
+    border-radius: .375rem;
+}

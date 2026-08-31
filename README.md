@@ -39,5 +39,7 @@ vendored htmx. No JPA, no Lombok, no npm, no build step for the frontend.
 
 ## Status
 
-Early. The `Speaker` aggregate and its schema are in place; `Event`, `Talk`, `Location`,
-`Activity` and `PlanningSettings` are not built yet, and there is no web layer so far.
+Early. Speakers can be listed, searched and created through the UI at `/speaker` — that
+slice runs from the Thymeleaf form through the use case down to Postgres and is covered
+end to end. `Event`, `Talk`, `Location`, `Activity` and `PlanningSettings` are not built
+yet, and a speaker cannot be edited or deleted so far.

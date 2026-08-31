@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="'greenroom – ' + ${title}">greenroom</title>
+    <link rel="stylesheet" th:href="@{/css/greenroom.css}">
+    <script th:src="@{/vendor/htmx.min.js}" defer></script>
+</head>
+<body>
+<header th:fragment="header">
+    <a class="wordmark" th:href="@{/speaker}">greenroom</a>
+    <nav>
+        <a th:href="@{/speaker}">Referenten</a>
+    </nav>
+</header>
+</body>
+</html>
