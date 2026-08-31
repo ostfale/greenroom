@@ -312,3 +312,46 @@ ul.tags {
     padding: 0;
     list-style: none;
 }
+
+form.inline.wrap {
+    flex-wrap: wrap;
+}
+
+form.inline.wrap label {
+    flex: 1 1 10rem;
+    max-width: none;
+}
+
+.toggle.inline-toggle {
+    flex: 0 0 auto;
+    margin: 0 0 .5rem;
+}
+
+button.link {
+    padding: 0;
+    color: var(--accent);
+    background: none;
+    border: none;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+td.right {
+    text-align: right;
+}
+
+dl {
+    display: grid;
+    grid-template-columns: 8rem 1fr;
+    gap: .35rem 1rem;
+    margin: 0;
+}
+
+dt {
+    color: var(--muted);
+    font-size: .875rem;
+}
+
+dd {
+    margin: 0;
+}

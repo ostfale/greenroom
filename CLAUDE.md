@@ -100,6 +100,11 @@ UI texts, in Thymeleaf templates and in the data itself.
   the settings — but an event stores the words it was given, not a reference to that list.
   Renaming or deleting a tag later must not rewrite what an evening was announced with,
   the same reason the speaker's biography is copied onto the talk
+- a location keeps every address it ever had; only the active flag moves. An evening held
+  at an old address was held there
+- `capacity` sits on the `Address`, not on the `Location`: a place that moves rarely keeps
+  the same room, and the seat count of an old address is part of what that evening was.
+  The binding numbers are entered on meetup.com anyway; here the figure is a planning aid
 - a Talk has no duration — how long somebody speaks is not planned here
 
 

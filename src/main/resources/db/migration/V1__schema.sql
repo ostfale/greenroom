@@ -36,14 +36,29 @@ on column speaker_link.speaker_key is 'Position in the list, kept by Spring Data
 
 create table location
 (
-    id          bigserial primary key,
-    name        text not null,
-    street      text,
-    postal_code text,
-    city        text,
-    capacity    int,
-    notes       text
+    id    bigserial primary key,
+    name  text not null,
+    notes text
 );
+
+-- A place keeps every address it ever had; only the active flag moves.
+create table address
+(
+    location     bigint  not null references location (id) on delete cascade,
+    location_key int     not null,
+    street       text,
+    postal_code  text,
+    city         text,
+    capacity     int,
+    active       boolean not null,
+    primary key (location, location_key)
+);
+
+comment on table address is
+    'An evening held at an old address was held there. The address is kept, not overwritten.';
+
+comment on column address.capacity is
+    'Seats at this address. A place that moves rarely keeps the same room.';
 
 comment on table location is
     'A place that hosts an evening. Exists independently of any event and is reused for years.';

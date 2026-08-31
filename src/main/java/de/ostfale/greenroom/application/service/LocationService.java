@@ -2,6 +2,7 @@ package de.ostfale.greenroom.application.service;
 
 import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.out.LocationRepository;
+import de.ostfale.greenroom.domain.location.Address;
 import de.ostfale.greenroom.domain.location.Location;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -35,6 +37,30 @@ public class LocationService implements ManageLocations {
     @Transactional(readOnly = true)
     public List<Location> matching(String fragment) {
         return fragment == null || fragment.isBlank() ? all() : locationRepository.search(fragment.strip());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Location> byId(Long id) {
+        return id == null ? Optional.empty() : locationRepository.findById(id);
+    }
+
+    @Override
+    public Location addAddress(Long locationId, Address address, boolean replacesTheOthers) {
+        Location location = known(locationId);
+        return locationRepository.save(replacesTheOthers
+                ? location.movedTo(address)
+                : location.withAdditionalAddress(address));
+    }
+
+    @Override
+    public Location setAddressActive(Long locationId, int position, boolean active) {
+        return locationRepository.save(known(locationId).withAddressActive(position, active));
+    }
+
+    private Location known(Long locationId) {
+        return byId(locationId).orElseThrow(() ->
+                new IllegalArgumentException("LocationService :: there is no location " + locationId));
     }
 
     @Override

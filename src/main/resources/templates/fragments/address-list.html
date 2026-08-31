@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="address-list" th:fragment="address-list">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <p class="hint" th:if="${#lists.isEmpty(location.addresses)}">
+        Noch keine Adresse erfasst.
+    </p>
+
+    <table th:unless="${#lists.isEmpty(location.addresses)}">
+        <tbody>
+        <tr th:each="address, i : ${location.addresses}" th:classappend="${!address.active} ? 'closed'">
+            <td th:text="${address.line()}">Musterweg 1, 22179 Hamburg</td>
+            <td th:text="${address.capacity} != null ? ${address.capacity} + ' Plätze' : '—'">—</td>
+            <td>
+                <span class="badge" th:text="${address.active} ? 'aktiv' : 'ehemalig'">aktiv</span>
+            </td>
+            <td class="right">
+                <button type="button" class="link"
+                        th:hx-post="@{/location/{id}/address/{pos}(id=${location.id},pos=${i.index},active=${!address.active})}"
+                        hx-target="#address-list"
+                        hx-swap="outerHTML"
+                        th:text="${address.active} ? 'Stilllegen' : 'Wieder aktiv'">Stilllegen</button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

@@ -11,11 +11,13 @@ public interface LocationRepository extends ListCrudRepository<Location, Long> {
 
     List<Location> findAllByOrderByNameAsc();
 
+    /** Every address counts, the retired ones too — a place is often remembered by where it was. */
     @Query("""
-            select * from location
-            where name ilike '%' || :fragment || '%'
-               or city ilike '%' || :fragment || '%'
-            order by name
+            select distinct l.* from location l
+            left join address a on a.location = l.id
+            where l.name ilike '%' || :fragment || '%'
+               or a.city ilike '%' || :fragment || '%'
+            order by l.name
             """)
     List<Location> search(String fragment);
 }

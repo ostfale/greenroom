@@ -1,6 +1,7 @@
 package de.ostfale.greenroom.application.port.out;
 
 import de.ostfale.greenroom.TestcontainersConfiguration;
+import de.ostfale.greenroom.domain.location.Address;
 import de.ostfale.greenroom.domain.location.ContactPerson;
 import de.ostfale.greenroom.domain.location.Location;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,18 +34,15 @@ class LocationRepositoryTest {
     @Test
     void storesAndReadsBackALocation() {
         Location saved = locations.save(Location.of("Musterfirma GmbH", HOST)
-                .withAddress("Musterweg 1", "22179", "Hamburg")
-                .withCapacity(80)
+                .movedTo(Address.at("Musterweg 1", "22179", "Hamburg").withCapacity(80))
                 .withNotes("Parken im Hof, Beamer vorhanden."));
 
         assertThat(saved.id()).isNotNull();
 
         Location loaded = locations.findById(saved.id()).orElseThrow();
         assertThat(loaded.name()).isEqualTo("Musterfirma GmbH");
-        assertThat(loaded.street()).isEqualTo("Musterweg 1");
-        assertThat(loaded.postalCode()).isEqualTo("22179");
-        assertThat(loaded.city()).isEqualTo("Hamburg");
-        assertThat(loaded.capacity()).isEqualTo(80);
+        assertThat(loaded.addressLine()).isEqualTo("Musterweg 1, 22179 Hamburg");
+        assertThat(loaded.currentCapacity()).isEqualTo(80);
         assertThat(loaded.notes()).isEqualTo("Parken im Hof, Beamer vorhanden.");
     }
 
@@ -77,6 +75,42 @@ class LocationRepositoryTest {
     @Test
     void deletingALocationTakesTheContactsWithIt() {
         Location saved = locations.save(Location.of("Musterfirma GmbH", HOST));
+
+        locations.deleteById(saved.id());
+
+        assertThat(locations.findById(saved.id())).isEmpty();
+    }
+
+    @Test
+    void keepsEveryAddressAPlaceEverHadAndRemembersWhichOneCountsNow() {
+        Location saved = locations.save(Location.of("Kühne + Nagel", HOST)
+                .withAddress("Großer Grasbrook 11", "20457", "Hamburg")
+                .movedTo(Address.at("Neuer Weg 2", "20095", "Hamburg")));
+
+        Location loaded = locations.findById(saved.id()).orElseThrow();
+
+        assertThat(loaded.addresses()).extracting(Address::line).containsExactly(
+                "Großer Grasbrook 11, 20457 Hamburg",
+                "Neuer Weg 2, 20095 Hamburg");
+        assertThat(loaded.addresses()).extracting(Address::active).containsExactly(false, true);
+        assertThat(loaded.addressLine()).isEqualTo("Neuer Weg 2, 20095 Hamburg");
+    }
+
+    @Test
+    void aPlaceCanHaveTwoActiveSites() {
+        Location saved = locations.save(Location.of("Musterfirma GmbH", HOST)
+                .withAddress("Musterweg 1", "22179", "Hamburg")
+                .withAdditionalAddress(Address.at("Zweigweg 5", "21073", "Hamburg")));
+
+        Location loaded = locations.findById(saved.id()).orElseThrow();
+
+        assertThat(loaded.activeAddresses()).hasSize(2);
+    }
+
+    @Test
+    void deletingALocationTakesTheAddressesWithIt() {
+        Location saved = locations.save(Location.of("Musterfirma GmbH", HOST)
+                .withAddress("Musterweg 1", "22179", "Hamburg"));
 
         locations.deleteById(saved.id());
 

@@ -13,9 +13,9 @@
     </thead>
     <tbody>
     <tr th:each="location : ${locations}">
-        <td th:text="${location.name}">Musterfirma GmbH</td>
+        <td><a th:href="@{/location/{id}(id=${location.id})}" th:text="${location.name}">Musterfirma GmbH</a></td>
         <td th:text="${#strings.isEmpty(location.addressLine())} ? '—' : ${location.addressLine()}">—</td>
-        <td th:text="${location.capacity} ?: '—'">—</td>
+        <td th:text="${location.currentCapacity()} ?: '—'">—</td>
         <td>
             <span th:each="contact, i : ${location.contacts}">
                 <span th:if="${!i.first}">, </span>
