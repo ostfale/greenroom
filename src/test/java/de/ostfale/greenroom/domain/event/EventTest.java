@@ -3,6 +3,7 @@ package de.ostfale.greenroom.domain.event;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -156,28 +157,40 @@ class EventTest {
     // --- tags -----------------------------------------------------------------------
 
     @Test
-    void theSameTagCannotBeOnTheEveningTwice() {
+    void theKeywordsAreCopiedOntoTheEveningNotReferenced() {
+        Event event = Event.draftFor(readyTalk()).withTags(List.of("Java", "Records"));
+
+        assertThat(event.tags()).containsExactly("Java", "Records");
+        assertThat(event.carries("java")).isTrue();
+        assertThat(event.carries("Testing")).isFalse();
+    }
+
+    @Test
+    void theSameKeywordCannotBeOnTheEveningTwice() {
         Event event = Event.draftFor(readyTalk());
 
-        assertThatThrownBy(() -> event.withTags(List.of(EventTag.of(1L), EventTag.of(1L))))
+        assertThatThrownBy(() -> event.withTags(List.of("Spring", "spring")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("twice");
     }
 
     @Test
-    void theEveningKnowsWhichTagsItCarries() {
-        Event event = Event.draftFor(readyTalk()).withTags(List.of(EventTag.of(1L), EventTag.of(2L)));
+    void aKeywordIsAWordOrItIsNotThere() {
+        Event event = Event.draftFor(readyTalk());
 
-        assertThat(event.carries(1L)).isTrue();
-        assertThat(event.carries(3L)).isFalse();
-        assertThat(event.tags()).extracting(EventTag::tagId).containsExactly(1L, 2L);
+        assertThatThrownBy(() -> event.withTags(List.of("  ")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("word");
+        assertThat(event.withTags(List.of(" Java ")).tags()).containsExactly("Java");
     }
 
     @Test
-    void aTagOnAnEveningAlwaysPointsAtAStoredTag() {
-        assertThatThrownBy(() -> EventTag.of(null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("tag");
+    void tagsAreNeverSharedWithTheCaller() {
+        List<String> mutable = new ArrayList<>(List.of("Java"));
+        Event event = Event.draftFor(readyTalk()).withTags(mutable);
+        mutable.clear();
+
+        assertThat(event.tags()).containsExactly("Java");
     }
 
     // --- the rest -------------------------------------------------------------------

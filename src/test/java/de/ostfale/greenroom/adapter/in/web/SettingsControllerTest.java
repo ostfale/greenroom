@@ -2,7 +2,6 @@ package de.ostfale.greenroom.adapter.in.web;
 
 import de.ostfale.greenroom.TestcontainersConfiguration;
 import de.ostfale.greenroom.application.port.in.ManageTags;
-import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.application.port.out.TagRepository;
 import de.ostfale.greenroom.domain.tag.Tag;
 import org.jsoup.Jsoup;
@@ -39,12 +38,8 @@ class SettingsControllerTest {
     @Autowired
     private TagRepository tagRepository;
 
-    @Autowired
-    private EventRepository eventRepository;
-
     @BeforeEach
     void emptyTheList() {
-        eventRepository.deleteAll();
         tagRepository.deleteAll();
     }
 

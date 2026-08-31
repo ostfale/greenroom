@@ -3,8 +3,6 @@ package de.ostfale.greenroom.application.port.out;
 import de.ostfale.greenroom.TestcontainersConfiguration;
 import de.ostfale.greenroom.domain.event.Event;
 import de.ostfale.greenroom.domain.event.EventStatus;
-import de.ostfale.greenroom.domain.event.EventTag;
-import de.ostfale.greenroom.domain.tag.Tag;
 import de.ostfale.greenroom.domain.event.Talk;
 import de.ostfale.greenroom.domain.event.TalkSpeaker;
 import de.ostfale.greenroom.domain.location.ContactPerson;
@@ -39,9 +37,6 @@ class EventRepositoryTest {
     private EventRepository events;
 
     @Autowired
-    private TagRepository tagsOnTheList;
-
-    @Autowired
     private SpeakerRepository speakers;
 
     @Autowired
@@ -49,7 +44,6 @@ class EventRepositoryTest {
 
     private Long speakerId;
     private Long locationId;
-    private Long tagId;
 
     // Nothing is committed: @DataJdbcTest rolls every test back, so the events never
     // outlive their test and the other repository tests still find empty tables.
@@ -59,7 +53,6 @@ class EventRepositoryTest {
                 .withBio("Schreibt Java, seit es Generics gibt.")).id();
         locationId = locations.save(Location.of("Musterfirma GmbH",
                 ContactPerson.of("Anna Albers", "anna@example.org"))).id();
-        tagId = tagsOnTheList.save(Tag.named("Java")).id();
     }
 
     private Talk readyTalk() {
@@ -73,8 +66,8 @@ class EventRepositoryTest {
         Event saved = events.save(Event.draftFor(readyTalk())
                 .withDate(EVENING)
                 .withMotto("Java-Herbst")
+                .withTags(List.of("Java", "Records"))
                 .withLocation(locationId)
-                .withTags(List.of(EventTag.of(tagId)))
                 .moveTo(EventStatus.DATE_CONFIRMED)
                 .moveTo(EventStatus.VENUE_CONFIRMED));
 
@@ -86,7 +79,7 @@ class EventRepositoryTest {
         assertThat(loaded.status()).isEqualTo(EventStatus.VENUE_CONFIRMED);
         assertThat(loaded.locationId()).isEqualTo(locationId);
         assertThat(loaded.displayName()).isEqualTo("Java-Herbst");
-        assertThat(loaded.tags()).extracting(EventTag::tagId).containsExactly(tagId);
+        assertThat(loaded.tags()).containsExactly("Java", "Records");
         assertThat(loaded.talks()).singleElement().satisfies(talk -> {
             assertThat(talk.id()).isNotNull();
             assertThat(talk.title()).isEqualTo("Records in Java 25");
@@ -141,8 +134,8 @@ class EventRepositoryTest {
     }
 
     @Test
-    void deletingAnEveningTakesItsTalksAndTagsWithIt() {
-        Event saved = events.save(Event.draftFor(readyTalk()).withTags(List.of(EventTag.of(tagId))));
+    void deletingAnEveningTakesItsTalksWithIt() {
+        Event saved = events.save(Event.draftFor(readyTalk()));
 
         events.deleteById(saved.id());
 

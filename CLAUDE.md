@@ -97,7 +97,9 @@ UI texts, in Thymeleaf templates and in the data itself.
 - a location has at least one contact person
 - each, a contact person and a speaker have at least an email adress
 - a `Tag` belongs to the Event, not to the Talk. Tags are one maintained list, edited in
-  the settings; an event points at entries of that list rather than repeating the word
+  the settings — but an event stores the words it was given, not a reference to that list.
+  Renaming or deleting a tag later must not rewrite what an evening was announced with,
+  the same reason the speaker's biography is copied onto the talk
 - a Talk has no duration — how long somebody speaks is not planned here
 
 

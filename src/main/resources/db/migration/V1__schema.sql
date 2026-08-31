@@ -68,7 +68,8 @@ create table event
     motto       text,
     status      text   not null,
     mode        text   not null,
-    location_id bigint references location (id)
+    location_id bigint references location (id),
+    tags        text[] not null default '{}'
 );
 
 comment on table event is
@@ -76,6 +77,10 @@ comment on table event is
 
 comment on column event.date is
     'Null while the evening is still a topic. A DRAFT has no date.';
+
+comment on column event.tags is
+    'The keywords as they were picked, copied from the list in the settings. Renaming or
+     deleting a tag there must not rewrite what an evening was announced with.';
 
 create table talk
 (
@@ -114,13 +119,3 @@ create unique index tag_name_unique on tag (lower(name));
 comment on index tag_name_unique is
     'Two tags that differ only in case are the same tag.';
 
-create table event_tag
-(
-    event     bigint not null references event (id) on delete cascade,
-    event_key int    not null,
-    tag_id    bigint not null references tag (id),
-    primary key (event, event_key)
-);
-
-comment on column event_tag.tag_id is
-    'No cascade on purpose: a tag that is in use cannot be deleted.';

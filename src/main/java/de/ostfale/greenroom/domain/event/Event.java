@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static de.ostfale.greenroom.domain.Texts.optional;
+import static de.ostfale.greenroom.domain.Texts.required;
 
 /**
  * One evening. Never a "Meetup" — that word means meetup.com here.
@@ -29,7 +30,7 @@ public record Event(
         EventMode mode,
         Long locationId,
         List<Talk> talks,
-        List<EventTag> tags) {
+        List<String> tags) {
 
     public Event {
         if (status == null) {
@@ -53,7 +54,7 @@ public record Event(
         }
         motto = optional(motto);
         talks = List.copyOf(talks);
-        tags = tags == null ? List.of() : List.copyOf(withoutDuplicates(tags));
+        tags = tags == null ? List.of() : List.copyOf(normalised(tags));
     }
 
     /** A topic: somebody we want to hear, and nothing settled yet. */
@@ -100,8 +101,17 @@ public record Event(
         return withTalks(more);
     }
 
-    public Event withTags(List<EventTag> newTags) {
+    /**
+     * The keywords as they were picked from the list in the settings. Copied, not
+     * referenced: renaming or deleting a tag later must not rewrite what an evening was
+     * announced with — the same reason the speaker's biography is copied onto the talk.
+     */
+    public Event withTags(List<String> newTags) {
         return new Event(id, date, motto, status, mode, locationId, talks, newTags);
+    }
+
+    public boolean carries(String tag) {
+        return tags.stream().anyMatch(own -> own.equalsIgnoreCase(tag));
     }
 
     /** What to put in a list or a heading. Null while a single talk still has no title. */
@@ -119,17 +129,14 @@ public record Event(
         return talks.size() > 1;
     }
 
-    public boolean carries(Long tagId) {
-        return tags.stream().anyMatch(own -> own.tagId().equals(tagId));
-    }
-
-    private static List<EventTag> withoutDuplicates(List<EventTag> tags) {
-        List<EventTag> kept = new ArrayList<>();
-        for (EventTag tag : tags) {
-            if (kept.stream().anyMatch(seen -> seen.tagId().equals(tag.tagId()))) {
-                throw new IllegalArgumentException("Event :: the tag " + tag.tagId() + " is on this event twice");
+    private static List<String> normalised(List<String> tags) {
+        List<String> kept = new ArrayList<>();
+        for (String tag : tags) {
+            String word = required(tag, "Event :: a tag needs a word");
+            if (kept.stream().anyMatch(seen -> seen.equalsIgnoreCase(word))) {
+                throw new IllegalArgumentException("Event :: the tag " + word + " is on this event twice");
             }
-            kept.add(tag);
+            kept.add(word);
         }
         return kept;
     }
