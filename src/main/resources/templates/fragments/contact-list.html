@@ -25,24 +25,6 @@
                 hx-target="#contact-list"
                 hx-swap="outerHTML">Entfernen</button>
     </form>
-
-    <form class="inline boxed new" method="post"
-          th:action="@{/location/{id}/contact(id=${location.id})}"
-          th:hx-post="@{/location/{id}/contact(id=${location.id})}"
-          hx-target="#contact-list"
-          hx-swap="outerHTML"
-          hx-on::after-request="this.reset()">
-        <label>Name
-            <input type="text" name="contactName" required>
-        </label>
-        <label>E-Mail
-            <input type="email" name="contactEmail" required>
-        </label>
-        <label>Telefon
-            <input type="tel" name="contactPhone">
-        </label>
-        <button type="submit">Hinzufügen</button>
-    </form>
 </div>
 </body>
 </html>

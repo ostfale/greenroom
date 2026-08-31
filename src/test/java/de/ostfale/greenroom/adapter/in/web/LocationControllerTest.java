@@ -412,7 +412,7 @@ class LocationControllerTest {
     }
 
     @Test
-    void theDetailPageOffersOneFormPerContactPlusOneToAdd() throws Exception {
+    void theDetailPageOffersOneFormPerContactAndFoldsAwayTheOneToAdd() throws Exception {
         Long id = locations.add(Location.of("Musterfirma GmbH", HOST)
                 .withAdditionalContact(ContactPerson.of("Anna Albers", "anna@example.org"))).id();
 
@@ -420,12 +420,16 @@ class LocationControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         Document page = Jsoup.parse(html);
-        assertThat(page.select("#contact-list form")).hasSize(3);
+        assertThat(page.select("#contact-list form")).hasSize(2);
+
+        // The form for a further contact sits beside the list, folded away.
+        Element reveal = page.select("details.reveal").last();
+        assertThat(reveal.hasAttr("open")).isFalse();
+        assertThat(reveal.selectFirst("summary").text()).isEqualTo("Weiterer Ansprechpartner");
+        assertThat(reveal.selectFirst("input[name=contactName]")).isNotNull();
         // The last form is the empty one to add with, so it carries no value at all.
         assertThat(page.select("#contact-list input[name=contactName]").eachAttr("value"))
                 .containsExactly("Max Muster", "Anna Albers");
-        assertThat(page.select("#contact-list form").last()
-                .selectFirst("input[name=contactName]").hasAttr("value")).isFalse();
     }
 
     @Test

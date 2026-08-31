@@ -30,7 +30,7 @@
                   th:hx-post="@{/location/{id}/address(id=${location.id})}"
                   hx-target="#address-list"
                   hx-swap="outerHTML"
-                  hx-on::after-request="this.reset(); this.closest('details').open = false">
+                  hx-on::after-request="closeUnlessRefused(this, '#address-list')">
                 <label>Straße und Hausnummer
                     <input type="text" name="street">
                 </label>
@@ -63,6 +63,28 @@
                 Mindestens einer bleibt: ohne jemanden zum Fragen ist der Ort nicht nutzbar.
             </p>
             <div th:replace="~{fragments/contact-list :: contact-list}"></div>
+
+            <!-- Like the addresses: the button stays, the fields wait to be asked for. -->
+            <details class="reveal">
+            <summary>Weiterer Ansprechpartner</summary>
+            <form class="inline boxed new" method="post"
+                  th:action="@{/location/{id}/contact(id=${location.id})}"
+                  th:hx-post="@{/location/{id}/contact(id=${location.id})}"
+                  hx-target="#contact-list"
+                  hx-swap="outerHTML"
+                  hx-on::after-request="closeUnlessRefused(this, '#contact-list')">
+                <label>Name
+                    <input type="text" name="contactName" required>
+                </label>
+                <label>E-Mail
+                    <input type="email" name="contactEmail" required>
+                </label>
+                <label>Telefon
+                    <input type="tel" name="contactPhone">
+                </label>
+                <button type="submit">Ansprechpartner hinzufügen</button>
+            </form>
+            </details>
         </section>
 
         <section class="tile quarter">
