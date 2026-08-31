@@ -1,22 +1,27 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
+<!-- The answer to every address change: the list, and the summary tile that depends on it. -->
+<th:block th:fragment="address-list-and-summary">
+    <div th:replace="~{fragments/address-list :: address-list}"></div>
+    <div th:replace="~{fragments/location-summary :: location-summary}"></div>
+</th:block>
+
 <div id="address-list" th:fragment="address-list">
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <p class="hint" th:if="${#lists.isEmpty(location.addresses)}">
-        Noch keine Adresse erfasst.
-    </p>
+    <p class="hint" th:if="${#lists.isEmpty(location.addresses)}">Noch keine Adresse erfasst.</p>
 
     <table th:unless="${#lists.isEmpty(location.addresses)}">
         <tbody>
         <tr th:each="address, i : ${location.addresses}" th:classappend="${!address.active} ? 'closed'">
             <td th:text="${address.line()}">Musterweg 1, 22179 Hamburg</td>
-            <td th:text="${address.capacity} != null ? ${address.capacity} + ' Plätze' : '—'">—</td>
+            <td class="data" th:text="${address.capacity} != null ? ${address.capacity} + ' Plätze' : '—'">—</td>
             <td>
-                <span class="badge" th:text="${address.active} ? 'aktiv' : 'ehemalig'">aktiv</span>
+                <span class="badge" th:classappend="${!address.active} ? 'quiet'"
+                      th:text="${address.active} ? 'aktiv' : 'ehemalig'">aktiv</span>
             </td>
-            <td class="right">
+            <td style="text-align: right">
                 <button type="button" class="link"
                         th:hx-post="@{/location/{id}/address/{pos}(id=${location.id},pos=${i.index},active=${!address.active})}"
                         hx-target="#address-list"

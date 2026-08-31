@@ -8,6 +8,7 @@ import de.ostfale.greenroom.domain.location.ContactPerson;
 import de.ostfale.greenroom.domain.location.Location;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -210,6 +211,46 @@ class LocationControllerTest {
     }
 
     @Test
+    void anAddressChangeAlsoBringsTheSummaryTileUpToDate() throws Exception {
+        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)
+                .movedTo(Address.at("Musterweg 1", "22179", "Hamburg").withCapacity(60))).id();
+
+        String fragment = mvc.perform(post("/location/{id}/address", id)
+                        .param("street", "")
+                        .param("postalCode", "")
+                        .param("city", "Lüneburg")
+                        .param("capacity", "")
+                        .param("moved", "false")
+                        .header("HX-Request", "true"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document parsed = Jsoup.parseBodyFragment(fragment);
+        assertThat(parsed.selectFirst("#address-list")).isNotNull();
+        Element summary = parsed.selectFirst("#location-summary");
+        assertThat(summary).isNotNull();
+        assertThat(summary.attr("hx-swap-oob")).isEqualTo("true");
+        assertThat(summary.select("dd").last().text()).isEqualTo("2 aktiv");
+    }
+
+    @Test
+    void theFieldsForAFurtherAddressStayFoldedAway() throws Exception {
+        Long id = locations.add(Location.of("Musterfirma GmbH", HOST)
+                .withAddress("Musterweg 1", "22179", "Hamburg")).id();
+
+        String html = mvc.perform(get("/location/{id}", id)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document page = Jsoup.parse(html);
+        Element reveal = page.selectFirst("details.reveal");
+        assertThat(reveal).isNotNull();
+        assertThat(reveal.hasAttr("open")).isFalse();
+        assertThat(reveal.selectFirst("summary").text()).isEqualTo("Weitere Adresse");
+        // The form is still on the page — it is only out of sight until asked for.
+        assertThat(reveal.selectFirst("input[name=street]")).isNotNull();
+    }
+
+    @Test
     void anUnknownLocationSendsYouBackToTheList() throws Exception {
         mvc.perform(get("/location/{id}", 999L))
                 .andExpect(status().is3xxRedirection())
@@ -408,9 +449,9 @@ class LocationControllerTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        assertThat(fragment.strip()).startsWith("<table").doesNotContain("<html").doesNotContain("<header");
+        assertThat(fragment.strip()).startsWith("<div").doesNotContain("<html").doesNotContain("<header");
         Document parsed = Jsoup.parseBodyFragment(fragment);
-        assertThat(parsed.selectFirst("table#location-table")).isNotNull();
+        assertThat(parsed.selectFirst("div#location-table table")).isNotNull();
         assertThat(parsed.select("tbody tr td:first-child").eachText()).containsExactly("Zeise Kinos");
     }
 

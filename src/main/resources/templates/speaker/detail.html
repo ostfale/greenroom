@@ -2,40 +2,32 @@
 <html lang="de" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head(${speaker.name})}"></head>
 <body>
-<header th:replace="~{fragments/layout :: header}"></header>
+<header th:replace="~{fragments/layout :: topbar('speaker')}"></header>
 
 <main>
     <div class="headline">
         <h1 th:text="${speaker.name}">Max Muster</h1>
-        <a th:href="@{/speaker}">Zurück zur Liste</a>
+        <a class="back" th:href="@{/speaker}">Zurück zur Liste</a>
     </div>
 
-    <div class="columns">
-        <div th:replace="~{fragments/speaker-photo :: speaker-photo}"></div>
+    <div class="bento">
+        <section class="tile quarter">
+            <div th:replace="~{fragments/speaker-photo :: speaker-photo}"></div>
+        </section>
 
-        <div class="details">
-            <dl>
-                <dt>Firma</dt>
-                <dd th:text="${speaker.company} ?: '—'">—</dd>
-                <dt>E-Mail</dt>
-                <dd><a th:href="'mailto:' + ${speaker.email}" th:text="${speaker.email}">max@example.org</a></dd>
-                <dt>Telefon</dt>
-                <dd th:text="${speaker.phone} ?: '—'">—</dd>
-            </dl>
+        <section class="tile three">
+            <h2>Stammdaten</h2>
+            <div th:replace="~{fragments/speaker-fields :: speaker-fields}"></div>
+        </section>
 
-            <h2>Kurzvita</h2>
-            <p th:text="${speaker.bio} ?: '—'">—</p>
-
-            <h2 th:if="${!#lists.isEmpty(speaker.links)}">Links</h2>
-            <ul class="plain" th:if="${!#lists.isEmpty(speaker.links)}">
+        <section class="tile half" th:if="${!#lists.isEmpty(speaker.links)}">
+            <h2>Links</h2>
+            <ul class="plain">
                 <li th:each="link : ${speaker.links}">
                     <a th:href="${link.url}" th:text="${link.display()}" rel="noreferrer">Blog</a>
                 </li>
             </ul>
-
-            <h2>Notizen</h2>
-            <p th:text="${speaker.notes} ?: '—'">—</p>
-        </div>
+        </section>
     </div>
 </main>
 </body>

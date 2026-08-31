@@ -1,29 +1,31 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<table id="location-table" th:fragment="location-table">
-    <caption th:if="${#lists.isEmpty(locations)}">Keine Orte gefunden.</caption>
-    <thead th:unless="${#lists.isEmpty(locations)}">
-    <tr>
-        <th>Ort</th>
-        <th>Adresse</th>
-        <th>Plätze</th>
-        <th>Ansprechpartner</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="location : ${locations}">
-        <td><a th:href="@{/location/{id}(id=${location.id})}" th:text="${location.name}">Musterfirma GmbH</a></td>
-        <td th:text="${#strings.isEmpty(location.addressLine())} ? '—' : ${location.addressLine()}">—</td>
-        <td th:text="${location.currentCapacity()} ?: '—'">—</td>
-        <td>
-            <span th:each="contact, i : ${location.contacts}">
-                <span th:if="${!i.first}">, </span>
-                <a th:href="'mailto:' + ${contact.email}" th:text="${contact.name}">Max Muster</a>
-            </span>
-        </td>
-    </tr>
-    </tbody>
-</table>
+<div id="location-table" class="card" th:fragment="location-table">
+    <table>
+        <caption th:if="${#lists.isEmpty(locations)}">Keine Orte gefunden.</caption>
+        <thead th:unless="${#lists.isEmpty(locations)}">
+        <tr>
+            <th>Ort</th>
+            <th>Adresse</th>
+            <th>Plätze</th>
+            <th>Ansprechpartner</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="location : ${locations}">
+            <td><a th:href="@{/location/{id}(id=${location.id})}" th:text="${location.name}">Musterfirma GmbH</a></td>
+            <td th:text="${#strings.isEmpty(location.addressLine())} ? '—' : ${location.addressLine()}">—</td>
+            <td class="data" th:text="${location.currentCapacity()} ?: '—'">—</td>
+            <td>
+                <span th:each="contact, i : ${location.contacts}">
+                    <span th:if="${!i.first}">, </span>
+                    <a th:href="'mailto:' + ${contact.email}" th:text="${contact.name}">Max Muster</a>
+                </span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
 </body>
 </html>

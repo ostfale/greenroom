@@ -92,6 +92,43 @@ public class SpeakerController {
                 .orElse("redirect:/speaker");
     }
 
+    @PostMapping("/{id}")
+    public String change(@PathVariable Long id,
+                         @RequestParam(defaultValue = "") String name,
+                         @RequestParam(defaultValue = "") String email,
+                         @RequestParam(defaultValue = "") String company,
+                         @RequestParam(defaultValue = "") String phone,
+                         @RequestParam(defaultValue = "") String bio,
+                         @RequestParam(defaultValue = "") String notes,
+                         Model model) {
+        try {
+            Speaker known = speakers.byId(id).orElseThrow(() ->
+                    new IllegalArgumentException("SpeakerController :: unknown speaker"));
+            speakers.change(new Speaker(id, name, company, email, phone, bio, notes, known.links()));
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", "Name und E-Mail-Adresse sind Pflichtfelder.");
+        }
+        return detailFragment(id, model);
+    }
+
+    @PostMapping("/{id}/remove")
+    public String remove(@PathVariable Long id, Model model) {
+        try {
+            speakers.remove(id);
+            return "redirect:/speaker";
+        } catch (IllegalStateException e) {
+            model.addAttribute("error",
+                    "Dieser Referent ist für einen Vortrag angekündigt und bleibt deshalb bestehen.");
+            return detailFragment(id, model);
+        }
+    }
+
+    /** Every change to the speaker answers with the same tile. */
+    private String detailFragment(Long id, Model model) {
+        speakers.byId(id).ifPresent(speaker -> model.addAttribute("speaker", speaker));
+        return "fragments/speaker-fields :: speaker-fields";
+    }
+
     /** The picture itself. Its own route so the list never carries the bytes. */
     @GetMapping("/{id}/photo")
     @ResponseBody

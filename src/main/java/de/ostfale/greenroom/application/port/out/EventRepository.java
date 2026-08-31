@@ -19,4 +19,11 @@ public interface EventRepository extends ListCrudRepository<Event, Long> {
      * warning in the use case, never a rejected invariant.
      */
     List<Event> findByDate(LocalDate date);
+
+    /**
+     * Whether that speaker is announced on any talk. A speaker who once spoke is kept for
+     * good — the history of an evening points at them.
+     */
+    @Query("select exists(select 1 from talk_speaker where speaker_id = :speakerId)")
+    boolean isOnATalk(Long speakerId);
 }

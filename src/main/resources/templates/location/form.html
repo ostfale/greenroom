@@ -2,14 +2,14 @@
 <html lang="de" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Neuer Ort')}"></head>
 <body>
-<header th:replace="~{fragments/layout :: header}"></header>
+<header th:replace="~{fragments/layout :: topbar('location')}"></header>
 
 <main>
     <h1>Neuer Ort</h1>
 
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form method="post" th:action="@{/location}">
+    <form class="sheet" method="post" th:action="@{/location}">
         <label>Name
             <input type="text" name="name" required autofocus th:value="${submitted.name}">
         </label>

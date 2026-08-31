@@ -2,7 +2,7 @@
 <html lang="de" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Neues Thema')}"></head>
 <body>
-<header th:replace="~{fragments/layout :: header}"></header>
+<header th:replace="~{fragments/layout :: topbar('event')}"></header>
 
 <main>
     <h1>Neues Thema</h1>
@@ -14,7 +14,7 @@
         <p><a class="button" th:href="@{/speaker/new}">Referent anlegen</a></p>
     </div>
 
-    <form th:unless="${#lists.isEmpty(speakers)}" method="post" th:action="@{/event}">
+    <form class="sheet" th:unless="${#lists.isEmpty(speakers)}" method="post" th:action="@{/event}">
         <label>Referent
             <select name="speakerId" required autofocus>
                 <option value="">Bitte auswählen</option>

@@ -4,7 +4,7 @@
 <div id="contact-list" th:fragment="contact-list">
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form class="inline wrap contact" method="post"
+    <form class="inline boxed" method="post"
           th:each="contact, i : ${location.contacts}"
           th:action="@{/location/{id}/contact/{pos}(id=${location.id},pos=${i.index})}"
           th:hx-post="@{/location/{id}/contact/{pos}(id=${location.id},pos=${i.index})}"
@@ -26,7 +26,7 @@
                 hx-swap="outerHTML">Entfernen</button>
     </form>
 
-    <form class="inline wrap contact new" method="post"
+    <form class="inline boxed new" method="post"
           th:action="@{/location/{id}/contact(id=${location.id})}"
           th:hx-post="@{/location/{id}/contact(id=${location.id})}"
           hx-target="#contact-list"

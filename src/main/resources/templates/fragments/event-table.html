@@ -1,26 +1,38 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<table id="event-table" th:fragment="event-table">
-    <caption th:if="${#lists.isEmpty(events)}">Noch kein Event geplant.</caption>
-    <thead th:unless="${#lists.isEmpty(events)}">
-    <tr>
-        <th>Datum</th>
-        <th>Event</th>
-        <th>Status</th>
-        <th>Ort</th>
-        <th>Vorträge</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="event : ${events}" th:classappend="${event.status.isClosed()} ? 'closed'">
-        <td th:text="${event.date} != null ? ${#temporals.format(event.date, 'dd.MM.yyyy')} : '—'">—</td>
-        <td th:text="${event.displayName()} ?: 'Ohne Titel'">Ohne Titel</td>
-        <td><span class="badge" th:text="#{'event.status.' + ${event.status}}">Thema</span></td>
-        <td th:text="${event.locationId} != null ? ${locationNames[event.locationId]} : '—'">—</td>
-        <td th:text="${#lists.size(event.talks)}">1</td>
-    </tr>
-    </tbody>
-</table>
+<div id="event-table" class="card" th:fragment="event-table">
+    <table>
+        <caption th:if="${#lists.isEmpty(events)}">Noch kein Event geplant.</caption>
+        <thead th:unless="${#lists.isEmpty(events)}">
+        <tr>
+            <th>Datum</th>
+            <th>Event</th>
+            <th>Planung</th>
+            <th>Ort</th>
+            <th>Vorträge</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="event : ${events}" th:classappend="${event.status.isClosed()} ? 'closed'">
+            <td class="data" th:text="${event.date} != null ? ${#temporals.format(event.date, 'dd.MM.yyyy')} : '—'">—</td>
+            <td th:text="${event.displayName()} ?: 'Ohne Titel'">Ohne Titel</td>
+            <td>
+                <div class="steps">
+                    <span class="progress"
+                          th:classappend="${event.status.name() == 'POSTPONED'} ? 'postponed'
+                                        : (${event.status.isClosed() and event.status.name() == 'CANCELLED'} ? 'cancelled' : '')">
+                        <i th:each="step : ${#numbers.sequence(1, 4)}"
+                           th:classappend="${step <= event.status.plannedSteps()} ? 'done'"></i>
+                    </span>
+                    <span class="label" th:text="#{'event.status.' + ${event.status}}">Thema</span>
+                </div>
+            </td>
+            <td th:text="${event.locationId} != null ? ${locationNames[event.locationId]} : '—'">—</td>
+            <td class="data" th:text="${#lists.size(event.talks)}">1</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
 </body>
 </html>

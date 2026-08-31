@@ -2,63 +2,74 @@
 <html lang="de" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head(${location.name})}"></head>
 <body>
-<header th:replace="~{fragments/layout :: header}"></header>
+<header th:replace="~{fragments/layout :: topbar('location')}"></header>
 
 <main>
     <div class="headline">
         <h1 th:text="${location.name}">Musterfirma GmbH</h1>
-        <a th:href="@{/location}">Zurück zur Liste</a>
+        <a class="back" th:href="@{/location}">Zurück zur Liste</a>
     </div>
 
-    <section>
-        <h2>Adressen</h2>
-        <p class="hint">
-            Zieht der Gastgeber um, bleibt die alte Adresse stehen: ein Event, das dort war,
-            war dort. „Umgezogen“ legt die bisherigen still, sonst kommt ein zweiter
-            Standort dazu.
-        </p>
+    <div class="bento">
+        <section class="tile three">
+            <h2>Adressen</h2>
+            <p class="hint">
+                Zieht der Gastgeber um, bleibt die alte Adresse stehen: ein Event, das dort
+                war, war dort. „Umgezogen“ legt die bisherigen still, sonst kommt ein
+                zweiter Standort dazu.
+            </p>
 
-        <div th:replace="~{fragments/address-list :: address-list}"></div>
+            <div th:replace="~{fragments/address-list :: address-list}"></div>
 
-        <form class="inline wrap" method="post"
-              th:action="@{/location/{id}/address(id=${location.id})}"
-              th:hx-post="@{/location/{id}/address(id=${location.id})}"
-              hx-target="#address-list"
-              hx-swap="outerHTML"
-              hx-on::after-request="this.reset()">
-            <label>Straße und Hausnummer
-                <input type="text" name="street">
-            </label>
-            <label>PLZ
-                <input type="text" name="postalCode" class="narrow" inputmode="numeric">
-            </label>
-            <label>Stadt
-                <input type="text" name="city">
-            </label>
-            <label>Plätze
-                <input type="number" name="capacity" min="1" class="narrow">
-            </label>
-            <label class="toggle inline-toggle">
-                <input type="checkbox" name="moved" value="true">
-                Umgezogen
-            </label>
-            <button type="submit">Adresse hinzufügen</button>
-        </form>
-    </section>
+            <!-- A place moves once in years, so the fields stay out of the way until
+                 somebody asks for them. -->
+            <details class="reveal">
+            <summary>Weitere Adresse</summary>
+            <form class="inline boxed new" method="post"
+                  th:action="@{/location/{id}/address(id=${location.id})}"
+                  th:hx-post="@{/location/{id}/address(id=${location.id})}"
+                  hx-target="#address-list"
+                  hx-swap="outerHTML"
+                  hx-on::after-request="this.reset(); this.closest('details').open = false">
+                <label>Straße und Hausnummer
+                    <input type="text" name="street">
+                </label>
+                <label>PLZ
+                    <input type="text" name="postalCode" class="narrow" inputmode="numeric">
+                </label>
+                <label>Stadt
+                    <input type="text" name="city">
+                </label>
+                <label>Plätze
+                    <input type="number" name="capacity" min="1" class="narrow">
+                </label>
+                <label class="toggle">
+                    <input type="checkbox" name="moved" value="true">
+                    Umgezogen
+                </label>
+                <button type="submit">Adresse hinzufügen</button>
+            </form>
+            </details>
+        </section>
 
-    <section>
-        <h2>Ansprechpartner</h2>
-        <p class="hint">
-            Mindestens einer bleibt: ohne jemanden zum Fragen ist der Ort nicht nutzbar.
-        </p>
+        <section class="tile quarter">
+            <h2>Aktuell</h2>
+            <div th:replace="~{fragments/location-summary :: location-summary}"></div>
+        </section>
 
-        <div th:replace="~{fragments/contact-list :: contact-list}"></div>
-    </section>
+        <section class="tile three">
+            <h2>Ansprechpartner</h2>
+            <p class="hint">
+                Mindestens einer bleibt: ohne jemanden zum Fragen ist der Ort nicht nutzbar.
+            </p>
+            <div th:replace="~{fragments/contact-list :: contact-list}"></div>
+        </section>
 
-    <section>
-        <h2>Notizen</h2>
-        <p th:text="${location.notes} ?: '—'">—</p>
-    </section>
+        <section class="tile quarter">
+            <h2>Notizen</h2>
+            <p th:text="${location.notes} ?: '—'">—</p>
+        </section>
+    </div>
 </main>
 </body>
 </html>

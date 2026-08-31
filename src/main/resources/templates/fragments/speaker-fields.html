@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="speaker-fields" th:fragment="speaker-fields">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <form method="post" th:action="@{/speaker/{id}(id=${speaker.id})}"
+          th:hx-post="@{/speaker/{id}(id=${speaker.id})}"
+          hx-target="#speaker-fields"
+          hx-swap="outerHTML">
+        <label>Name
+            <input type="text" name="name" required th:value="${speaker.name}">
+        </label>
+        <label>E-Mail
+            <input type="email" name="email" required th:value="${speaker.email}">
+        </label>
+        <div class="row">
+            <label>Telefon
+                <input type="tel" name="phone" th:value="${speaker.phone}">
+            </label>
+            <label>Firma
+                <input type="text" name="company" th:value="${speaker.company}">
+            </label>
+        </div>
+        <label>Kurzvita
+            <textarea name="bio" rows="4" th:text="${speaker.bio}"></textarea>
+        </label>
+        <label>Notizen
+            <textarea name="notes" rows="3" th:text="${speaker.notes}"></textarea>
+        </label>
+
+        <div class="actions">
+            <button type="submit">Änderungen speichern</button>
+            <button type="button" class="danger"
+                    th:hx-post="@{/speaker/{id}/remove(id=${speaker.id})}"
+                    hx-target="#speaker-fields"
+                    hx-swap="outerHTML">Referenten löschen</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

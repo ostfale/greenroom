@@ -85,6 +85,21 @@ class EventStatusTest {
                 .containsExactlyInAnyOrder(PUBLISHED, DONE);
     }
 
+    @Test
+    void thePlanningIsCountedInFourSteps() {
+        assertThat(DRAFT.plannedSteps()).isZero();
+        assertThat(DATE_CONFIRMED.plannedSteps()).isEqualTo(1);
+        assertThat(VENUE_CONFIRMED.plannedSteps()).isEqualTo(2);
+        assertThat(PUBLISHED.plannedSteps()).isEqualTo(3);
+        assertThat(DONE.plannedSteps()).isEqualTo(4);
+    }
+
+    @Test
+    void whatIsOffTheTrackCountsNothing() {
+        assertThat(POSTPONED.plannedSteps()).isZero();
+        assertThat(CANCELLED.plannedSteps()).isZero();
+    }
+
     private static Set<EventStatus> allowedFrom(EventStatus status) {
         return Arrays.stream(EventStatus.values())
                 .filter(status::canMoveTo)

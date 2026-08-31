@@ -29,6 +29,17 @@ public interface ManageSpeakers {
      */
     Speaker add(Speaker speaker, String photoContentType, byte[] photoData);
 
+    /** Stores the changed fields of a speaker that is already known. */
+    Speaker change(Speaker speaker);
+
+    /**
+     * Removes a speaker and the picture with them.
+     *
+     * @throws IllegalStateException if they are announced on a talk — that evening still
+     *                               points at them
+     */
+    void remove(Long id);
+
     /** The picture of that speaker, if one was ever uploaded. */
     Optional<SpeakerPhoto> photoOf(Long speakerId);
 

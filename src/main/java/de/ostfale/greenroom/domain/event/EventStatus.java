@@ -30,6 +30,22 @@ public enum EventStatus {
         return this == DONE || this == CANCELLED;
     }
 
+    /**
+     * How much of the planning is behind us, counted in the four steps an evening takes:
+     * topic, date, venue, announcement. Postponed and cancelled are not steps on that way,
+     * so they count nothing.
+     */
+    public int plannedSteps() {
+        return switch (this) {
+            case DRAFT -> 0;
+            case DATE_CONFIRMED -> 1;
+            case VENUE_CONFIRMED -> 2;
+            case PUBLISHED -> 3;
+            case DONE -> 4;
+            case POSTPONED, CANCELLED -> 0;
+        };
+    }
+
     /** From here on the evening has a date. A draft is a topic, and a topic has no date. */
     public boolean requiresADate() {
         return switch (this) {

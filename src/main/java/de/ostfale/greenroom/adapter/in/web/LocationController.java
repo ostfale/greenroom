@@ -132,7 +132,7 @@ public class LocationController {
                     : "Eine Adresse braucht mindestens Straße oder Stadt.");
             locations.byId(id).ifPresent(location -> model.addAttribute("location", location));
         }
-        return "fragments/address-list :: address-list";
+        return "fragments/address-list :: address-list-and-summary";
     }
 
     @PostMapping("/{id}/address/{position}")
@@ -141,7 +141,7 @@ public class LocationController {
                                    @RequestParam boolean active,
                                    Model model) {
         model.addAttribute("location", locations.setAddressActive(id, position, active));
-        return "fragments/address-list :: address-list";
+        return "fragments/address-list :: address-list-and-summary";
     }
 
     @PostMapping("/{id}/contact")

@@ -2,7 +2,12 @@ package de.ostfale.greenroom.adapter.in.web;
 
 import de.ostfale.greenroom.TestcontainersConfiguration;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
+import de.ostfale.greenroom.application.port.in.ManageEvents;
+import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.application.port.out.SpeakerRepository;
+import de.ostfale.greenroom.domain.event.Event;
+import de.ostfale.greenroom.domain.event.Talk;
+import de.ostfale.greenroom.domain.event.TalkSpeaker;
 import de.ostfale.greenroom.domain.speaker.Speaker;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -46,6 +51,12 @@ class SpeakerControllerTest {
     @Autowired
     private SpeakerRepository repository;
 
+    @Autowired
+    private ManageEvents events;
+
+    @Autowired
+    private EventRepository eventRepository;
+
     /** A real picture — the scaler reads the bytes, it does not trust a content type. */
     private static byte[] picture(int width, int height) throws Exception {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -59,6 +70,7 @@ class SpeakerControllerTest {
 
     @BeforeEach
     void emptyTheTable() {
+        eventRepository.deleteAll();
         repository.deleteAll();
     }
 
@@ -136,9 +148,9 @@ class SpeakerControllerTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        assertThat(fragment.strip()).startsWith("<table").doesNotContain("<html").doesNotContain("<header");
+        assertThat(fragment.strip()).startsWith("<div").doesNotContain("<html").doesNotContain("<header");
         Document parsed = Jsoup.parseBodyFragment(fragment);
-        assertThat(parsed.selectFirst("table#speaker-table")).isNotNull();
+        assertThat(parsed.selectFirst("div#speaker-table table")).isNotNull();
         assertThat(parsed.select("tbody tr td:first-child").eachText()).containsExactly("Anna Albers");
     }
 
@@ -197,6 +209,85 @@ class SpeakerControllerTest {
         assertThat(speakers.all()).isEmpty();
     }
 
+    // --- changing and removing --------------------------------------------------------
+
+    @Test
+    void theDetailFormWritesTheChangedFieldsBack() throws Exception {
+        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+
+        mvc.perform(post("/speaker/{id}", id)
+                        .param("name", "Max Mustermann")
+                        .param("email", "neu@example.org")
+                        .param("company", "Nordsee GmbH")
+                        .param("phone", "040 999")
+                        .param("bio", "Neue Vita.")
+                        .param("notes", "Ruft lieber an."))
+                .andExpect(status().isOk());
+
+        assertThat(speakers.byId(id)).get().satisfies(stored -> {
+            assertThat(stored.name()).isEqualTo("Max Mustermann");
+            assertThat(stored.email()).isEqualTo("neu@example.org");
+            assertThat(stored.company()).isEqualTo("Nordsee GmbH");
+            assertThat(stored.bio()).isEqualTo("Neue Vita.");
+            assertThat(stored.notes()).isEqualTo("Ruft lieber an.");
+        });
+    }
+
+    @Test
+    void aChangeThatBreaksTheRulesSaysSoAndChangesNothing() throws Exception {
+        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+
+        String fragment = mvc.perform(post("/speaker/{id}", id)
+                        .param("name", "Max Muster")
+                        .param("email", "")
+                        .param("company", "")
+                        .param("phone", "")
+                        .param("bio", "")
+                        .param("notes", ""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("E-Mail-Adresse");
+        assertThat(speakers.byId(id).orElseThrow().email()).isEqualTo("max@example.org");
+    }
+
+    @Test
+    void aSpeakerWhoNeverSpokeCanBeRemoved() throws Exception {
+        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+
+        mvc.perform(post("/speaker/{id}/remove", id))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/speaker"));
+
+        assertThat(speakers.byId(id)).isEmpty();
+    }
+
+    @Test
+    void aSpeakerAnnouncedOnATalkStays() throws Exception {
+        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        events.add(Event.draftFor(Talk.by(TalkSpeaker.of(id)).withTitle("Records in Java 25")));
+
+        String fragment = mvc.perform(post("/speaker/{id}/remove", id))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("angekündigt");
+        assertThat(speakers.byId(id)).isPresent();
+    }
+
+    @Test
+    void removingASpeakerTakesThePictureWithThem() throws Exception {
+        Long id = speakers.add(Speaker.of("Max Muster", "max@example.org")).id();
+        mvc.perform(multipart("/speaker/{id}/photo", id)
+                .file(new MockMultipartFile("photo", "max.png", "image/png", picture(80, 80))));
+
+        mvc.perform(post("/speaker/{id}/remove", id)).andExpect(redirectedUrl("/speaker"));
+
+        assertThat(speakers.photoOf(id)).isEmpty();
+    }
+
     // --- the detail page and its picture ---------------------------------------------
 
     @Test
@@ -220,8 +311,13 @@ class SpeakerControllerTest {
 
         Document page = Jsoup.parse(html);
         assertThat(page.selectFirst("h1").text()).isEqualTo("Max Muster");
-        assertThat(page.select(".details dd").eachText())
-                .containsExactly("Musterfirma GmbH", "max@example.org", "040 123456");
+        // The detail page is the edit form: the fields carry what is stored.
+        assertThat(page.selectFirst("#speaker-fields input[name=name]").val()).isEqualTo("Max Muster");
+        assertThat(page.selectFirst("#speaker-fields input[name=email]").val()).isEqualTo("max@example.org");
+        assertThat(page.selectFirst("#speaker-fields input[name=company]").val()).isEqualTo("Musterfirma GmbH");
+        assertThat(page.selectFirst("#speaker-fields input[name=phone]").val()).isEqualTo("040 123456");
+        assertThat(page.selectFirst("#speaker-fields textarea[name=bio]").text())
+                .isEqualTo("Schreibt Java, seit es Generics gibt.");
         assertThat(page.selectFirst(".portrait").hasClass("placeholder")).isTrue();
         assertThat(page.selectFirst(".portrait").text()).isEqualTo("M");
     }

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Sits in its own tile, but changes with the addresses. hx-swap-oob lets one response
+     replace both places; htmx ignores the attribute when the page is first rendered. -->
+<dl id="location-summary" hx-swap-oob="true" th:fragment="location-summary">
+    <dt>Adresse</dt>
+    <dd th:text="${#strings.isEmpty(location.addressLine())} ? '—' : ${location.addressLine()}">—</dd>
+    <dt>Plätze</dt>
+    <dd class="data" th:text="${location.currentCapacity()} ?: '—'">—</dd>
+    <dt>Standorte</dt>
+    <dd class="data" th:text="${#lists.size(location.activeAddresses())} + ' aktiv'">1 aktiv</dd>
+</dl>
+</body>
+</html>

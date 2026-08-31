@@ -231,8 +231,8 @@ class EventControllerTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        assertThat(fragment.strip()).startsWith("<table").doesNotContain("<html").doesNotContain("<header");
-        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("table#event-table")).isNotNull();
+        assertThat(fragment.strip()).startsWith("<div").doesNotContain("<html").doesNotContain("<header");
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("div#event-table table")).isNotNull();
     }
 
     @Test

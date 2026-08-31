@@ -2,14 +2,14 @@
 <html lang="de" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Neuer Referent')}"></head>
 <body>
-<header th:replace="~{fragments/layout :: header}"></header>
+<header th:replace="~{fragments/layout :: topbar('speaker')}"></header>
 
 <main>
     <h1>Neuer Referent</h1>
 
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form method="post" enctype="multipart/form-data" th:action="@{/speaker}">
+    <form class="sheet" method="post" enctype="multipart/form-data" th:action="@{/speaker}">
         <label>Name
             <input type="text" name="name" required autofocus th:value="${submitted.name}">
         </label>

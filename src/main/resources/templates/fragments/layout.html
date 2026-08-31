@@ -4,17 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="'greenroom – ' + ${title}">greenroom</title>
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          th:href="@{/fonts/archivo-latin-wght-normal.woff2}">
     <link rel="stylesheet" th:href="@{/css/greenroom.css}">
     <script th:src="@{/vendor/htmx.min.js}" defer></script>
 </head>
 <body>
-<header th:fragment="header">
-    <a class="wordmark" th:href="@{/speaker}">greenroom</a>
+<header class="topbar" th:fragment="topbar(here)">
+    <a class="wordmark" th:href="@{/event}">greenroom</a>
     <nav>
-        <a th:href="@{/event}">Events</a>
-        <a th:href="@{/speaker}">Referenten</a>
-        <a th:href="@{/location}">Orte</a>
-        <a th:href="@{/settings}">Einstellungen</a>
+        <a th:href="@{/event}" th:classappend="${here} == 'event' ? 'here'">Events</a>
+        <a th:href="@{/speaker}" th:classappend="${here} == 'speaker' ? 'here'">Referenten</a>
+        <a th:href="@{/location}" th:classappend="${here} == 'location' ? 'here'">Orte</a>
+        <a th:href="@{/settings}" th:classappend="${here} == 'settings' ? 'here'">Einstellungen</a>
     </nav>
 </header>
 </body>
