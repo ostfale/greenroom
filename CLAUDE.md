@@ -113,6 +113,14 @@ UI texts, in Thymeleaf templates and in the data itself.
 - an `Event` carries a `moderator`: the name of whoever leads through the evening, and
   nothing else. Not a reference to a `Speaker` or a `ContactPerson` — that person is
   usually one of us, and there is nothing further about them to plan here
+- the order of asking is part of the domain: the speaker is asked about the date first,
+  and only once everybody has said yes do the venues get asked, one after another. That is
+  why `SpeakerInquiry` and `VenueInquiry` are separate aggregates — one asks about a date
+  with the person fixed, the other asks a place with the date fixed. They share only
+  `InquiryOutcome` and `ContactChannel`
+- an inquiry is answered once. A second attempt after a refusal is a new inquiry, so both
+  stay in the history, and `askedAbout` copies the date that was proposed. An accepted
+  inquiry does not move the event on by itself — the page says so, somebody decides
 - a Talk has no duration — how long somebody speaks is not planned here
 
 

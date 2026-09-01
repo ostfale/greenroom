@@ -61,5 +61,10 @@ The announced biography is copied onto a talk the moment the speaker is put on i
 edited there. It does not follow the speaker afterwards: what an evening was announced with
 stays, the same reason an event stores its keywords as words.
 
-What is missing is `Activity`, `SpeakerInquiry`, `VenueInquiry` and `PlanningSettings`, and
-the mail, geo, importer and scheduling adapters the layout above already names.
+`SpeakerInquiry` records what was asked of a speaker and what came back, with the proposed
+date copied onto it and the number of days it has been waiting on the page. An inquiry is
+answered once; asking again after a refusal is a new inquiry and both stay.
+
+What is missing is `VenueInquiry` — the sequential one, ask a place, and the next if it
+declines — and `Activity` and `PlanningSettings`, and the mail, geo, importer and
+scheduling adapters the layout above already names.

@@ -146,3 +146,19 @@ create table speaker_photo
 
 comment on table speaker_photo is
     'Apart from the speaker on purpose: the list of speakers must not carry the bytes along.';
+
+-- The first question of an evening: the person is on the talk, the date is what is asked.
+-- asked_about is a copy of the proposed date, so a refusal keeps what was proposed.
+create table speaker_inquiry
+(
+    id          bigserial primary key,
+    event_id    bigint not null references event (id) on delete cascade,
+    speaker_id  bigint not null references speaker (id),
+    asked_about date,
+    sent_at     date   not null,
+    channel     text   not null,
+    outcome     text   not null,
+    note        text
+);
+
+create index speaker_inquiry_event on speaker_inquiry (event_id);

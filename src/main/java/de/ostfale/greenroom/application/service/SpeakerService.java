@@ -4,6 +4,7 @@ import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.application.port.out.ScaleImages;
 import de.ostfale.greenroom.application.port.out.SpeakerPhotoRepository;
+import de.ostfale.greenroom.application.port.out.SpeakerInquiryRepository;
 import de.ostfale.greenroom.application.port.out.SpeakerRepository;
 import de.ostfale.greenroom.domain.speakers.Speaker;
 import de.ostfale.greenroom.domain.speakers.SpeakerPhoto;
@@ -28,15 +29,18 @@ public class SpeakerService implements ManageSpeakers {
     private final SpeakerPhotoRepository photoRepository;
     private final ScaleImages images;
     private final EventRepository eventRepository;
+    private final SpeakerInquiryRepository inquiryRepository;
 
     public SpeakerService(SpeakerRepository speakerRepository,
                           SpeakerPhotoRepository photoRepository,
                           ScaleImages images,
-                          EventRepository eventRepository) {
+                          EventRepository eventRepository,
+                          SpeakerInquiryRepository inquiryRepository) {
         this.speakerRepository = speakerRepository;
         this.photoRepository = photoRepository;
         this.images = images;
         this.eventRepository = eventRepository;
+        this.inquiryRepository = inquiryRepository;
     }
 
     @Override
@@ -53,6 +57,9 @@ public class SpeakerService implements ManageSpeakers {
         // constraint violation. The foreign key stays as the last word.
         if (eventRepository.isOnATalk(id)) {
             throw new IllegalStateException("SpeakerService :: this speaker is announced on a talk");
+        }
+        if (inquiryRepository.wasAsked(id)) {
+            throw new IllegalStateException("SpeakerService :: this speaker was asked about an evening");
         }
         speakerRepository.deleteById(id);
     }

@@ -117,8 +117,9 @@ public class SpeakerController {
             speakers.remove(id);
             return "redirect:/speaker";
         } catch (IllegalStateException e) {
-            model.addAttribute("error",
-                    "Dieser Referent ist für einen Vortrag angekündigt und bleibt deshalb bestehen.");
+            model.addAttribute("error", e.getMessage() != null && e.getMessage().contains("was asked")
+                    ? "Dieser Referent wurde für einen Abend angefragt; die Anfrage bleibt in der Historie."
+                    : "Dieser Referent ist für einen Vortrag angekündigt und bleibt deshalb bestehen.");
             return detailFragment(id, model);
         }
     }

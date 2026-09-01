@@ -4,10 +4,14 @@ import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.WebTest;
 import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
+import de.ostfale.greenroom.application.port.in.ManageSpeakerInquiries;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.in.ManageTags;
 import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.application.port.out.SpeakerRepository;
+import de.ostfale.greenroom.domain.activities.ContactChannel;
+import de.ostfale.greenroom.domain.activities.InquiryOutcome;
+import de.ostfale.greenroom.domain.activities.SpeakerInquiry;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
@@ -23,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static de.ostfale.greenroom.Fixtures.EVENING;
@@ -59,6 +64,9 @@ class EventControllerTest {
 
     @Autowired
     private ManageTags tags;
+
+    @Autowired
+    private ManageSpeakerInquiries inquiries;
 
     @Autowired
     private EventRepository eventRepository;
@@ -970,5 +978,168 @@ class EventControllerTest {
 
         assertThat(events.byId(id).orElseThrow().talkAt(1).speakers().getFirst().announcedBio())
                 .isNull();
+    }
+
+    // --- asking the speaker -----------------------------------------------------------
+
+    @Test
+    void anEveningWithoutInquiriesSaysSo() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.selectFirst("#event-inquiries p.hint").text()).contains("Noch niemand gefragt");
+        assertThat(page.select("#event-inquiries table")).isEmpty();
+    }
+
+    @Test
+    void theFormOffersOnlyThePeopleWhoSpeakAtThisEvening() throws Exception {
+        speakers.add(Speaker.of("Wer Anders", "anders@example.org"));
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-inquiries select[name=speakerId] option").eachText())
+                .containsExactly("Bitte auswählen", "Max Muster");
+    }
+
+    @Test
+    void anInquiryIsWrittenDownWithTheDateTheEveningHas() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/inquiry")
+                        .param("speakerId", speakerId.toString())
+                        .param("channel", "EMAIL")
+                        .param("sentAt", "2026-09-01")
+                        .param("note", "Nachfassen am Montag."))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document tile = Jsoup.parseBodyFragment(fragment);
+        assertThat(tile.select("#event-inquiries tbody tr td").eachText())
+                .contains("Max Muster", "01.09.2026", "E-Mail", "24.09.2026", "Nachfassen am Montag.");
+        assertThat(inquiries.forEvent(id)).singleElement().satisfies(sent -> {
+            assertThat(sent.askedAbout()).isEqualTo(EVENING);
+            assertThat(sent.channel()).isEqualTo(ContactChannel.EMAIL);
+            assertThat(sent.outcome()).isEqualTo(InquiryOutcome.PENDING);
+        });
+    }
+
+    @Test
+    void anInquiryWithoutAChannelIsRefused() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/inquiry")
+                        .param("speakerId", speakerId.toString())
+                        .param("channel", ""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("auf welchem Weg");
+        assertThat(inquiries.forEvent(id)).isEmpty();
+    }
+
+    @Test
+    void anOpenInquiryShowsHowLongItHasBeenWaiting() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+        LocalDate tenDaysAgo = LocalDate.now().minusDays(10);
+        inquiries.send(SpeakerInquiry.sent(id, speakerId, null, tenDaysAgo, ContactChannel.EMAIL));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.selectFirst("#event-inquiries tbody .badge").text()).isEqualTo("Offen");
+        assertThat(page.selectFirst("#event-inquiries tbody .hint").text())
+                .isEqualTo("seit 10 Tagen");
+    }
+
+    @Test
+    void theAnswerIsWrittenDownAndClosesTheInquiry() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+        Long inquiryId = inquiries.send(SpeakerInquiry.sent(
+                id, speakerId, EVENING, LocalDate.now(), ContactChannel.EMAIL)).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/inquiry/" + inquiryId)
+                        .param("outcome", "ACCEPTED"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document tile = Jsoup.parseBodyFragment(fragment);
+        assertThat(tile.selectFirst("#event-inquiries tbody .badge").text()).isEqualTo("Zugesagt");
+        assertThat(tile.select("#event-inquiries tbody button")).isEmpty();
+        assertThat(inquiries.forEvent(id).getFirst().isAccepted()).isTrue();
+    }
+
+    @Test
+    void anAnsweredInquiryIsNotAnsweredAgain() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+        Long inquiryId = inquiries.send(SpeakerInquiry.sent(
+                id, speakerId, EVENING, LocalDate.now(), ContactChannel.EMAIL)).id();
+        inquiries.answer(inquiryId, InquiryOutcome.DECLINED);
+
+        String fragment = mvc.perform(post("/event/" + id + "/inquiry/" + inquiryId)
+                        .param("outcome", "ACCEPTED"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("schon beantwortet");
+        assertThat(inquiries.forEvent(id).getFirst().outcome()).isEqualTo(InquiryOutcome.DECLINED);
+    }
+
+    /** A refusal is history, not a mistake: the second attempt stands next to the first. */
+    @Test
+    void askingAgainAfterARefusalKeepsBothAttempts() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+        Long first = inquiries.send(SpeakerInquiry.sent(
+                id, speakerId, EVENING, LocalDate.now().minusDays(20), ContactChannel.EMAIL)).id();
+        inquiries.answer(first, InquiryOutcome.DECLINED);
+
+        mvc.perform(post("/event/" + id + "/inquiry")
+                        .param("speakerId", speakerId.toString())
+                        .param("channel", "PHONE"))
+                .andExpect(status().isOk());
+
+        assertThat(inquiries.forEvent(id)).hasSize(2);
+        assertThat(inquiries.forEvent(id)).extracting(SpeakerInquiry::outcome)
+                .containsExactly(InquiryOutcome.PENDING, InquiryOutcome.DECLINED);
+    }
+
+    @Test
+    void onceEverybodyHasSaidYesTheTileSaysSo() throws Exception {
+        Long anna = speakers.add(Speaker.of("Anna Albers", "anna@example.org")).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withAdditionalTalk(aTalk(anna))).id();
+        Long forMax = inquiries.send(SpeakerInquiry.sent(
+                id, speakerId, EVENING, LocalDate.now(), ContactChannel.EMAIL)).id();
+        Long forAnna = inquiries.send(SpeakerInquiry.sent(
+                id, anna, EVENING, LocalDate.now(), ContactChannel.EMAIL)).id();
+
+        inquiries.answer(forMax, InquiryOutcome.ACCEPTED);
+        String half = mvc.perform(get("/event/" + id)).andReturn().getResponse().getContentAsString();
+        assertThat(Jsoup.parse(half).select("#event-inquiries p.notice")).isEmpty();
+
+        inquiries.answer(forAnna, InquiryOutcome.ACCEPTED);
+        String all = mvc.perform(get("/event/" + id)).andReturn().getResponse().getContentAsString();
+        assertThat(Jsoup.parse(all).selectFirst("#event-inquiries p.notice").text())
+                .contains("Alle Referenten haben zugesagt");
+    }
+
+    @Test
+    void aSpeakerThatWasAskedIsKeptEvenWithoutATalk() throws Exception {
+        Long anna = speakers.add(Speaker.of("Anna Albers", "anna@example.org")).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+        inquiries.send(SpeakerInquiry.sent(id, anna, EVENING, LocalDate.now(), ContactChannel.EMAIL));
+
+        String fragment = mvc.perform(post("/speaker/" + anna + "/remove"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("angefragt");
+        assertThat(speakers.byId(anna)).isPresent();
     }
 }

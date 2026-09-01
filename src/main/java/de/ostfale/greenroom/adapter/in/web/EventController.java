@@ -2,8 +2,12 @@ package de.ostfale.greenroom.adapter.in.web;
 
 import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
+import de.ostfale.greenroom.application.port.in.ManageSpeakerInquiries;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.in.ManageTags;
+import de.ostfale.greenroom.domain.activities.ContactChannel;
+import de.ostfale.greenroom.domain.activities.InquiryOutcome;
+import de.ostfale.greenroom.domain.activities.SpeakerInquiry;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
@@ -40,13 +44,15 @@ public class EventController {
     private final ManageSpeakers speakers;
     private final ManageLocations locations;
     private final ManageTags tags;
+    private final ManageSpeakerInquiries inquiries;
 
-    public EventController(ManageEvents events, ManageSpeakers speakers,
-                           ManageLocations locations, ManageTags tags) {
+    public EventController(ManageEvents events, ManageSpeakers speakers, ManageLocations locations,
+                           ManageTags tags, ManageSpeakerInquiries inquiries) {
         this.events = events;
         this.speakers = speakers;
         this.locations = locations;
         this.tags = tags;
+        this.inquiries = inquiries;
     }
 
     @GetMapping
@@ -277,6 +283,77 @@ public class EventController {
         return tile(id, model, "fragments/event-talks :: event-talks");
     }
 
+    /** An inquiry that has gone out: to whom, when, and how it was sent. */
+    @PostMapping("/{id}/inquiry")
+    public String sendInquiry(@PathVariable Long id,
+                              @RequestParam(defaultValue = "") String speakerId,
+                              @RequestParam(defaultValue = "") String channel,
+                              @RequestParam(defaultValue = "") String sentAt,
+                              @RequestParam(defaultValue = "") String note,
+                              Model model) {
+        try {
+            Event known = events.byId(id).orElseThrow(() ->
+                    new IllegalArgumentException("EventController :: unknown event"));
+            inquiries.send(SpeakerInquiry
+                    .sent(id, speaker(speakerId), known.date(), day(sentAt), how(channel))
+                    .withNote(note));
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", planningMessage(e));
+        }
+        return tile(id, model, "fragments/event-inquiries :: event-inquiries");
+    }
+
+    /** What came back. A refusal is not a correction of the inquiry — it is its answer. */
+    @PostMapping("/{id}/inquiry/{inquiryId}")
+    public String answerInquiry(@PathVariable Long id,
+                                @PathVariable Long inquiryId,
+                                @RequestParam InquiryOutcome outcome,
+                                Model model) {
+        try {
+            inquiries.answer(inquiryId, outcome);
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            model.addAttribute("error", planningMessage(e));
+        }
+        return tile(id, model, "fragments/event-inquiries :: event-inquiries");
+    }
+
+    /** Empty means today: an inquiry is written down right after it went out. */
+    private static LocalDate day(String date) {
+        if (date == null || date.isBlank()) {
+            return LocalDate.now();
+        }
+        return evening(date);
+    }
+
+    private static ContactChannel how(String channel) {
+        try {
+            return ContactChannel.valueOf(channel.strip());
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("SpeakerInquiry :: an inquiry needs a channel");
+        }
+    }
+
+    /** The people who speak at this evening — those are the ones there is anything to ask. */
+    private static List<Long> speakersOf(Event event) {
+        List<Long> asked = new ArrayList<>();
+        event.talks().forEach(talk -> talk.speakers().forEach(announced -> {
+            if (!asked.contains(announced.speakerId())) {
+                asked.add(announced.speakerId());
+            }
+        }));
+        return asked;
+    }
+
+    /**
+     * Whether everybody who speaks has said yes to a date. A hint on the page, not a rule:
+     * the step to DATE_CONFIRMED stays something somebody decides.
+     */
+    private static boolean allAccepted(List<Long> asked, List<SpeakerInquiry> answers) {
+        return !asked.isEmpty() && asked.stream().allMatch(speakerId ->
+                answers.stream().anyMatch(inquiry ->
+                        inquiry.speakerId().equals(speakerId) && inquiry.isAccepted()));
+    }
+
     /** Every change answers with the tile it was made in, showing what is stored now. */
     private String tile(Long id, Model model, String fragment) {
         events.byId(id).ifPresent(event -> show(model, event));
@@ -290,6 +367,13 @@ public class EventController {
         model.addAttribute("clashes", events.clashesWith(event));
         model.addAttribute("tagChoices", tagChoices(event));
         List<Speaker> known = speakers.all();
+        List<SpeakerInquiry> answers = inquiries.forEvent(event.id());
+        List<Long> asked = speakersOf(event);
+        model.addAttribute("inquiries", answers);
+        model.addAttribute("askable", known.stream().filter(one -> asked.contains(one.id())).toList());
+        model.addAttribute("allAccepted", allAccepted(asked, answers));
+        model.addAttribute("today", LocalDate.now());
+        model.addAttribute("channels", ContactChannel.values());
         model.addAttribute("speakers", known);
         model.addAttribute("speakerNames", known.stream()
                 .collect(Collectors.toMap(Speaker::id, Speaker::name)));
@@ -315,6 +399,18 @@ public class EventController {
     /** The records refuse in English; the page has to say in German what is missing. */
     private static String planningMessage(RuntimeException e) {
         String reason = e.getMessage() == null ? "" : e.getMessage();
+        if (reason.contains("already answered")) {
+            return "Diese Anfrage ist schon beantwortet. Für einen neuen Versuch bitte eine neue Anfrage anlegen.";
+        }
+        if (reason.contains("PENDING is not an answer")) {
+            return "Bitte eine Antwort auswählen.";
+        }
+        if (reason.contains("an inquiry needs a channel")) {
+            return "Bitte angeben, auf welchem Weg gefragt wurde.";
+        }
+        if (reason.contains("there is no inquiry")) {
+            return "Diese Anfrage gibt es nicht mehr — bitte die Seite neu laden.";
+        }
         if (reason.contains("is on this event twice")) {
             return "Dieses Schlagwort steht schon an diesem Event.";
         }

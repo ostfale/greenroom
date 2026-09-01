@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="event-inquiries" class="stack" th:fragment="event-inquiries">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <p class="notice" th:if="${allAccepted}">
+        Alle Referenten haben zugesagt — der Termin kann bestätigt werden.
+    </p>
+
+    <p class="hint" th:if="${#lists.isEmpty(inquiries)}">Noch niemand gefragt.</p>
+
+    <table th:unless="${#lists.isEmpty(inquiries)}">
+        <thead>
+        <tr>
+            <th>Referent</th>
+            <th>Gefragt am</th>
+            <th>Weg</th>
+            <th>Termin</th>
+            <th>Stand</th>
+            <th>Notiz</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="inquiry : ${inquiries}">
+            <td th:text="${speakerNames[inquiry.speakerId]} ?: 'Unbekannt'">Max Muster</td>
+            <td class="data" th:text="${#temporals.format(inquiry.sentAt, 'dd.MM.yyyy')}">12.09.2026</td>
+            <td th:text="#{'inquiry.channel.' + ${inquiry.channel}}">E-Mail</td>
+            <td class="data"
+                th:text="${inquiry.askedAbout} != null
+                         ? ${#temporals.format(inquiry.askedAbout, 'dd.MM.yyyy')} : '—'">—</td>
+            <td>
+                <span class="badge"
+                      th:classappend="${inquiry.isOpen()} ? 'warn'
+                                    : (${inquiry.isAccepted()} ? '' : 'quiet')"
+                      th:text="#{'inquiry.outcome.' + ${inquiry.outcome}}">Offen</span>
+                <!-- The number a planning tool exists for: how long this has been waiting. -->
+                <span class="hint" th:if="${inquiry.isOpen()}"
+                      th:text="|seit ${inquiry.daysWaiting(today)} Tagen|">seit 12 Tagen</span>
+
+                <span class="actions" th:if="${inquiry.isOpen()}">
+                    <button type="button" class="link"
+                            th:hx-post="@{/event/{id}/inquiry/{inq}(id=${event.id},inq=${inquiry.id},outcome='ACCEPTED')}"
+                            hx-target="#event-inquiries" hx-swap="outerHTML"
+                            th:text="#{inquiry.outcome.ACCEPTED}">Zugesagt</button>
+                    <button type="button" class="link"
+                            th:hx-post="@{/event/{id}/inquiry/{inq}(id=${event.id},inq=${inquiry.id},outcome='DECLINED')}"
+                            hx-target="#event-inquiries" hx-swap="outerHTML"
+                            th:text="#{inquiry.outcome.DECLINED}">Abgesagt</button>
+                    <button type="button" class="link"
+                            th:hx-post="@{/event/{id}/inquiry/{inq}(id=${event.id},inq=${inquiry.id},outcome='NO_RESPONSE')}"
+                            hx-target="#event-inquiries" hx-swap="outerHTML"
+                            th:text="#{inquiry.outcome.NO_RESPONSE}">Keine Antwort</button>
+                </span>
+            </td>
+            <td th:text="${inquiry.note} ?: '—'">—</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Asking again after a refusal is a new inquiry: both attempts stay in the list. -->
+    <details class="reveal">
+        <summary>Anfrage notieren</summary>
+        <form class="inline boxed new" method="post"
+              th:action="@{/event/{id}/inquiry(id=${event.id})}"
+              th:hx-post="@{/event/{id}/inquiry(id=${event.id})}"
+              hx-target="#event-inquiries"
+              hx-swap="outerHTML"
+              hx-on::after-request="closeUnlessRefused(this, '#event-inquiries')">
+            <label>Referent
+                <select name="speakerId" required>
+                    <option value="">Bitte auswählen</option>
+                    <option th:each="person : ${askable}" th:value="${person.id}"
+                            th:text="${person.name}">Max Muster</option>
+                </select>
+            </label>
+            <label>Weg
+                <select name="channel" required>
+                    <option th:each="way : ${channels}" th:value="${way}"
+                            th:text="#{'inquiry.channel.' + ${way}}">E-Mail</option>
+                </select>
+            </label>
+            <label>Gefragt am
+                <input type="date" name="sentAt" th:value="${today}">
+            </label>
+            <label>Notiz
+                <input type="text" name="note">
+            </label>
+            <button type="submit">Anfrage notieren</button>
+        </form>
+    </details>
+</div>
+</body>
+</html>
