@@ -22,6 +22,7 @@ import de.ostfale.greenroom.domain.speakers.Speaker;
 import de.ostfale.greenroom.domain.tags.Tag;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1171,5 +1172,123 @@ class EventControllerTest {
                 .andExpect(status().isOk());
 
         assertThat(events.byId(id).orElseThrow().notes()).isEqualTo("Beamer mitbringen.");
+    }
+
+    /** The German word for a status is part of the vocabulary, so it is pinned here. */
+    @Test
+    void anEveningThatHasHappenedIsCalledErledigt() throws Exception {
+        Long locationId = locations.add(aLocation()).id();
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withDate(EVENING)
+                .withLocation(locationId)
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .moveTo(EventStatus.VENUE_CONFIRMED)
+                .moveTo(EventStatus.PUBLISHED)
+                .moveTo(EventStatus.DONE));
+
+        String html = mvc.perform(get("/event")).andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parse(html).select("#event-table tbody tr td:nth-child(3)").eachText())
+                .containsExactly("Erledigt");
+    }
+
+    /** The field shows the talk title, but shows it as a placeholder — nothing is stored. */
+    @Test
+    void theEventNameFieldOffersTheTalkTitleWithoutTakingIt() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.selectFirst("input[name=motto]").attr("placeholder"))
+                .isEqualTo("Records in Java 25");
+        assertThat(page.selectFirst("input[name=motto]").val()).isEmpty();
+        assertThat(events.byId(id).orElseThrow().motto()).isNull();
+    }
+
+    @Test
+    void aNameOfItsOwnStandsInTheFieldInstead() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Java-Herbst")).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.selectFirst("input[name=motto]").val()).isEqualTo("Java-Herbst");
+        assertThat(page.selectFirst("input[name=motto]").attr("placeholder"))
+                .isEqualTo("Records in Java 25");
+    }
+
+    @Test
+    void severalTalksAskForANameOfTheirOwn() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String one = mvc.perform(get("/event/" + id)).andReturn().getResponse().getContentAsString();
+        assertThat(Jsoup.parse(one).select("#event-basics p.hint")).isEmpty();
+
+        events.addTalk(id, aTalk(speakers.add(
+                Speaker.of("Anna Albers", "anna@example.org")).id()));
+
+        String two = mvc.perform(get("/event/" + id)).andReturn().getResponse().getContentAsString();
+        assertThat(Jsoup.parse(two).selectFirst("#event-basics p.hint").text())
+                .contains("mehrere Vorträge");
+    }
+
+    // --- the speakers of the evening, reachable from here ------------------------------
+
+    @Test
+    void theSpeakerTileLinksToEverybodyWhoSpeaks() throws Exception {
+        Long anna = speakers.add(Speaker.of("Anna Albers", "anna@example.org")
+                .withContact("Nordsee GmbH", "anna@example.org", null)).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withAdditionalTalk(aTalk(anna))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+        Element tile = page.select("section.tile").stream()
+                .filter(one -> "Referenten".equals(one.selectFirst("h2").text()))
+                .findFirst().orElseThrow();
+
+        assertThat(tile.select("li > a").eachAttr("href"))
+                .containsExactly("/speaker/" + speakerId, "/speaker/" + anna);
+        assertThat(tile.select("li > a").eachText()).containsExactly("Max Muster", "Anna Albers");
+        assertThat(tile.text()).contains("Nordsee GmbH", "max@example.org");
+        assertThat(tile.select("a[href^=mailto:]").eachAttr("href"))
+                .contains("mailto:max@example.org", "mailto:anna@example.org");
+    }
+
+    /** Somebody on two talks of the same evening is listed once. */
+    @Test
+    void theSameSpeakerTwiceIsOnePerson() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withAdditionalTalk(aTalk(speakerId))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+        Element tile = page.select("section.tile").stream()
+                .filter(one -> "Referenten".equals(one.selectFirst("h2").text()))
+                .findFirst().orElseThrow();
+
+        assertThat(tile.select("li")).hasSize(1);
+    }
+
+    /**
+     * Two columns: the basics on the left, the planning with the keywords under it on the
+     * right, then venue and speakers side by side.
+     */
+    @Test
+    void theTilesAreInTheOrderThePlanningReadsThem() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("section.tile h2").eachText())
+                .containsExactly("Eckdaten", "Planung", "Schlagwörter", "Ort", "Referenten",
+                        "Vorträge", "Anfragen");
+        // Stretch is what makes venue and speakers end together, and the keywords close
+        // flush with the basics beside them.
+        assertThat(page.selectFirst("div.bento").className()).contains("stretch");
+        assertThat(page.selectFirst("section.tile").className()).contains("rows-two");
+        assertThat(page.select("section.tile").get(2).className()).contains("column-right");
     }
 }

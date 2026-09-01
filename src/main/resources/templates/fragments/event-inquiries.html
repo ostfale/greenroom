@@ -70,7 +70,7 @@
             <label>Referent
                 <select name="speakerId" required>
                     <option value="">Bitte auswählen</option>
-                    <option th:each="person : ${askable}" th:value="${person.id}"
+                    <option th:each="person : ${eventSpeakers}" th:value="${person.id}"
                             th:text="${person.name}">Max Muster</option>
                 </select>
             </label>

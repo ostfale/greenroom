@@ -10,12 +10,13 @@
         <a class="back" th:href="@{/event}">Zurück zur Liste</a>
     </div>
 
-    <div class="bento">
-        <section class="tile half">
+    <div class="bento stretch">
+        <section class="tile half rows-two">
             <h2>Eckdaten</h2>
             <p class="hint">
-                Der Event-Name benennt den Abend, wenn er mehrere Vorträge trägt. Bleibt er
-                leer, heißt der Abend wie sein Vortrag — dann wird nichts doppelt gepflegt.
+                Bleibt der Event-Name leer, heißt der Abend wie sein erster Vortrag und folgt
+                ihm auch, wenn der umbenannt wird — dann wird nichts doppelt gepflegt. Bei
+                mehreren Vorträgen bekommt der Abend hier einen eigenen Namen.
             </p>
             <div th:replace="~{fragments/event-basics :: event-basics}"></div>
         </section>
@@ -23,6 +24,16 @@
         <section class="tile half">
             <h2>Planung</h2>
             <div th:replace="~{fragments/event-status :: event-status}"></div>
+        </section>
+
+        <section class="tile column-right">
+            <h2>Schlagwörter</h2>
+            <p class="hint">
+                Das Event merkt sich die Wörter, nicht die Liste. Wird ein Schlagwort in den
+                Einstellungen umbenannt oder gelöscht, bleibt stehen, womit dieser Abend
+                angekündigt wurde.
+            </p>
+            <div th:replace="~{fragments/event-tags :: event-tags}"></div>
         </section>
 
         <section class="tile half">
@@ -33,14 +44,21 @@
             <div th:replace="~{fragments/event-venue :: event-venue}"></div>
         </section>
 
+        <!-- Not swapped by anything, so it stays in the page rather than in a fragment. -->
         <section class="tile half">
-            <h2>Schlagwörter</h2>
-            <p class="hint">
-                Das Event merkt sich die Wörter, nicht die Liste. Wird ein Schlagwort in den
-                Einstellungen umbenannt oder gelöscht, bleibt stehen, womit dieser Abend
-                angekündigt wurde.
-            </p>
-            <div th:replace="~{fragments/event-tags :: event-tags}"></div>
+            <h2>Referenten</h2>
+            <ul class="plain">
+                <li th:each="person : ${eventSpeakers}">
+                    <a th:href="@{/speaker/{id}(id=${person.id})}"
+                       th:text="${person.name}">Max Muster</a>
+                    <p class="hint" th:if="${person.company}"
+                       th:text="${person.company}">Nordsee GmbH</p>
+                    <p class="hint">
+                        <a th:href="'mailto:' + ${person.email}"
+                           th:text="${person.email}">max@example.org</a>
+                    </p>
+                </li>
+            </ul>
         </section>
 
         <section class="tile">

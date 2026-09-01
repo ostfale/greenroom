@@ -32,10 +32,15 @@ public class ArchitectureTest {
             .whereLayer("Application").mayOnlyBeAccessedByLayers("Adapter", "Config")
             .whereLayer("Domain").mayOnlyBeAccessedByLayers("Application", "Adapter", "Config");
 
+    /**
+     * The web adapter must not reach into persistence, the importer not into the mailer.
+     * Written as slices, so that "each other" means other adapters: two classes inside the
+     * same adapter are free to work together.
+     */
     @ArchTest
-    static final ArchRule adaptersAreIsolated = noClasses()
-            .that().resideInAPackage("..adapter.(*)..")
-            .should().dependOnClassesThat().resideInAPackage("..adapter.(*)..")
+    static final ArchRule adaptersAreIsolated = SlicesRuleDefinition.slices()
+            .matching("..greenroom.adapter.(*).(*)..")
+            .should().notDependOnEachOther()
             .because("adapters talk through the application layer, never to each other");
 
     // --- the domain carries mapping, but no framework behaviour --------------------

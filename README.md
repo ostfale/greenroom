@@ -65,6 +65,12 @@ stays, the same reason an event stores its keywords as words.
 date copied onto it and the number of days it has been waiting on the page. An inquiry is
 answered once; asking again after a refusal is a new inquiry and both stay.
 
+`/event/import` enters an evening that already happened: date, form, speaker, talk and the
+biography of the day, in one form and without any of the planning that led to it. The
+speaker is recognised by their address, so somebody who spoke before is not written down
+twice, and the evening is moved as far along as the data carries it — to `DONE` with a
+venue and a full talk, and no further otherwise.
+
 What is missing is `VenueInquiry` — the sequential one, ask a place, and the next if it
 declines — and `Activity` and `PlanningSettings`, and the mail, geo, importer and
 scheduling adapters the layout above already names.

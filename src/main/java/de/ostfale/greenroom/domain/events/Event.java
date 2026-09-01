@@ -167,7 +167,16 @@ public record Event(
 
     /** What to put in a list or a heading. Null while a single talk still has no title. */
     public String displayName() {
-        return motto != null ? motto : talks.getFirst().title();
+        return motto != null ? motto : nameFromItsTalk();
+    }
+
+    /**
+     * What the evening is called while it has no motto of its own: the title of its first
+     * talk. Not copied into the motto — an evening that borrows the name follows it when
+     * the talk is renamed, and nothing is maintained twice.
+     */
+    public String nameFromItsTalk() {
+        return talks.getFirst().title();
     }
 
     /** Whether the announcement could go out: every talk carries a title and an abstract. */

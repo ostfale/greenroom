@@ -61,6 +61,11 @@ The hexagon is about direction of dependency, not about purity:
 - ArchUnit enforces this in `ArchitectureTest`. The rules encode decisions, so a failing
   rule usually means the design drifted — fix the design. Changing a rule is allowed when
   the *decision* changed, and then only together with a note here.
+- `adaptersAreIsolated` is a slice rule, not a package predicate. The earlier wording
+  forbade every dependency between two classes under `adapter..`, two classes inside the
+  same adapter included, which is not what "adapters talk through the application layer"
+  means. Changed when the first shared helper appeared in `adapter.in.web`: the decision
+  stayed, only its expression was wrong.
 
 ## Ubiquitous language
 

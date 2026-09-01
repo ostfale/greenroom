@@ -29,8 +29,12 @@
 
         <label>Event Name
             <input type="text" name="motto" th:value="${event.motto}"
-                   placeholder="Nur nötig, wenn der Abend mehrere Vorträge trägt">
+                   th:placeholder="${event.nameFromItsTalk()} ?: 'Heißt wie sein erster Vortrag'">
         </label>
+
+        <p class="hint" th:if="${event.hasSeveralTalks()}">
+            Dieser Abend trägt mehrere Vorträge — ein eigener Name lohnt sich hier.
+        </p>
 
         <label>Notizen
             <textarea name="notes" rows="4" th:text="${event.notes}"

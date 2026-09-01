@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -119,14 +118,7 @@ public class EventController {
 
     /** Empty means the date is still open — a topic is allowed to have none. */
     private static LocalDate evening(String date) {
-        if (date == null || date.isBlank()) {
-            return null;
-        }
-        try {
-            return LocalDate.parse(date.strip());
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("Event :: the date is not a date: " + date);
-        }
+        return FormValues.date(date);
     }
 
     private static String message(IllegalArgumentException e) {
@@ -372,7 +364,10 @@ public class EventController {
         List<SpeakerInquiry> answers = inquiries.forEvent(event.id());
         List<Long> asked = speakersOf(event);
         model.addAttribute("inquiries", answers);
-        model.addAttribute("askable", known.stream().filter(one -> asked.contains(one.id())).toList());
+        // In the order of the talks, not alphabetically: the evening reads that way.
+        model.addAttribute("eventSpeakers", asked.stream()
+                .flatMap(speaking -> known.stream().filter(one -> one.id().equals(speaking)))
+                .toList());
         model.addAttribute("allAccepted", allAccepted(asked, answers));
         model.addAttribute("today", LocalDate.now());
         model.addAttribute("channels", ContactChannel.values());

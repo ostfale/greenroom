@@ -284,4 +284,31 @@ class EventTest {
         assertThat(event.withNotes("   ").notes()).isNull();
         assertThat(event.withNotes("Beamer mitbringen.").notes()).isEqualTo("Beamer mitbringen.");
     }
+
+    @Test
+    void anEveningWithoutAMottoBorrowsTheNameOfItsFirstTalk() {
+        Event event = Event.draftFor(aReadyTalk(SPEAKER)).withAdditionalTalk(aTalk(2L));
+
+        assertThat(event.nameFromItsTalk()).isEqualTo("Records in Java 25");
+        assertThat(event.displayName()).isEqualTo("Records in Java 25");
+    }
+
+    /** Borrowed, not copied: renaming the talk renames the evening with it. */
+    @Test
+    void theBorrowedNameFollowsTheTalk() {
+        Event event = Event.draftFor(aReadyTalk(SPEAKER));
+
+        Event renamed = event.withTalkChanged(0, event.talkAt(0).withTitle("Virtual Threads"));
+
+        assertThat(renamed.motto()).isNull();
+        assertThat(renamed.displayName()).isEqualTo("Virtual Threads");
+    }
+
+    @Test
+    void aMottoOfItsOwnWins() {
+        Event event = Event.draftFor(aReadyTalk(SPEAKER)).withMotto("Java-Herbst");
+
+        assertThat(event.displayName()).isEqualTo("Java-Herbst");
+        assertThat(event.nameFromItsTalk()).isEqualTo("Records in Java 25");
+    }
 }

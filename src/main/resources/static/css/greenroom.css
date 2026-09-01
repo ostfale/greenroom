@@ -26,6 +26,8 @@
     --ground: #e9edeb;
     --surface: #ffffff;
     --green: #14624a;
+    --action: #2b3b34;
+    --action-hover: #15211c;
     --green-soft: #e6f0ea;
     --amber: #9a5608;
     --amber-soft: #f8efe2;
@@ -140,6 +142,13 @@ h1 {
     align-items: start;
 }
 
+/* Tiles that share a row end together, and a column that stacks two of them closes flush
+   with the tall one beside it. Only where the page is read as a grid — elsewhere a short
+   tile should stay short rather than grow whitespace. */
+.bento.stretch {
+    align-items: stretch;
+}
+
 .tile {
     grid-column: span 4;
     min-width: 0;
@@ -160,6 +169,16 @@ h1 {
 
 .tile.three {
     grid-column: span 3;
+}
+
+/* The event detail page reads in two columns: the right one stacks the planning and the
+   keywords, so the tile on the left keeps both rows and nothing drops into the gap. */
+.tile.column-right {
+    grid-column: 3 / span 2;
+}
+
+.tile.rows-two {
+    grid-row: span 2;
 }
 
 /* The label on a tile speaks the call-sheet language: small, spaced, monospaced. */
@@ -480,7 +499,7 @@ form.boxed.new {
 button, .button {
     padding: .5rem .875rem;
     color: #fff;
-    background: var(--green);
+    background: var(--action);
     border: none;
     border-radius: var(--radius-sm);
     font: 500 .8125rem/1.4 var(--sans);
@@ -489,7 +508,7 @@ button, .button {
 }
 
 button:hover, .button:hover {
-    background: #0f5039;
+    background: var(--action-hover);
 }
 
 button.link {
@@ -521,7 +540,8 @@ button.danger:hover {
     background: #f4dcda;
 }
 
-.actions a {
+/* The quiet link next to a button — but not the button itself. */
+.actions a:not(.button) {
     color: var(--muted);
     font-size: .8125rem;
 }
@@ -671,8 +691,14 @@ ul.tags .toggle {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .tile.three {
+    .tile.three,
+    .tile.column-right {
         grid-column: span 2;
+    }
+
+    /* One column of tiles below each other — nothing left to stack beside. */
+    .tile.rows-two {
+        grid-row: auto;
     }
 }
 
@@ -681,7 +707,7 @@ ul.tags .toggle {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .tile, .tile.half, .tile.quarter, .tile.three {
+    .tile, .tile.half, .tile.quarter, .tile.three, .tile.column-right {
         grid-column: span 1;
     }
 

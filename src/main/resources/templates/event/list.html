@@ -7,7 +7,10 @@
 <main>
     <div class="headline">
         <h1>Events</h1>
-        <a class="button" th:href="@{/event/new}">Neues Thema</a>
+        <div class="actions">
+            <a class="button" th:href="@{/event/new}">Neues Thema</a>
+            <a th:href="@{/event/import}">Vergangenes Event</a>
+        </div>
     </div>
 
     <label class="toggle">
@@ -16,7 +19,7 @@
                hx-target="#event-table"
                hx-swap="outerHTML"
                hx-trigger="change">
-        Abgesagte und gelaufene Events ausblenden
+        Abgesagte und erledigte Events ausblenden
     </label>
 
     <div th:replace="~{fragments/event-table :: event-table}"></div>
