@@ -1,5 +1,7 @@
 package de.ostfale.greenroom.domain.events;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 public enum EventStatus {
@@ -21,6 +23,15 @@ public enum EventStatus {
             case POSTPONED -> Set.of(DRAFT, DATE_CONFIRMED, CANCELLED).contains(target);
             case DONE, CANCELLED -> false;
         };
+    }
+
+    /**
+     * The steps allowed from here, in the order the states are declared — the same rule as
+     * {@link #canMoveTo}, read as a list so a page can offer exactly those and nothing
+     * else. Empty once the evening is closed.
+     */
+    public List<EventStatus> allowedTargets() {
+        return Arrays.stream(values()).filter(this::canMoveTo).toList();
     }
 
     /**

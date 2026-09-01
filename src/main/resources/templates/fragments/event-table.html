@@ -16,7 +16,8 @@
         <tbody>
         <tr th:each="event : ${events}" th:classappend="${event.status.isClosed()} ? 'closed'">
             <td class="data" th:text="${event.date} != null ? ${#temporals.format(event.date, 'dd.MM.yyyy')} : '—'">—</td>
-            <td th:text="${event.displayName()} ?: 'Ohne Titel'">Ohne Titel</td>
+            <td><a th:href="@{/event/{id}(id=${event.id})}"
+                   th:text="${event.displayName()} ?: 'Ohne Titel'">Ohne Titel</a></td>
             <td>
                 <div class="steps">
                     <span class="progress"

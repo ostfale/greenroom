@@ -100,6 +100,19 @@ class EventStatusTest {
         assertThat(CANCELLED.plannedSteps()).isZero();
     }
 
+    @ParameterizedTest
+    @EnumSource
+    void theNextStepsAreTheGuardReadAsAList(EventStatus status) {
+        assertThat(status.allowedTargets()).containsExactlyInAnyOrderElementsOf(allowedFrom(status));
+    }
+
+    /** The page offers them in this order, so the order is part of the promise. */
+    @Test
+    void theNextStepsKeepTheOrderTheStatesAreDeclaredIn() {
+        assertThat(DATE_CONFIRMED.allowedTargets())
+                .containsExactly(VENUE_CONFIRMED, POSTPONED, CANCELLED);
+    }
+
     private static Set<EventStatus> allowedFrom(EventStatus status) {
         return Arrays.stream(EventStatus.values())
                 .filter(status::canMoveTo)

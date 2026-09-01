@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- The state machine, drawn and operable: only the steps it allows are offered at all. -->
+<div id="event-status" th:fragment="event-status">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <div class="steps">
+        <span class="progress"
+              th:classappend="${event.status.name() == 'POSTPONED'} ? 'postponed'
+                            : (${event.status.name() == 'CANCELLED'} ? 'cancelled' : '')">
+            <i th:each="step : ${#numbers.sequence(1, 4)}"
+               th:classappend="${step <= event.status.plannedSteps()} ? 'done'"></i>
+        </span>
+        <span class="label" th:text="#{'event.status.' + ${event.status}}">Thema</span>
+    </div>
+
+    <p class="hint" th:if="${#lists.isEmpty(transitions)}">
+        Von hier führt kein Schritt mehr weiter.
+    </p>
+
+    <p class="hint" th:unless="${#lists.isEmpty(transitions)}">Nächster Stand:</p>
+
+    <div class="actions" th:unless="${#lists.isEmpty(transitions)}">
+        <button th:each="target : ${transitions}" type="button"
+                th:classappend="${target.name() == 'CANCELLED'} ? 'danger'"
+                th:hx-post="@{/event/{id}/status(id=${event.id},target=${target})}"
+                hx-target="#event-status"
+                hx-swap="outerHTML"
+                th:text="#{'event.status.' + ${target}}">Termin steht</button>
+    </div>
+</div>
+</body>
+</html>

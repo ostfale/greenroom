@@ -3,6 +3,7 @@ package de.ostfale.greenroom.application.service;
 import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.domain.events.Event;
+import de.ostfale.greenroom.domain.events.EventStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -54,5 +56,32 @@ public class EventService implements ManageEvents {
         }
         log.debug("EventService :: add event on {}", event.date());
         return eventRepository.save(event);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Event> byId(Long id) {
+        return id == null ? Optional.empty() : eventRepository.findById(id);
+    }
+
+    @Override
+    public Event change(Event event) {
+        if (event.id() == null) {
+            throw new IllegalArgumentException("EventService :: this event was never stored");
+        }
+        log.debug("EventService :: change event {}", event.id());
+        return eventRepository.save(event);
+    }
+
+    @Override
+    public Event moveTo(Long eventId, EventStatus target) {
+        Event event = known(eventId);
+        log.debug("EventService :: move event {} from {} to {}", eventId, event.status(), target);
+        return eventRepository.save(event.moveTo(target));
+    }
+
+    private Event known(Long eventId) {
+        return byId(eventId).orElseThrow(() ->
+                new IllegalArgumentException("EventService :: there is no event " + eventId));
     }
 }

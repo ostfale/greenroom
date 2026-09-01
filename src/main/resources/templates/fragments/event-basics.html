@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="event-basics" th:fragment="event-basics">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <form method="post" th:action="@{/event/{id}(id=${event.id})}"
+          th:hx-post="@{/event/{id}(id=${event.id})}"
+          hx-target="#event-basics"
+          hx-swap="outerHTML">
+        <div class="row">
+            <label>Datum
+                <input type="date" name="date" th:value="${event.date}">
+            </label>
+            <label>Motto
+                <input type="text" name="motto" th:value="${event.motto}">
+            </label>
+        </div>
+
+        <div class="actions">
+            <button type="submit">Änderungen speichern</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${event.displayName()} ?: 'Event')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar('event')}"></header>
+
+<main>
+    <div class="headline">
+        <h1 th:text="${event.displayName()} ?: 'Ohne Titel'">Ohne Titel</h1>
+        <a class="back" th:href="@{/event}">Zurück zur Liste</a>
+    </div>
+
+    <div class="bento">
+        <section class="tile half">
+            <h2>Eckdaten</h2>
+            <p class="hint">
+                Das Motto benennt den Abend, wenn er mehrere Vorträge trägt. Ohne Motto
+                heißt er wie sein Vortrag.
+            </p>
+            <div th:replace="~{fragments/event-basics :: event-basics}"></div>
+        </section>
+
+        <section class="tile half">
+            <h2>Planung</h2>
+            <div th:replace="~{fragments/event-status :: event-status}"></div>
+        </section>
+
+        <section class="tile three">
+            <h2>Vorträge</h2>
+            <ul class="plain">
+                <li th:each="talk : ${event.talks}">
+                    <strong th:text="${talk.title} ?: 'Noch ohne Titel'">Noch ohne Titel</strong>
+                    <span class="badge quiet" th:unless="${talk.isReadyToPublish()}">unvollständig</span>
+                    <p class="hint">
+                        <span th:each="announced, i : ${talk.speakers}">
+                            <span th:text="${speakerNames[announced.speakerId]} ?: 'Unbekannt'">Max Muster</span
+                            ><span th:unless="${i.last}">, </span>
+                        </span>
+                    </p>
+                    <p th:text="${talk.abstractText} ?: 'Noch ohne Beschreibung.'">Noch ohne Beschreibung.</p>
+                </li>
+            </ul>
+        </section>
+
+        <section class="tile quarter">
+            <h2>Ort</h2>
+            <p th:if="${location}" th:text="${location.name}">Musterfirma GmbH</p>
+            <p class="hint" th:if="${location}"
+               th:text="${#strings.isEmpty(location.addressLine())} ? '—' : ${location.addressLine()}">—</p>
+            <p class="hint" th:unless="${location}">Noch kein Ort zugeordnet.</p>
+        </section>
+
+        <section class="tile half" th:unless="${#lists.isEmpty(event.tags)}">
+            <h2>Schlagwörter</h2>
+            <ul class="tags">
+                <li th:each="tag : ${event.tags}"><span class="badge" th:text="${tag}">Spring</span></li>
+            </ul>
+        </section>
+    </div>
+</main>
+</body>
+</html>

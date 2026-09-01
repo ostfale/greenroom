@@ -4,12 +4,15 @@ import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.domain.events.Event;
+import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
 import de.ostfale.greenroom.domain.events.TalkSpeaker;
 import de.ostfale.greenroom.domain.locations.Location;
+import de.ostfale.greenroom.domain.speakers.Speaker;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -121,5 +124,84 @@ public class EventController {
         values.put("title", title);
         values.put("date", date);
         return values;
+    }
+
+    @GetMapping("/{id}")
+    public String detail(@PathVariable Long id, Model model) {
+        return events.byId(id)
+                .map(event -> {
+                    show(model, event);
+                    return "event/detail";
+                })
+                .orElse("redirect:/event");
+    }
+
+    /**
+     * Date and motto — the two things an evening carries on its own. Everything the status
+     * promises beyond them is a step of its own.
+     */
+    @PostMapping("/{id}")
+    public String change(@PathVariable Long id,
+                         @RequestParam(defaultValue = "") String date,
+                         @RequestParam(defaultValue = "") String motto,
+                         Model model) {
+        try {
+            Event known = events.byId(id).orElseThrow(() ->
+                    new IllegalArgumentException("EventController :: unknown event"));
+            events.change(known.withDate(evening(date)).withMotto(motto));
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", planningMessage(e));
+        }
+        return tile(id, model, "fragments/event-basics :: event-basics");
+    }
+
+    /**
+     * One step on. Only the target is sent: which status the evening has is read from the
+     * database, so a page left open overnight cannot talk it into a step it never had.
+     */
+    @PostMapping("/{id}/status")
+    public String moveTo(@PathVariable Long id, @RequestParam EventStatus target, Model model) {
+        try {
+            events.moveTo(id, target);
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            model.addAttribute("error", planningMessage(e));
+        }
+        return tile(id, model, "fragments/event-status :: event-status");
+    }
+
+    /** Every change answers with the tile it was made in, showing what is stored now. */
+    private String tile(Long id, Model model, String fragment) {
+        events.byId(id).ifPresent(event -> show(model, event));
+        return fragment;
+    }
+
+    private void show(Model model, Event event) {
+        model.addAttribute("event", event);
+        model.addAttribute("transitions", event.status().allowedTargets());
+        model.addAttribute("speakerNames", speakers.all().stream()
+                .collect(Collectors.toMap(Speaker::id, Speaker::name)));
+        locations.byId(event.locationId())
+                .ifPresent(location -> model.addAttribute("location", location));
+    }
+
+    /** The records refuse in English; the page has to say in German what is missing. */
+    private static String planningMessage(RuntimeException e) {
+        String reason = e.getMessage() == null ? "" : e.getMessage();
+        if (reason.contains("does not move to")) {
+            return "Dieser Schritt ist von hier aus nicht möglich.";
+        }
+        if (reason.contains("needs a date")) {
+            return "Dafür braucht das Event ein Datum.";
+        }
+        if (reason.contains("needs a location")) {
+            return "Dafür braucht das Event einen Ort.";
+        }
+        if (reason.contains("needs a title and an abstract")) {
+            return "Dafür braucht jeder Vortrag einen Titel und eine Beschreibung.";
+        }
+        if (reason.contains("not a date")) {
+            return "Das Datum konnte nicht gelesen werden.";
+        }
+        return "Die Änderung wurde nicht übernommen.";
     }
 }
