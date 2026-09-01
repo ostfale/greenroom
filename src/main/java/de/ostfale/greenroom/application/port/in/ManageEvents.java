@@ -3,7 +3,6 @@ package de.ostfale.greenroom.application.port.in;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,7 +23,7 @@ public interface ManageEvents {
 
     /**
      * Stores an evening that has no id yet. Whether another evening is already planned for
-     * the same date is a warning, not a rejection — see {@link #alreadyPlannedOn}.
+     * the same date is a warning, not a rejection — see {@link #clashesWith}.
      */
     Event add(Event event);
 
@@ -42,6 +41,11 @@ public interface ManageEvents {
      */
     Event moveTo(Long eventId, EventStatus target);
 
-    /** Evenings already planned for that date, so the caller can warn about a clash. */
-    List<Event> alreadyPlannedOn(LocalDate date);
+    /**
+     * The other evenings on that event's date that are still going to happen. Two events
+     * on one day are unusual, not forbidden — the page warns, nothing is refused. An
+     * evening that has no date yet, and one that was cancelled or is over, clash with
+     * nothing.
+     */
+    List<Event> clashesWith(Event event);
 }

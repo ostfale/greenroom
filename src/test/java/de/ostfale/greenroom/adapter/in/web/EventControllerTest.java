@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static de.ostfale.greenroom.Fixtures.EVENING;
+import static de.ostfale.greenroom.Fixtures.aContact;
 import static de.ostfale.greenroom.Fixtures.aLocation;
 import static de.ostfale.greenroom.Fixtures.aReadyTalk;
 import static de.ostfale.greenroom.Fixtures.aSpeaker;
@@ -418,5 +419,175 @@ class EventControllerTest {
         assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
                 .contains("nicht möglich");
         assertThat(events.byId(id).orElseThrow().status()).isEqualTo(EventStatus.DRAFT);
+    }
+
+    // --- the venue ------------------------------------------------------------------
+
+    @Test
+    void theVenueIsPickedFromTheKnownLocations() throws Exception {
+        locations.add(aLocation());
+        locations.add(Location.of("Nordsee GmbH", aContact()));
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String html = mvc.perform(get("/event/" + id)).andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parse(html).select("#event-venue select[name=locationId] option").eachText())
+                .containsExactly("Noch offen", "Musterfirma GmbH", "Nordsee GmbH");
+    }
+
+    @Test
+    void withoutAnyLocationTheTileSendsYouToCreateOne() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String html = mvc.perform(get("/event/" + id)).andReturn().getResponse().getContentAsString();
+
+        Document page = Jsoup.parse(html);
+        assertThat(page.select("#event-venue form")).isEmpty();
+        assertThat(page.selectFirst("#event-venue a.button").attr("href")).isEqualTo("/location/new");
+    }
+
+    @Test
+    void assigningAVenueStoresItAndNamesItOnTheTile() throws Exception {
+        Long locationId = locations.add(aLocation().movedTo(anAddress())).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/location")
+                        .param("locationId", locationId.toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document tile = Jsoup.parseBodyFragment(fragment);
+        assertThat(tile.text()).contains("Musterfirma GmbH", "Musterweg 1");
+        assertThat(tile.selectFirst("#event-venue option[selected]").attr("value"))
+                .isEqualTo(locationId.toString());
+        assertThat(events.byId(id).orElseThrow().locationId()).isEqualTo(locationId);
+    }
+
+    @Test
+    void aDraftMayLoseItsVenueAgain() throws Exception {
+        Long locationId = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withLocation(locationId)).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/location").param("locationId", ""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("#event-venue p.hint").text())
+                .contains("Noch kein Ort zugeordnet");
+        assertThat(events.byId(id).orElseThrow().locationId()).isNull();
+    }
+
+    @Test
+    void aConfirmedVenueCannotSimplyBeTakenAway() throws Exception {
+        Long locationId = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withDate(EVENING)
+                .withLocation(locationId)
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .moveTo(EventStatus.VENUE_CONFIRMED)).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/location").param("locationId", ""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text()).contains("Ort");
+        assertThat(events.byId(id).orElseThrow().locationId()).isEqualTo(locationId);
+    }
+
+    /**
+     * The whole way, in the order the planning takes it: a topic gets a date, a host and
+     * an announcement. Until the venue could be picked this stopped after the date.
+     */
+    @Test
+    void anEveningGoesFromTopicToAnnouncedThroughThePage() throws Exception {
+        Long locationId = locations.add(aLocation().movedTo(anAddress())).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        mvc.perform(post("/event/" + id).param("date", "2026-09-24").param("motto", ""))
+                .andExpect(status().isOk());
+        mvc.perform(post("/event/" + id + "/status").param("target", "DATE_CONFIRMED"))
+                .andExpect(status().isOk());
+        mvc.perform(post("/event/" + id + "/location").param("locationId", locationId.toString()))
+                .andExpect(status().isOk());
+        mvc.perform(post("/event/" + id + "/status").param("target", "VENUE_CONFIRMED"))
+                .andExpect(status().isOk());
+        String fragment = mvc.perform(post("/event/" + id + "/status").param("target", "PUBLISHED"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).select("p.error")).isEmpty();
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("#event-status .label").text())
+                .isEqualTo("Veröffentlicht");
+        assertThat(events.byId(id).orElseThrow().status()).isEqualTo(EventStatus.PUBLISHED);
+    }
+
+    // --- two evenings on one day ------------------------------------------------------
+
+    @Test
+    void anotherEveningOnTheSameDayIsNamedAsAWarning() throws Exception {
+        Long other = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Java-Herbst")
+                .withDate(EVENING)).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.selectFirst("#event-basics p.notice").text())
+                .contains("An diesem Tag ist bereits geplant", "Java-Herbst");
+        assertThat(page.selectFirst("#event-basics p.notice a").attr("href"))
+                .isEqualTo("/event/" + other);
+    }
+
+    @Test
+    void anEveningDoesNotClashWithItself() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        String html = mvc.perform(get("/event/" + id)).andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parse(html).select("#event-basics p.notice")).isEmpty();
+    }
+
+    @Test
+    void aTopicWithoutADateClashesWithNothing() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING));
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String html = mvc.perform(get("/event/" + id)).andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parse(html).select("#event-basics p.notice")).isEmpty();
+    }
+
+    @Test
+    void aCancelledEveningNoLongerOccupiesItsDay() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Abgesagt")
+                .withDate(EVENING)
+                .moveTo(EventStatus.CANCELLED));
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        String html = mvc.perform(get("/event/" + id)).andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parse(html).select("#event-basics p.notice")).isEmpty();
+    }
+
+    /** The warning is a warning: what was typed is stored, and then the page says so. */
+    @Test
+    void movingAnEveningOntoAnOccupiedDayStillStoresTheDate() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Java-Herbst")
+                .withDate(EVENING));
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id)
+                        .param("date", "2026-09-24")
+                        .param("motto", ""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document tile = Jsoup.parseBodyFragment(fragment);
+        assertThat(tile.select("p.error")).isEmpty();
+        assertThat(tile.selectFirst("p.notice").text()).contains("Java-Herbst");
+        assertThat(events.byId(id).orElseThrow().date()).isEqualTo(EVENING);
     }
 }

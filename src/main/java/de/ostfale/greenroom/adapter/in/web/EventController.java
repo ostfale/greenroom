@@ -169,6 +169,36 @@ public class EventController {
         return tile(id, model, "fragments/event-status :: event-status");
     }
 
+    /**
+     * The host. Empty means the evening has none yet — or lost the one it had, which the
+     * record refuses once the status promises a venue.
+     */
+    @PostMapping("/{id}/location")
+    public String assignVenue(@PathVariable Long id,
+                              @RequestParam(defaultValue = "") String locationId,
+                              Model model) {
+        try {
+            Event known = events.byId(id).orElseThrow(() ->
+                    new IllegalArgumentException("EventController :: unknown event"));
+            events.change(known.withLocation(venue(locationId)));
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", planningMessage(e));
+        }
+        return tile(id, model, "fragments/event-venue :: event-venue");
+    }
+
+    /** Empty is a valid answer here: an evening may well have no venue yet. */
+    private static Long venue(String locationId) {
+        if (locationId == null || locationId.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(locationId.strip());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Event :: no location was chosen");
+        }
+    }
+
     /** Every change answers with the tile it was made in, showing what is stored now. */
     private String tile(Long id, Model model, String fragment) {
         events.byId(id).ifPresent(event -> show(model, event));
@@ -178,6 +208,8 @@ public class EventController {
     private void show(Model model, Event event) {
         model.addAttribute("event", event);
         model.addAttribute("transitions", event.status().allowedTargets());
+        model.addAttribute("locations", locations.all());
+        model.addAttribute("clashes", events.clashesWith(event));
         model.addAttribute("speakerNames", speakers.all().stream()
                 .collect(Collectors.toMap(Speaker::id, Speaker::name)));
         locations.byId(event.locationId())
@@ -187,6 +219,9 @@ public class EventController {
     /** The records refuse in English; the page has to say in German what is missing. */
     private static String planningMessage(RuntimeException e) {
         String reason = e.getMessage() == null ? "" : e.getMessage();
+        if (reason.contains("no location was chosen")) {
+            return "Bitte einen Ort auswählen.";
+        }
         if (reason.contains("does not move to")) {
             return "Dieser Schritt ist von hier aus nicht möglich.";
         }

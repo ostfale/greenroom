@@ -550,13 +550,23 @@ button.danger:hover {
     font-size: .8125rem;
 }
 
-.error {
+.error,
+.notice {
     margin: 0 0 .875rem;
     padding: .625rem .875rem;
-    color: var(--red);
-    background: var(--red-soft);
     border-radius: var(--radius-sm);
     font-size: .8125rem;
+}
+
+.error {
+    color: var(--red);
+    background: var(--red-soft);
+}
+
+/* Not a refusal — what was typed is stored, somebody just has to look at the date. */
+.notice {
+    color: var(--amber);
+    background: var(--amber-soft);
 }
 
 dl {

@@ -46,10 +46,16 @@ vendored htmx. No JPA, no Lombok, no npm, no build step for the frontend.
 ## Status
 
 Early. Events (`/event`), speakers (`/speaker`), locations (`/location`) and the list of
-tags (`/settings`) can be listed and created through the UI — every slice runs from the
+tags (`/settings`) are listed and created through the UI — every slice runs from the
 Thymeleaf form through the use case down to Postgres and is covered end to end.
 
-What is missing is the event detail page, and with it everything that moves an evening
-along: status transitions, assigning a venue, adding an abstract, a motto, tags, further
-talks. `Activity` and `PlanningSettings` are not built yet, and nothing can be edited or
-deleted so far.
+An evening is planned from its detail page: date, motto, venue, and the status transitions
+that carry it from a topic to an announced event. The page offers only the steps the state
+machine allows and says in German what a refused one is still missing; a second evening on
+a day that is already taken is pointed out, not refused. Speakers and locations can be
+edited, and a speaker deleted unless a talk announces them.
+
+What is missing is editing the talks — title, abstract, a second talk — and putting tags on
+an event. `Activity`, `SpeakerInquiry`, `VenueInquiry` and `PlanningSettings` are not built
+yet, and neither are the mail, geo, importer and scheduling adapters the layout above
+already names.

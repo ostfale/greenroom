@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="event-venue" th:fragment="event-venue">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <div th:if="${location}">
+        <p><a th:href="@{/location/{id}(id=${location.id})}"
+              th:text="${location.name}">Musterfirma GmbH</a></p>
+        <p class="hint"
+           th:text="${#strings.isEmpty(location.addressLine())} ? '—' : ${location.addressLine()}">—</p>
+    </div>
+    <p class="hint" th:unless="${location}">Noch kein Ort zugeordnet.</p>
+
+    <div th:if="${#lists.isEmpty(locations)}">
+        <p class="hint">Es ist noch kein Ort erfasst.</p>
+        <p><a class="button" th:href="@{/location/new}">Ort anlegen</a></p>
+    </div>
+
+    <form th:unless="${#lists.isEmpty(locations)}" method="post"
+          th:action="@{/event/{id}/location(id=${event.id})}"
+          th:hx-post="@{/event/{id}/location(id=${event.id})}"
+          hx-target="#event-venue"
+          hx-swap="outerHTML">
+        <label>Gastgeber
+            <select name="locationId">
+                <option value="">Noch offen</option>
+                <option th:each="place : ${locations}"
+                        th:value="${place.id}"
+                        th:selected="${place.id == event.locationId}"
+                        th:text="${place.name}">Musterfirma GmbH</option>
+            </select>
+        </label>
+
+        <div class="actions">
+            <button type="submit">Ort übernehmen</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

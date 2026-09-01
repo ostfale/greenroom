@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,10 +42,16 @@ public class EventService implements ManageEvents {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Event> alreadyPlannedOn(LocalDate date) {
-        List<Event> allEventsOnDate = date == null ? List.of() : eventRepository.findByDate(date);
-        log.debug("EventService :: found {} events on {}", allEventsOnDate.size(), date);
-        return allEventsOnDate;
+    public List<Event> clashesWith(Event event) {
+        if (event.date() == null) {
+            return List.of();
+        }
+        List<Event> sameDay = eventRepository.findByDate(event.date()).stream()
+                .filter(other -> !other.id().equals(event.id()))
+                .filter(other -> !other.status().isClosed())
+                .toList();
+        log.debug("EventService :: {} other events on {}", sameDay.size(), event.date());
+        return sameDay;
     }
 
     @Override

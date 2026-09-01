@@ -25,7 +25,22 @@
             <div th:replace="~{fragments/event-status :: event-status}"></div>
         </section>
 
-        <section class="tile three">
+        <section class="tile half">
+            <h2>Ort</h2>
+            <p class="hint">
+                Der Abend braucht einen Gastgeber, bevor der Ort bestätigt werden kann.
+            </p>
+            <div th:replace="~{fragments/event-venue :: event-venue}"></div>
+        </section>
+
+        <section class="tile half" th:unless="${#lists.isEmpty(event.tags)}">
+            <h2>Schlagwörter</h2>
+            <ul class="tags">
+                <li th:each="tag : ${event.tags}"><span class="badge" th:text="${tag}">Spring</span></li>
+            </ul>
+        </section>
+
+        <section class="tile">
             <h2>Vorträge</h2>
             <ul class="plain">
                 <li th:each="talk : ${event.talks}">
@@ -39,21 +54,6 @@
                     </p>
                     <p th:text="${talk.abstractText} ?: 'Noch ohne Beschreibung.'">Noch ohne Beschreibung.</p>
                 </li>
-            </ul>
-        </section>
-
-        <section class="tile quarter">
-            <h2>Ort</h2>
-            <p th:if="${location}" th:text="${location.name}">Musterfirma GmbH</p>
-            <p class="hint" th:if="${location}"
-               th:text="${#strings.isEmpty(location.addressLine())} ? '—' : ${location.addressLine()}">—</p>
-            <p class="hint" th:unless="${location}">Noch kein Ort zugeordnet.</p>
-        </section>
-
-        <section class="tile half" th:unless="${#lists.isEmpty(event.tags)}">
-            <h2>Schlagwörter</h2>
-            <ul class="tags">
-                <li th:each="tag : ${event.tags}"><span class="badge" th:text="${tag}">Spring</span></li>
             </ul>
         </section>
     </div>

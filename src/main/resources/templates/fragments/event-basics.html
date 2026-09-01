@@ -4,6 +4,15 @@
 <div id="event-basics" th:fragment="event-basics">
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
+    <!-- Two evenings on one day is unusual, not forbidden. The date is stored either way. -->
+    <p class="notice" th:unless="${#lists.isEmpty(clashes)}">
+        An diesem Tag ist bereits geplant:
+        <span th:each="other, i : ${clashes}"
+        ><a th:href="@{/event/{id}(id=${other.id})}"
+            th:text="${other.displayName()} ?: 'Ohne Titel'">Ohne Titel</a
+        ><span th:unless="${i.last}">, </span></span>
+    </p>
+
     <form method="post" th:action="@{/event/{id}(id=${event.id})}"
           th:hx-post="@{/event/{id}(id=${event.id})}"
           hx-target="#event-basics"
