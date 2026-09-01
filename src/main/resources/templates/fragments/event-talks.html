@@ -10,17 +10,23 @@
           th:hx-post="@{/event/{id}/talk/{pos}(id=${event.id},pos=${i.index})}"
           hx-target="#event-talks"
           hx-swap="outerHTML">
-        <p class="hint">
-            <span th:each="announced, s : ${talk.speakers}"
-            ><span th:text="${speakerNames[announced.speakerId]} ?: 'Unbekannt'">Max Muster</span
-            ><span th:unless="${s.last}">, </span></span>
-            <span class="badge quiet" th:unless="${talk.isReadyToPublish()}">unvollständig</span>
+        <p class="hint" th:unless="${talk.isReadyToPublish()}">
+            <span class="badge quiet">unvollständig</span>
         </p>
         <label>Titel
             <input type="text" name="title" th:value="${talk.title}">
         </label>
         <label>Abstract
             <textarea name="abstractText" rows="4" th:text="${talk.abstractText}"></textarea>
+        </label>
+
+        <!-- The biography was copied when the speaker was put on this talk. It is edited
+             here and nowhere else: what the evening announced is not the speaker's current
+             bio, and changing one must not change the other. -->
+        <label th:each="announced : ${talk.speakers}">
+            <span th:text="'Kurzvita ' + (${speakerNames[announced.speakerId]} ?: 'Unbekannt')">Kurzvita Max Muster</span>
+            <textarea name="announcedBio" rows="3" th:text="${announced.announcedBio}"
+                      placeholder="Wie sie in der Ankündigung stehen soll"></textarea>
         </label>
 
         <div class="actions">

@@ -466,4 +466,51 @@ class LocationControllerTest {
         assertThat(Jsoup.parse(html).selectFirst("#location-table caption").text())
                 .isEqualTo("Keine Orte gefunden.");
     }
+
+    // --- name and notes ---------------------------------------------------------------
+
+    @Test
+    void theNameAndTheNotesAreChangedOnTheDetailPage() throws Exception {
+        Long id = locations.add(aLocation()).id();
+
+        String fragment = mvc.perform(post("/location/" + id)
+                        .param("name", "Nordsee GmbH")
+                        .param("notes", "Parkplätze hinter dem Haus."))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document tile = Jsoup.parseBodyFragment(fragment);
+        assertThat(tile.selectFirst("input[name=name]").val()).isEqualTo("Nordsee GmbH");
+        assertThat(tile.selectFirst("textarea[name=notes]").val())
+                .isEqualTo("Parkplätze hinter dem Haus.");
+        Location stored = locations.byId(id).orElseThrow();
+        assertThat(stored.name()).isEqualTo("Nordsee GmbH");
+        assertThat(stored.notes()).isEqualTo("Parkplätze hinter dem Haus.");
+    }
+
+    @Test
+    void aLocationWithoutANameIsRefusedAndKeepsTheOldOne() throws Exception {
+        Long id = locations.add(aLocation()).id();
+
+        String fragment = mvc.perform(post("/location/" + id).param("name", "").param("notes", ""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("Name");
+        assertThat(locations.byId(id).orElseThrow().name()).isEqualTo("Musterfirma GmbH");
+    }
+
+    /** The form carries neither, so it must not be able to lose them. */
+    @Test
+    void renamingLeavesAddressesAndContactPeopleAlone() throws Exception {
+        Long id = locations.add(aLocation().movedTo(Address.at("Musterweg 1", "22179", "Hamburg"))).id();
+
+        mvc.perform(post("/location/" + id).param("name", "Nordsee GmbH").param("notes", ""))
+                .andExpect(status().isOk());
+
+        Location stored = locations.byId(id).orElseThrow();
+        assertThat(stored.addressLine()).contains("Musterweg 1");
+        assertThat(stored.contacts()).extracting(ContactPerson::name).containsExactly("Max Muster");
+    }
 }

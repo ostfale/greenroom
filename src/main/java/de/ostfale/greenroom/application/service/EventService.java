@@ -5,11 +5,13 @@ import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
+import de.ostfale.greenroom.domain.events.TalkSpeaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -98,11 +100,29 @@ public class EventService implements ManageEvents {
     }
 
     @Override
-    public Event changeTalk(Long eventId, int position, String title, String abstractText) {
+    public Event changeTalk(Long eventId, int position, String title, String abstractText,
+                           List<String> announcedBios) {
         Event event = known(eventId);
         Talk talk = event.talkAt(position).withTitle(title).withAbstract(abstractText);
+        talk = talk.withSpeakers(announced(talk.speakers(), announcedBios));
         log.debug("EventService :: change talk {} of event {}", position, eventId);
         return eventRepository.save(event.withTalkChanged(position, talk));
+    }
+
+    /**
+     * The biographies as the form sent them back, one per speaker and in their order. A
+     * list that does not match is left alone: the page was stale, and the speakers of a
+     * talk are not what this form is allowed to move.
+     */
+    private static List<TalkSpeaker> announced(List<TalkSpeaker> speakers, List<String> bios) {
+        if (bios == null || bios.size() != speakers.size()) {
+            return speakers;
+        }
+        List<TalkSpeaker> rewritten = new ArrayList<>();
+        for (int i = 0; i < speakers.size(); i++) {
+            rewritten.add(speakers.get(i).withAnnouncedBio(bios.get(i)));
+        }
+        return rewritten;
     }
 
     @Override

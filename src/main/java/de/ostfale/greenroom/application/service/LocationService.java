@@ -47,6 +47,15 @@ public class LocationService implements ManageLocations {
     }
 
     @Override
+    public Location change(Location location) {
+        if (location.id() == null) {
+            throw new IllegalArgumentException("LocationService :: this location was never stored");
+        }
+        log.debug("LocationService :: change location {}", location.id());
+        return locationRepository.save(location);
+    }
+
+    @Override
     public Location addAddress(Long locationId, Address address, boolean replacesTheOthers) {
         Location location = known(locationId);
         return locationRepository.save(replacesTheOthers

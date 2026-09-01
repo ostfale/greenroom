@@ -276,7 +276,7 @@ class EventControllerTest {
         assertThat(page.selectFirst("#event-status .label").text()).isEqualTo("Thema");
         assertThat(page.selectFirst("#event-talks input[name=title]").val())
                 .isEqualTo("Records in Java 25");
-        assertThat(page.selectFirst("#event-talks p.hint").text()).isEqualTo("Max Muster");
+        assertThat(page.selectFirst("#event-talks label span").text()).isEqualTo("Kurzvita Max Muster");
     }
 
     @Test
@@ -861,5 +861,114 @@ class EventControllerTest {
 
         assertThat(page.select("#event-tags form")).isEmpty();
         assertThat(page.selectFirst("#event-tags a.button").attr("href")).isEqualTo("/settings");
+    }
+
+    // --- the biography an evening announced -------------------------------------------
+
+    @Test
+    void theBiographyIsCopiedWhenTheSpeakerIsPutOnTheFirstTalk() throws Exception {
+        Long anna = speakers.add(Speaker.of("Anna Albers", "anna@example.org")
+                .withBio("Schreibt seit 2009 Java.")).id();
+
+        mvc.perform(post("/event")
+                        .param("speakerId", anna.toString())
+                        .param("title", "Virtual Threads")
+                        .param("date", ""))
+                .andExpect(redirectedUrl("/event"));
+
+        assertThat(events.all()).singleElement().satisfies(stored ->
+                assertThat(stored.talkAt(0).speakers()).singleElement().satisfies(announced ->
+                        assertThat(announced.announcedBio()).isEqualTo("Schreibt seit 2009 Java.")));
+    }
+
+    @Test
+    void theBiographyIsCopiedForAFurtherTalkToo() throws Exception {
+        Long anna = speakers.add(Speaker.of("Anna Albers", "anna@example.org")
+                .withBio("Schreibt seit 2009 Java.")).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        mvc.perform(post("/event/" + id + "/talk")
+                        .param("speakerId", anna.toString())
+                        .param("title", "Virtual Threads"))
+                .andExpect(status().isOk());
+
+        assertThat(events.byId(id).orElseThrow().talkAt(1).speakers()).singleElement()
+                .satisfies(announced ->
+                        assertThat(announced.announcedBio()).isEqualTo("Schreibt seit 2009 Java."));
+    }
+
+    @Test
+    void theAnnouncedBiographyIsEditedOnTheTalk() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/talk/0")
+                        .param("title", "Records in Java 25")
+                        .param("abstractText", "Warum Records mehr sind als weniger Tippen.")
+                        .param("announcedBio", "Hält seit Jahren Vorträge über Records."))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment)
+                .selectFirst("#event-talks textarea[name=announcedBio]").val())
+                .isEqualTo("Hält seit Jahren Vorträge über Records.");
+        assertThat(events.byId(id).orElseThrow().talkAt(0).speakers().getFirst().announcedBio())
+                .isEqualTo("Hält seit Jahren Vorträge über Records.");
+    }
+
+    /**
+     * The point of the copy: the person keeps rewriting their bio, but what stood on the
+     * invitation for that evening stays where it is.
+     */
+    @Test
+    void rewritingTheOwnBiographyLeavesTheAnnouncedOneAlone() throws Exception {
+        Long anna = speakers.add(Speaker.of("Anna Albers", "anna@example.org")
+                .withBio("Schreibt seit 2009 Java.")).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+        mvc.perform(post("/event/" + id + "/talk")
+                .param("speakerId", anna.toString())
+                .param("title", "Virtual Threads")).andExpect(status().isOk());
+
+        mvc.perform(post("/speaker/" + anna)
+                        .param("name", "Anna Albers")
+                        .param("email", "anna@example.org")
+                        .param("bio", "Arbeitet jetzt bei der Nordsee GmbH."))
+                .andExpect(status().isOk());
+
+        assertThat(speakers.byId(anna).orElseThrow().bio())
+                .isEqualTo("Arbeitet jetzt bei der Nordsee GmbH.");
+        assertThat(events.byId(id).orElseThrow().talkAt(1).speakers().getFirst().announcedBio())
+                .isEqualTo("Schreibt seit 2009 Java.");
+    }
+
+    /** A stale page sends the wrong number of biographies; the stored ones are worth more. */
+    @Test
+    void aFormWithoutBiographiesLeavesThemWhereTheyAre() throws Exception {
+        Long anna = speakers.add(Speaker.of("Anna Albers", "anna@example.org")
+                .withBio("Schreibt seit 2009 Java.")).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+        mvc.perform(post("/event/" + id + "/talk")
+                .param("speakerId", anna.toString())
+                .param("title", "Virtual Threads")).andExpect(status().isOk());
+
+        mvc.perform(post("/event/" + id + "/talk/1")
+                        .param("title", "Virtual Threads")
+                        .param("abstractText", "Was Loom wirklich ändert."))
+                .andExpect(status().isOk());
+
+        assertThat(events.byId(id).orElseThrow().talkAt(1).speakers().getFirst().announcedBio())
+                .isEqualTo("Schreibt seit 2009 Java.");
+    }
+
+    @Test
+    void aSpeakerWithoutABiographyIsAnnouncedWithoutOne() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        mvc.perform(post("/event/" + id + "/talk")
+                        .param("speakerId", speakerId.toString())
+                        .param("title", "Virtual Threads"))
+                .andExpect(status().isOk());
+
+        assertThat(events.byId(id).orElseThrow().talkAt(1).speakers().getFirst().announcedBio())
+                .isNull();
     }
 }

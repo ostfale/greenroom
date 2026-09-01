@@ -19,7 +19,9 @@ of an evening easier than a Markdown note would — that is the only benchmark.
 - Code, identifiers, comments, commit messages, log messages: English.
 - UI texts and Thymeleaf templates: German.
 - Talk to me in German.
-- git commit messages should be short and precise
+- git commit messages should be short and precise: a subject line, then dashed bullets.
+  No prose paragraphs — one point per bullet, and only what a reader of the diff cannot
+  see for themselves
 
 ## Stack
 
@@ -105,6 +107,9 @@ UI texts, in Thymeleaf templates and in the data itself.
 - `capacity` sits on the `Address`, not on the `Location`: a place that moves rarely keeps
   the same room, and the seat count of an old address is part of what that evening was.
   The binding numbers are entered on meetup.com anyway; here the figure is a planning aid
+- the announced biography is copied onto the `Talk` the moment the speaker is put on it,
+  and is edited there from then on. It does not follow the speaker: rewriting a `Speaker`
+  bio leaves every evening that was announced with the old one untouched
 - an `Event` carries a `moderator`: the name of whoever leads through the evening, and
   nothing else. Not a reference to a `Speaker` or a `ContactPerson` — that person is
   usually one of us, and there is nothing further about them to plan here

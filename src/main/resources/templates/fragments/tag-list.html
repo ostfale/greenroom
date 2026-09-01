@@ -1,14 +1,25 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<div id="tag-list" th:fragment="tag-list">
+<div id="tag-list" class="stack" th:fragment="tag-list">
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
     <p class="hint" th:if="${#lists.isEmpty(tags)}">Noch keine Schlagwörter angelegt.</p>
 
+    <!-- A row of chips rather than a column of forms: thirty keywords stay a list. Picking
+         one opens it below; renaming or dropping it there leaves the evenings alone, they
+         store the word they were announced with. -->
     <ul class="tags" th:unless="${#lists.isEmpty(tags)}">
-        <li th:each="tag : ${tags}"><span class="badge" th:text="${tag.name}">Spring</span></li>
+        <li th:each="tag : ${tags}">
+            <button type="button" class="badge"
+                    th:hx-get="@{/settings/tag/{id}(id=${tag.id})}"
+                    hx-target="#tag-editor"
+                    hx-swap="outerHTML"
+                    th:text="${tag.name}">Spring</button>
+        </li>
     </ul>
+
+    <div id="tag-editor"></div>
 </div>
 </body>
 </html>

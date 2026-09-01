@@ -20,6 +20,9 @@ public interface ManageLocations {
     /** Stores a location that has no id yet and returns it with the id it was given. */
     Location add(Location location);
 
+    /** Stores the changed fields of a location that is already known. */
+    Location change(Location location);
+
     /**
      * The place moved or opened a second site. The earlier addresses are kept — an evening
      * held at an old address was held there.

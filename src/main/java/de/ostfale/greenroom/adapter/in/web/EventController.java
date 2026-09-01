@@ -75,7 +75,7 @@ public class EventController {
                       @RequestParam(defaultValue = "") String date,
                       Model model) {
         try {
-            Talk talk = Talk.by(TalkSpeaker.of(speaker(speakerId))).withTitle(title);
+            Talk talk = Talk.by(announced(speakerId)).withTitle(title);
             events.add(Event.draftFor(talk).withDate(evening(date)));
             return "redirect:/event";
         } catch (IllegalArgumentException e) {
@@ -86,6 +86,18 @@ public class EventController {
             model.addAttribute("speakers", speakers.all());
             return "event/form";
         }
+    }
+
+    /**
+     * A talk speaker with the biography they have right now. The copy is taken here, at
+     * the moment the person is put on the talk: what the evening announced stays, however
+     * often they rewrite their bio afterwards.
+     */
+    private TalkSpeaker announced(String speakerId) {
+        Long id = speaker(speakerId);
+        return speakers.byId(id)
+                .map(TalkSpeaker::announcing)
+                .orElseThrow(() -> new IllegalArgumentException("Event :: no speaker was chosen"));
     }
 
     private static Long speaker(String speakerId) {
@@ -234,8 +246,7 @@ public class EventController {
                           @RequestParam(defaultValue = "") String speakerId,
                           @RequestParam(defaultValue = "") String title,
                           Model model) {
-        return talks(id, model, () -> events.addTalk(id,
-                Talk.by(TalkSpeaker.of(speaker(speakerId))).withTitle(title)));
+        return talks(id, model, () -> events.addTalk(id, Talk.by(announced(speakerId)).withTitle(title)));
     }
 
     @PostMapping("/{id}/talk/{position}")
@@ -243,8 +254,9 @@ public class EventController {
                              @PathVariable int position,
                              @RequestParam(defaultValue = "") String title,
                              @RequestParam(defaultValue = "") String abstractText,
+                             @RequestParam(name = "announcedBio", required = false) List<String> bios,
                              Model model) {
-        return talks(id, model, () -> events.changeTalk(id, position, title, abstractText));
+        return talks(id, model, () -> events.changeTalk(id, position, title, abstractText, bios));
     }
 
     @PostMapping("/{id}/talk/{position}/remove")

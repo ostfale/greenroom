@@ -53,10 +53,13 @@ An evening is planned from its detail page: date, motto, moderator, venue, its t
 their titles and abstracts, the keywords it is announced with, and the status transitions
 that carry it from a topic to an announced event. The page offers only the steps the state
 machine allows and says in German what a refused one is still missing; a second evening on
-a day that is already taken is pointed out, not refused. Speakers and locations can be
-edited, and a speaker deleted unless a talk announces them.
+a day that is already taken is pointed out, not refused. Speakers, locations and the
+keyword list can be edited; a keyword can be dropped, and a speaker as long as no talk
+announces them.
+
+The announced biography is copied onto a talk the moment the speaker is put on it, and is
+edited there. It does not follow the speaker afterwards: what an evening was announced with
+stays, the same reason an event stores its keywords as words.
 
 What is missing is `Activity`, `SpeakerInquiry`, `VenueInquiry` and `PlanningSettings`, and
-the mail, geo, importer and scheduling adapters the layout above already names. The
-speaker's biography is not yet copied onto a talk when the evening is announced, although
-`TalkSpeaker` is built for it.
+the mail, geo, importer and scheduling adapters the layout above already names.

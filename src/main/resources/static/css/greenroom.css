@@ -501,6 +501,12 @@ button.link:hover {
     background: none;
 }
 
+/* A keyword is a chip you can pick up — the badge shape stays, the hover gives it away. */
+button.badge:hover {
+    color: #fff;
+    background: var(--green);
+}
+
 button.danger {
     color: var(--red);
     background: var(--red-soft);

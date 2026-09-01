@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- The one word that was picked. Empty until somebody picks one. -->
+<div id="tag-editor" th:fragment="tag-editor">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <form class="inline boxed" th:if="${tagId}" method="post"
+          th:action="@{/settings/tag/{id}(id=${tagId})}"
+          th:hx-post="@{/settings/tag/{id}(id=${tagId})}"
+          hx-target="#tag-list"
+          hx-swap="outerHTML">
+        <label>Schlagwort
+            <input type="text" name="name" required th:value="${tagName}" autofocus>
+        </label>
+        <button type="submit">Speichern</button>
+        <button type="button" class="link"
+                th:hx-post="@{/settings/tag/{id}/remove(id=${tagId})}"
+                hx-target="#tag-list"
+                hx-swap="outerHTML">Entfernen</button>
+        <button type="button" class="link"
+                th:hx-get="@{/settings}"
+                hx-target="#tag-list"
+                hx-swap="outerHTML">Abbrechen</button>
+    </form>
+</div>
+</body>
+</html>

@@ -111,6 +111,23 @@ public class LocationController {
                 .orElse("redirect:/location");
     }
 
+    /** Name and notes. The addresses and the contact people have their own forms. */
+    @PostMapping("/{id}")
+    public String change(@PathVariable Long id,
+                         @RequestParam(defaultValue = "") String name,
+                         @RequestParam(defaultValue = "") String notes,
+                         Model model) {
+        try {
+            Location known = locations.byId(id).orElseThrow(() ->
+                    new IllegalArgumentException("LocationController :: unknown location"));
+            locations.change(new Location(id, name, notes, known.addresses(), known.contacts()));
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", "Der Name des Ortes ist ein Pflichtfeld.");
+        }
+        locations.byId(id).ifPresent(location -> model.addAttribute("location", location));
+        return "fragments/location-fields :: location-fields";
+    }
+
     /**
      * A new address. "Moved" retires the earlier ones; without it the place simply has a
      * second site.

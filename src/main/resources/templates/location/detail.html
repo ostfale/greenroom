@@ -12,6 +12,16 @@
 
     <div class="bento">
         <section class="tile three">
+            <h2>Stammdaten</h2>
+            <div th:replace="~{fragments/location-fields :: location-fields}"></div>
+        </section>
+
+        <section class="tile quarter">
+            <h2>Aktuell</h2>
+            <div th:replace="~{fragments/location-summary :: location-summary}"></div>
+        </section>
+
+        <section class="tile three">
             <h2>Adressen</h2>
             <p class="hint">
                 Zieht der Gastgeber um, bleibt die alte Adresse stehen: ein Event, das dort
@@ -52,11 +62,6 @@
             </details>
         </section>
 
-        <section class="tile quarter">
-            <h2>Aktuell</h2>
-            <div th:replace="~{fragments/location-summary :: location-summary}"></div>
-        </section>
-
         <section class="tile three">
             <h2>Ansprechpartner</h2>
             <p class="hint">
@@ -85,11 +90,6 @@
                 <button type="submit">Ansprechpartner hinzufügen</button>
             </form>
             </details>
-        </section>
-
-        <section class="tile quarter">
-            <h2>Notizen</h2>
-            <p th:text="${location.notes} ?: '—'">—</p>
         </section>
     </div>
 </main>

@@ -54,14 +54,17 @@ public interface ManageEvents {
     Event addTalk(Long eventId, Talk talk);
 
     /**
-     * Title and abstract of the talk at that position. Its speakers stay untouched: the
-     * form does not carry them, so it must not be able to lose them.
+     * Title, abstract and the announced biographies of the talk at that position. The
+     * biographies come back one per speaker and in their order; a list that does not match
+     * is ignored, because a stale page is worth less than what is stored. Which people give
+     * the talk is not the form's to change.
      *
      * @throws IllegalArgumentException if there is no talk at that position, or if the
      *                                  evening is already announced and the change would
      *                                  leave a talk without a title or an abstract
      */
-    Event changeTalk(Long eventId, int position, String title, String abstractText);
+    Event changeTalk(Long eventId, int position, String title, String abstractText,
+                     List<String> announcedBios);
 
     /**
      * Drops the talk at that position.

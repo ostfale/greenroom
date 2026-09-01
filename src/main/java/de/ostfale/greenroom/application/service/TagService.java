@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -25,6 +26,12 @@ public class TagService implements ManageTags {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<Tag> byId(Long id) {
+        return id == null ? Optional.empty() : tagRepository.findById(id);
+    }
+
+    @Override
     public Tag add(Tag tag) {
         if (tag.id() != null) {
             throw new IllegalArgumentException("TagService :: this tag is already stored");
@@ -35,5 +42,27 @@ public class TagService implements ManageTags {
             throw new IllegalArgumentException("TagService :: the tag " + existing.name() + " is already on the list");
         });
         return tagRepository.save(tag);
+    }
+
+    @Override
+    public Tag rename(Long id, String name) {
+        Tag renamed = new Tag(id, name);
+        if (!tagRepository.existsById(id)) {
+            throw new IllegalArgumentException("TagService :: there is no tag " + id);
+        }
+        // The word may stay where it is; only somebody else's word is in the way.
+        tagRepository.findByName(renamed.name()).ifPresent(existing -> {
+            if (!existing.id().equals(id)) {
+                throw new IllegalArgumentException(
+                        "TagService :: the tag " + existing.name() + " is already on the list");
+            }
+        });
+        return tagRepository.save(renamed);
+    }
+
+    @Override
+    public void remove(Long id) {
+        // No guard: an evening carries the word, not this row. What was announced stays.
+        tagRepository.deleteById(id);
     }
 }
