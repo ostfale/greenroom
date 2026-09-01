@@ -42,7 +42,7 @@ class EventTest {
 
     @Test
     void anEveningNeedsAtLeastOneTalk() {
-        assertThatThrownBy(() -> new Event(null, null, null, EventStatus.DRAFT, EventMode.ONSITE,
+        assertThatThrownBy(() -> new Event(null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE,
                 null, List.of(), List.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("talk");
@@ -255,5 +255,24 @@ class EventTest {
         assertThatThrownBy(() -> published.withTalkChanged(0, published.talkAt(0).withTitle(null)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("needs a title and an abstract");
+    }
+
+    // --- who leads through the evening ------------------------------------------------
+
+    @Test
+    void theModeratorIsNothingButAName() {
+        Event event = Event.draftFor(aReadyTalk(SPEAKER)).withModerator("Max Muster");
+
+        assertThat(event.moderator()).isEqualTo("Max Muster");
+    }
+
+    @Test
+    void aBlankModeratorIsNoModerator() {
+        assertThat(Event.draftFor(aReadyTalk(SPEAKER)).withModerator("  ").moderator()).isNull();
+    }
+
+    @Test
+    void aTopicStartsWithoutOne() {
+        assertThat(Event.draftFor(aReadyTalk(SPEAKER)).moderator()).isNull();
     }
 }

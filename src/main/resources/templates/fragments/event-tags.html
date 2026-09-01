@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="event-tags" th:fragment="event-tags">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <div th:if="${#lists.isEmpty(tagChoices)}">
+        <p class="hint">Es ist noch kein Schlagwort angelegt.</p>
+        <p><a class="button" th:href="@{/settings}">Schlagwörter pflegen</a></p>
+    </div>
+
+    <form th:unless="${#lists.isEmpty(tagChoices)}" method="post"
+          th:action="@{/event/{id}/tags(id=${event.id})}"
+          th:hx-post="@{/event/{id}/tags(id=${event.id})}"
+          hx-target="#event-tags"
+          hx-swap="outerHTML">
+        <ul class="tags">
+            <li th:each="word : ${tagChoices}">
+                <label class="toggle">
+                    <input type="checkbox" name="tag" th:value="${word}"
+                           th:checked="${event.carries(word)}">
+                    <span th:text="${word}">Spring</span>
+                </label>
+            </li>
+        </ul>
+
+        <div class="actions">
+            <button type="submit">Schlagwörter speichern</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

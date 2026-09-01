@@ -81,6 +81,7 @@ create table event
     id          bigserial primary key,
     date        date,
     motto       text,
+    moderator   text,
     status      text   not null,
     mode        text   not null,
     location_id bigint references location (id),

@@ -49,15 +49,14 @@ Early. Events (`/event`), speakers (`/speaker`), locations (`/location`) and the
 tags (`/settings`) are listed and created through the UI — every slice runs from the
 Thymeleaf form through the use case down to Postgres and is covered end to end.
 
-An evening is planned from its detail page: date, motto, venue, its talks with their titles
-and abstracts, and the status transitions that carry it from a topic to an announced event.
-The page offers only the steps the state machine allows and says in German what a refused
-one is still missing; a second evening on a day that is already taken is pointed out, not
-refused. Speakers and locations can be edited, and a speaker deleted unless a talk
-announces them.
+An evening is planned from its detail page: date, motto, moderator, venue, its talks with
+their titles and abstracts, the keywords it is announced with, and the status transitions
+that carry it from a topic to an announced event. The page offers only the steps the state
+machine allows and says in German what a refused one is still missing; a second evening on
+a day that is already taken is pointed out, not refused. Speakers and locations can be
+edited, and a speaker deleted unless a talk announces them.
 
-What is missing is putting tags on an event — the list is maintained, but no evening draws
-from it yet. `Activity`, `SpeakerInquiry`, `VenueInquiry` and `PlanningSettings` are not
-built, and neither are the mail, geo, importer and scheduling adapters the layout above
-already names. The speaker's biography is not yet copied onto a talk when the evening is
-announced, although `TalkSpeaker` is built for it.
+What is missing is `Activity`, `SpeakerInquiry`, `VenueInquiry` and `PlanningSettings`, and
+the mail, geo, importer and scheduling adapters the layout above already names. The
+speaker's biography is not yet copied onto a talk when the evening is announced, although
+`TalkSpeaker` is built for it.

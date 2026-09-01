@@ -33,11 +33,14 @@
             <div th:replace="~{fragments/event-venue :: event-venue}"></div>
         </section>
 
-        <section class="tile half" th:unless="${#lists.isEmpty(event.tags)}">
+        <section class="tile half">
             <h2>Schlagwörter</h2>
-            <ul class="tags">
-                <li th:each="tag : ${event.tags}"><span class="badge" th:text="${tag}">Spring</span></li>
-            </ul>
+            <p class="hint">
+                Das Event merkt sich die Wörter, nicht die Liste. Wird ein Schlagwort in den
+                Einstellungen umbenannt oder gelöscht, bleibt stehen, womit dieser Abend
+                angekündigt wurde.
+            </p>
+            <div th:replace="~{fragments/event-tags :: event-tags}"></div>
         </section>
 
         <section class="tile">

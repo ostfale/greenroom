@@ -3,12 +3,14 @@ package de.ostfale.greenroom.adapter.in.web;
 import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
+import de.ostfale.greenroom.application.port.in.ManageTags;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
 import de.ostfale.greenroom.domain.events.TalkSpeaker;
 import de.ostfale.greenroom.domain.locations.Location;
 import de.ostfale.greenroom.domain.speakers.Speaker;
+import de.ostfale.greenroom.domain.tags.Tag;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,11 +39,14 @@ public class EventController {
     private final ManageEvents events;
     private final ManageSpeakers speakers;
     private final ManageLocations locations;
+    private final ManageTags tags;
 
-    public EventController(ManageEvents events, ManageSpeakers speakers, ManageLocations locations) {
+    public EventController(ManageEvents events, ManageSpeakers speakers,
+                           ManageLocations locations, ManageTags tags) {
         this.events = events;
         this.speakers = speakers;
         this.locations = locations;
+        this.tags = tags;
     }
 
     @GetMapping
@@ -146,11 +152,14 @@ public class EventController {
     public String change(@PathVariable Long id,
                          @RequestParam(defaultValue = "") String date,
                          @RequestParam(defaultValue = "") String motto,
+                         @RequestParam(defaultValue = "") String moderator,
                          Model model) {
         try {
             Event known = events.byId(id).orElseThrow(() ->
                     new IllegalArgumentException("EventController :: unknown event"));
-            events.change(known.withDate(evening(date)).withMotto(motto));
+            events.change(known.withDate(evening(date))
+                    .withMotto(motto)
+                    .withModerator(moderator));
         } catch (IllegalArgumentException e) {
             model.addAttribute("error", planningMessage(e));
         }
@@ -201,6 +210,24 @@ public class EventController {
         }
     }
 
+    /**
+     * The words this evening is announced with. Copied from the list in the settings, never
+     * referenced: renaming or deleting a tag later must not rewrite what an evening was.
+     */
+    @PostMapping("/{id}/tags")
+    public String changeTags(@PathVariable Long id,
+                             @RequestParam(name = "tag", required = false) List<String> chosen,
+                             Model model) {
+        try {
+            Event known = events.byId(id).orElseThrow(() ->
+                    new IllegalArgumentException("EventController :: unknown event"));
+            events.change(known.withTags(chosen == null ? List.of() : chosen));
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", planningMessage(e));
+        }
+        return tile(id, model, "fragments/event-tags :: event-tags");
+    }
+
     /** A further talk. Like the first one, it comes into being with its speaker. */
     @PostMapping("/{id}/talk")
     public String addTalk(@PathVariable Long id,
@@ -249,6 +276,7 @@ public class EventController {
         model.addAttribute("transitions", event.status().allowedTargets());
         model.addAttribute("locations", locations.all());
         model.addAttribute("clashes", events.clashesWith(event));
+        model.addAttribute("tagChoices", tagChoices(event));
         List<Speaker> known = speakers.all();
         model.addAttribute("speakers", known);
         model.addAttribute("speakerNames", known.stream()
@@ -257,9 +285,30 @@ public class EventController {
                 .ifPresent(location -> model.addAttribute("location", location));
     }
 
+    /**
+     * Every word that may be ticked: the maintained list, and on top of it whatever this
+     * evening already carries. A tag deleted from the settings must not silently fall off
+     * an evening that was announced with it.
+     */
+    private List<String> tagChoices(Event event) {
+        List<String> choices = new ArrayList<>(tags.all().stream().map(Tag::name).toList());
+        for (String own : event.tags()) {
+            if (choices.stream().noneMatch(word -> word.equalsIgnoreCase(own))) {
+                choices.add(own);
+            }
+        }
+        return choices;
+    }
+
     /** The records refuse in English; the page has to say in German what is missing. */
     private static String planningMessage(RuntimeException e) {
         String reason = e.getMessage() == null ? "" : e.getMessage();
+        if (reason.contains("is on this event twice")) {
+            return "Dieses Schlagwort steht schon an diesem Event.";
+        }
+        if (reason.contains("a tag needs a word")) {
+            return "Ein Schlagwort braucht ein Wort.";
+        }
         if (reason.contains("at least one talk")) {
             return "Der letzte Vortrag kann nicht entfernt werden — ohne ihn ist es kein Event.";
         }

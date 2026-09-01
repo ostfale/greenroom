@@ -629,6 +629,11 @@ ul.tags {
     accent-color: var(--green);
 }
 
+/* In the row of keywords the toggles are chips, and chips sit side by side. */
+ul.tags .toggle {
+    margin-bottom: 0;
+}
+
 /* --- the portrait ----------------------------------------------------------------- */
 
 .portrait {

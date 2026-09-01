@@ -18,6 +18,9 @@ import static de.ostfale.greenroom.domain.Texts.required;
  * {@code VENUE_CONFIRMED} one has a location, and a {@code PUBLISHED} one has talks that
  * are worth announcing.
  *
+ * <p>The moderator is a name, not a reference: whoever leads through the evening is
+ * usually one of us, and nothing else about them is planned here.
+ *
  * <p>There is no title. The evening is called by its {@code motto} if it has one, otherwise
  * by the title of its talk — with one talk nothing is maintained twice, with several the
  * evening gets a name of its own.
@@ -26,6 +29,7 @@ public record Event(
         @Id Long id,
         LocalDate date,
         String motto,
+        String moderator,
         EventStatus status,
         EventMode mode,
         Long locationId,
@@ -53,13 +57,14 @@ public record Event(
                     "Event :: " + status + " needs a title and an abstract on every talk");
         }
         motto = optional(motto);
+        moderator = optional(moderator);
         talks = List.copyOf(talks);
         tags = tags == null ? List.of() : List.copyOf(normalised(tags));
     }
 
     /** A topic: somebody we want to hear, and nothing settled yet. */
     public static Event draftFor(Talk talk) {
-        return new Event(null, null, null, EventStatus.DRAFT, EventMode.ONSITE, null, List.of(talk), List.of());
+        return new Event(null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE, null, List.of(talk), List.of());
     }
 
     /**
@@ -72,27 +77,35 @@ public record Event(
         if (!status.canMoveTo(target)) {
             throw new IllegalStateException("Event :: " + status + " does not move to " + target);
         }
-        return new Event(id, date, motto, target, mode, locationId, talks, tags);
+        return new Event(id, date, motto, moderator, target, mode, locationId, talks, tags);
     }
 
     public Event withDate(LocalDate newDate) {
-        return new Event(id, newDate, motto, status, mode, locationId, talks, tags);
+        return new Event(id, newDate, motto, moderator, status, mode, locationId, talks, tags);
     }
 
     public Event withMotto(String newMotto) {
-        return new Event(id, date, newMotto, status, mode, locationId, talks, tags);
+        return new Event(id, date, newMotto, moderator, status, mode, locationId, talks, tags);
+    }
+
+    /**
+     * Who leads through the evening. A name and nothing else — the moderator is usually
+     * one of us, and a person the tool does not otherwise have to know anything about.
+     */
+    public Event withModerator(String newModerator) {
+        return new Event(id, date, motto, newModerator, status, mode, locationId, talks, tags);
     }
 
     public Event withMode(EventMode newMode) {
-        return new Event(id, date, motto, status, newMode, locationId, talks, tags);
+        return new Event(id, date, motto, moderator, status, newMode, locationId, talks, tags);
     }
 
     public Event withLocation(Long newLocationId) {
-        return new Event(id, date, motto, status, mode, newLocationId, talks, tags);
+        return new Event(id, date, motto, moderator, status, mode, newLocationId, talks, tags);
     }
 
     public Event withTalks(List<Talk> newTalks) {
-        return new Event(id, date, motto, status, mode, locationId, newTalks, tags);
+        return new Event(id, date, motto, moderator, status, mode, locationId, newTalks, tags);
     }
 
     public Event withAdditionalTalk(Talk talk) {
@@ -138,7 +151,7 @@ public record Event(
      * announced with — the same reason the speaker's biography is copied onto the talk.
      */
     public Event withTags(List<String> newTags) {
-        return new Event(id, date, motto, status, mode, locationId, talks, newTags);
+        return new Event(id, date, motto, moderator, status, mode, locationId, talks, newTags);
     }
 
     public boolean carries(String tag) {

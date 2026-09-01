@@ -105,6 +105,9 @@ UI texts, in Thymeleaf templates and in the data itself.
 - `capacity` sits on the `Address`, not on the `Location`: a place that moves rarely keeps
   the same room, and the seat count of an old address is part of what that evening was.
   The binding numbers are entered on meetup.com anyway; here the figure is a planning aid
+- an `Event` carries a `moderator`: the name of whoever leads through the evening, and
+  nothing else. Not a reference to a `Speaker` or a `ContactPerson` — that person is
+  usually one of us, and there is nothing further about them to plan here
 - a Talk has no duration — how long somebody speaks is not planned here
 
 

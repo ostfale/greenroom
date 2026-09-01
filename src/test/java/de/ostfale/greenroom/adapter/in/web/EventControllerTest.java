@@ -5,6 +5,7 @@ import de.ostfale.greenroom.WebTest;
 import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
+import de.ostfale.greenroom.application.port.in.ManageTags;
 import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.application.port.out.SpeakerRepository;
 import de.ostfale.greenroom.domain.events.Event;
@@ -14,12 +15,15 @@ import de.ostfale.greenroom.domain.events.TalkSpeaker;
 import de.ostfale.greenroom.domain.locations.ContactPerson;
 import de.ostfale.greenroom.domain.locations.Location;
 import de.ostfale.greenroom.domain.speakers.Speaker;
+import de.ostfale.greenroom.domain.tags.Tag;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
 
 import static de.ostfale.greenroom.Fixtures.EVENING;
 import static de.ostfale.greenroom.Fixtures.aContact;
@@ -52,6 +56,9 @@ class EventControllerTest {
 
     @Autowired
     private ManageLocations locations;
+
+    @Autowired
+    private ManageTags tags;
 
     @Autowired
     private EventRepository eventRepository;
@@ -749,5 +756,110 @@ class EventControllerTest {
 
     private Long speakerOf(String name) {
         return speakers.add(Speaker.of(name, "anna@example.org")).id();
+    }
+
+    // --- who leads through the evening -----------------------------------------------
+
+    @Test
+    void theModeratorIsStoredWithTheOtherBasics() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id)
+                        .param("date", "")
+                        .param("motto", "")
+                        .param("moderator", "Max Muster"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("input[name=moderator]").val())
+                .isEqualTo("Max Muster");
+        assertThat(events.byId(id).orElseThrow().moderator()).isEqualTo("Max Muster");
+    }
+
+    @Test
+    void theModeratorStaysWhenTheEveningMovesOn() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withDate(EVENING)
+                .withModerator("Max Muster")).id();
+
+        mvc.perform(post("/event/" + id + "/status").param("target", "DATE_CONFIRMED"))
+                .andExpect(status().isOk());
+
+        assertThat(events.byId(id).orElseThrow().moderator()).isEqualTo("Max Muster");
+    }
+
+    // --- the keywords of an evening ---------------------------------------------------
+
+    @Test
+    void theTagTileOffersTheMaintainedListAndTicksWhatIsCarried() throws Exception {
+        tags.add(Tag.named("Spring"));
+        tags.add(Tag.named("Architektur"));
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withTags(List.of("Spring"))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        // The settings keep the list alphabetical, and the tile offers it in that order.
+        assertThat(page.select("#event-tags ul.tags li").eachText())
+                .containsExactly("Architektur", "Spring");
+        assertThat(page.select("#event-tags input[checked]").eachAttr("value"))
+                .containsExactly("Spring");
+    }
+
+    @Test
+    void tickingAWordPutsItOnTheEvening() throws Exception {
+        tags.add(Tag.named("Spring"));
+        tags.add(Tag.named("Architektur"));
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/tags")
+                        .param("tag", "Spring")
+                        .param("tag", "Architektur"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).select("#event-tags input[checked]")
+                .eachAttr("value")).containsExactly("Architektur", "Spring");
+        assertThat(events.byId(id).orElseThrow().tags()).containsExactly("Spring", "Architektur");
+    }
+
+    @Test
+    void savingWithNothingTickedLeavesTheEveningWithoutWords() throws Exception {
+        tags.add(Tag.named("Spring"));
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withTags(List.of("Spring"))).id();
+
+        mvc.perform(post("/event/" + id + "/tags")).andExpect(status().isOk());
+
+        assertThat(events.byId(id).orElseThrow().tags()).isEmpty();
+    }
+
+    /**
+     * The evening stores the word, not a reference to the list. A tag that was dropped from
+     * the settings is still offered here, ticked, so it does not fall off unnoticed.
+     */
+    @Test
+    void aWordThatLeftTheSettingsStaysOnTheEveningItAnnounced() throws Exception {
+        tags.add(Tag.named("Architektur"));
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withTags(List.of("Spring"))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-tags ul.tags li").eachText())
+                .containsExactly("Architektur", "Spring");
+        assertThat(page.select("#event-tags input[checked]").eachAttr("value"))
+                .containsExactly("Spring");
+        assertThat(events.byId(id).orElseThrow().tags()).containsExactly("Spring");
+    }
+
+    @Test
+    void withoutAnyKeywordTheTileSendsYouToTheSettings() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-tags form")).isEmpty();
+        assertThat(page.selectFirst("#event-tags a.button").attr("href")).isEqualTo("/settings");
     }
 }
