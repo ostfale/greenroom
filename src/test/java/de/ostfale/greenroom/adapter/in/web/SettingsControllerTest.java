@@ -3,7 +3,7 @@ package de.ostfale.greenroom.adapter.in.web;
 import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.WebTest;
 import de.ostfale.greenroom.application.port.in.ManageTags;
-import de.ostfale.greenroom.domain.tag.Tag;
+import de.ostfale.greenroom.domain.tags.Tag;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.BeforeEach;

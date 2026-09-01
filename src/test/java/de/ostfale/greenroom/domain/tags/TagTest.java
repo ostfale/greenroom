@@ -1,4 +1,4 @@
-package de.ostfale.greenroom.domain.tag;
+package de.ostfale.greenroom.domain.tags;
 
 import org.junit.jupiter.api.Test;
 

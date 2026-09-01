@@ -1,4 +1,4 @@
-package de.ostfale.greenroom.domain.activity;
+package de.ostfale.greenroom.domain.activities;
 
 /** How an inquiry or a logged action went out or came in. */
 public enum ContactChannel {

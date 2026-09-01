@@ -2,7 +2,7 @@ package de.ostfale.greenroom.application.port.out;
 
 import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.TestcontainersConfiguration;
-import de.ostfale.greenroom.domain.tag.Tag;
+import de.ostfale.greenroom.domain.tags.Tag;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

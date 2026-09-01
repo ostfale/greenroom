@@ -2,7 +2,7 @@ package de.ostfale.greenroom.application.service;
 
 import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.out.EventRepository;
-import de.ostfale.greenroom.domain.event.Event;
+import de.ostfale.greenroom.domain.events.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package de.ostfale.greenroom.domain.activity;
+package de.ostfale.greenroom.domain.activities;
 
 public enum ActivityDirection {
     OUTGOING, INCOMING, NOTE

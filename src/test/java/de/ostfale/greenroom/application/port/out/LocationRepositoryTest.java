@@ -2,9 +2,9 @@ package de.ostfale.greenroom.application.port.out;
 
 import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.TestcontainersConfiguration;
-import de.ostfale.greenroom.domain.location.Address;
-import de.ostfale.greenroom.domain.location.ContactPerson;
-import de.ostfale.greenroom.domain.location.Location;
+import de.ostfale.greenroom.domain.locations.Address;
+import de.ostfale.greenroom.domain.locations.ContactPerson;
+import de.ostfale.greenroom.domain.locations.Location;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

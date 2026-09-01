@@ -1,12 +1,12 @@
 package de.ostfale.greenroom;
 
-import de.ostfale.greenroom.domain.event.Talk;
-import de.ostfale.greenroom.domain.event.TalkSpeaker;
-import de.ostfale.greenroom.domain.location.Address;
-import de.ostfale.greenroom.domain.location.ContactPerson;
-import de.ostfale.greenroom.domain.location.Location;
-import de.ostfale.greenroom.domain.speaker.Speaker;
-import de.ostfale.greenroom.domain.tag.Tag;
+import de.ostfale.greenroom.domain.events.Talk;
+import de.ostfale.greenroom.domain.events.TalkSpeaker;
+import de.ostfale.greenroom.domain.locations.Address;
+import de.ostfale.greenroom.domain.locations.ContactPerson;
+import de.ostfale.greenroom.domain.locations.Location;
+import de.ostfale.greenroom.domain.speakers.Speaker;
+import de.ostfale.greenroom.domain.tags.Tag;
 
 import java.time.LocalDate;
 

@@ -1,4 +1,4 @@
-package de.ostfale.greenroom.domain.location;
+package de.ostfale.greenroom.domain.locations;
 
 import org.junit.jupiter.api.Test;
 

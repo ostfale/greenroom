@@ -1,8 +1,8 @@
 package de.ostfale.greenroom.application.port.in;
 
-import de.ostfale.greenroom.domain.location.Address;
-import de.ostfale.greenroom.domain.location.ContactPerson;
-import de.ostfale.greenroom.domain.location.Location;
+import de.ostfale.greenroom.domain.locations.Address;
+import de.ostfale.greenroom.domain.locations.ContactPerson;
+import de.ostfale.greenroom.domain.locations.Location;
 
 import java.util.List;
 import java.util.Optional;

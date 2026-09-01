@@ -1,6 +1,6 @@
 package de.ostfale.greenroom.application.port.in;
 
-import de.ostfale.greenroom.domain.tag.Tag;
+import de.ostfale.greenroom.domain.tags.Tag;
 
 import java.util.List;
 

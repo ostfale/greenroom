@@ -1,4 +1,4 @@
-package de.ostfale.greenroom.domain.event;
+package de.ostfale.greenroom.domain.events;
 
 import org.junit.jupiter.api.Test;
 

@@ -1,4 +1,4 @@
-package de.ostfale.greenroom.domain.speaker;
+package de.ostfale.greenroom.domain.speakers;
 
 import static de.ostfale.greenroom.domain.Texts.optional;
 import static de.ostfale.greenroom.domain.Texts.required;

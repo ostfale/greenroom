@@ -1,6 +1,6 @@
 package de.ostfale.greenroom.application.port.out;
 
-import de.ostfale.greenroom.domain.event.Event;
+import de.ostfale.greenroom.domain.events.Event;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.ListCrudRepository;
 

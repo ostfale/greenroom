@@ -1,7 +1,7 @@
 package de.ostfale.greenroom.adapter.in.web;
 
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
-import de.ostfale.greenroom.domain.speaker.Speaker;
+import de.ostfale.greenroom.domain.speakers.Speaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.CacheControl;

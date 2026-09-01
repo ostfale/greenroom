@@ -1,4 +1,4 @@
-package de.ostfale.greenroom.domain.event;
+package de.ostfale.greenroom.domain.events;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -9,13 +9,13 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static de.ostfale.greenroom.domain.event.EventStatus.CANCELLED;
-import static de.ostfale.greenroom.domain.event.EventStatus.DATE_CONFIRMED;
-import static de.ostfale.greenroom.domain.event.EventStatus.DONE;
-import static de.ostfale.greenroom.domain.event.EventStatus.DRAFT;
-import static de.ostfale.greenroom.domain.event.EventStatus.POSTPONED;
-import static de.ostfale.greenroom.domain.event.EventStatus.PUBLISHED;
-import static de.ostfale.greenroom.domain.event.EventStatus.VENUE_CONFIRMED;
+import static de.ostfale.greenroom.domain.events.EventStatus.CANCELLED;
+import static de.ostfale.greenroom.domain.events.EventStatus.DATE_CONFIRMED;
+import static de.ostfale.greenroom.domain.events.EventStatus.DONE;
+import static de.ostfale.greenroom.domain.events.EventStatus.DRAFT;
+import static de.ostfale.greenroom.domain.events.EventStatus.POSTPONED;
+import static de.ostfale.greenroom.domain.events.EventStatus.PUBLISHED;
+import static de.ostfale.greenroom.domain.events.EventStatus.VENUE_CONFIRMED;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** The state machine of an evening, pinned down step by step. */

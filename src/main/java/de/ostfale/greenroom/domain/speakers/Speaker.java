@@ -1,4 +1,4 @@
-package de.ostfale.greenroom.domain.speaker;
+package de.ostfale.greenroom.domain.speakers;
 
 import org.springframework.data.annotation.Id;
 

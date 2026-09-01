@@ -1,7 +1,7 @@
 package de.ostfale.greenroom.application.port.in;
 
-import de.ostfale.greenroom.domain.speaker.Speaker;
-import de.ostfale.greenroom.domain.speaker.SpeakerPhoto;
+import de.ostfale.greenroom.domain.speakers.Speaker;
+import de.ostfale.greenroom.domain.speakers.SpeakerPhoto;
 
 import java.util.List;
 import java.util.Optional;

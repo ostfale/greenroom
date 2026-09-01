@@ -1,6 +1,6 @@
 package de.ostfale.greenroom.application.port.out;
 
-import de.ostfale.greenroom.domain.tag.Tag;
+import de.ostfale.greenroom.domain.tags.Tag;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.ListCrudRepository;
 

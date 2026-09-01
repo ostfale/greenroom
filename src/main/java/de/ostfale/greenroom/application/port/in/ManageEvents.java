@@ -1,6 +1,6 @@
 package de.ostfale.greenroom.application.port.in;
 
-import de.ostfale.greenroom.domain.event.Event;
+import de.ostfale.greenroom.domain.events.Event;
 
 import java.time.LocalDate;
 import java.util.List;

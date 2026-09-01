@@ -1,4 +1,4 @@
-package de.ostfale.greenroom.domain.location;
+package de.ostfale.greenroom.domain.locations;
 
 import static de.ostfale.greenroom.domain.Texts.optional;
 import static de.ostfale.greenroom.domain.Texts.required;

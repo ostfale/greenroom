@@ -2,7 +2,7 @@ package de.ostfale.greenroom.application.service;
 
 import de.ostfale.greenroom.application.port.in.ManageTags;
 import de.ostfale.greenroom.application.port.out.TagRepository;
-import de.ostfale.greenroom.domain.tag.Tag;
+import de.ostfale.greenroom.domain.tags.Tag;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

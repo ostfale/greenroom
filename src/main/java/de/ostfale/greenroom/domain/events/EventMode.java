@@ -1,4 +1,4 @@
-package de.ostfale.greenroom.domain.event;
+package de.ostfale.greenroom.domain.events;
 
 /** Kept for the imported years only — online events were a pandemic thing. */
 public enum EventMode {

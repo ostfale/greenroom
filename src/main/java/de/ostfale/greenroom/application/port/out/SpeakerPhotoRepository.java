@@ -1,6 +1,6 @@
 package de.ostfale.greenroom.application.port.out;
 
-import de.ostfale.greenroom.domain.speaker.SpeakerPhoto;
+import de.ostfale.greenroom.domain.speakers.SpeakerPhoto;
 import org.springframework.data.repository.ListCrudRepository;
 
 import java.util.Optional;

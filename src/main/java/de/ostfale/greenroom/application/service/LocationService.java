@@ -2,9 +2,9 @@ package de.ostfale.greenroom.application.service;
 
 import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.out.LocationRepository;
-import de.ostfale.greenroom.domain.location.Address;
-import de.ostfale.greenroom.domain.location.ContactPerson;
-import de.ostfale.greenroom.domain.location.Location;
+import de.ostfale.greenroom.domain.locations.Address;
+import de.ostfale.greenroom.domain.locations.ContactPerson;
+import de.ostfale.greenroom.domain.locations.Location;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

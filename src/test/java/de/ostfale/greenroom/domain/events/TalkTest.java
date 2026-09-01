@@ -1,6 +1,6 @@
-package de.ostfale.greenroom.domain.event;
+package de.ostfale.greenroom.domain.events;
 
-import de.ostfale.greenroom.domain.speaker.Speaker;
+import de.ostfale.greenroom.domain.speakers.Speaker;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;

@@ -1,9 +1,9 @@
 package de.ostfale.greenroom.adapter.in.web;
 
 import de.ostfale.greenroom.application.port.in.ManageLocations;
-import de.ostfale.greenroom.domain.location.Address;
-import de.ostfale.greenroom.domain.location.ContactPerson;
-import de.ostfale.greenroom.domain.location.Location;
+import de.ostfale.greenroom.domain.locations.Address;
+import de.ostfale.greenroom.domain.locations.ContactPerson;
+import de.ostfale.greenroom.domain.locations.Location;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
