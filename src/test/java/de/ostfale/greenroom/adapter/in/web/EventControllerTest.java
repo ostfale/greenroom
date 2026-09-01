@@ -1142,4 +1142,34 @@ class EventControllerTest {
                 .contains("angefragt");
         assertThat(speakers.byId(anna)).isPresent();
     }
+
+    @Test
+    void theNotesAreStoredWithTheOtherBasics() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id)
+                        .param("date", "")
+                        .param("motto", "")
+                        .param("moderator", "")
+                        .param("notes", "Beamer mitbringen, der Raum hat keinen."))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("textarea[name=notes]").val())
+                .isEqualTo("Beamer mitbringen, der Raum hat keinen.");
+        assertThat(events.byId(id).orElseThrow().notes())
+                .isEqualTo("Beamer mitbringen, der Raum hat keinen.");
+    }
+
+    @Test
+    void theNotesSurviveTheStepsTheEveningTakes() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withDate(EVENING)
+                .withNotes("Beamer mitbringen.")).id();
+
+        mvc.perform(post("/event/" + id + "/status").param("target", "DATE_CONFIRMED"))
+                .andExpect(status().isOk());
+
+        assertThat(events.byId(id).orElseThrow().notes()).isEqualTo("Beamer mitbringen.");
+    }
 }

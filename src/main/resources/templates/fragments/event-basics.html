@@ -17,18 +17,24 @@
           th:hx-post="@{/event/{id}(id=${event.id})}"
           hx-target="#event-basics"
           hx-swap="outerHTML">
-        <div class="row">
+        <div class="row even">
             <label>Datum
                 <input type="date" name="date" th:value="${event.date}">
             </label>
-            <label>Motto
-                <input type="text" name="motto" th:value="${event.motto}">
+            <label>Moderation
+                <input type="text" name="moderator" th:value="${event.moderator}"
+                       placeholder="Wer führt durch den Abend">
             </label>
         </div>
 
-        <label>Moderation
-            <input type="text" name="moderator" th:value="${event.moderator}"
-                   placeholder="Wer führt durch den Abend">
+        <label>Event Name
+            <input type="text" name="motto" th:value="${event.motto}"
+                   placeholder="Nur nötig, wenn der Abend mehrere Vorträge trägt">
+        </label>
+
+        <label>Notizen
+            <textarea name="notes" rows="4" th:text="${event.notes}"
+                      placeholder="Was sonst noch zu diesem Abend zu merken ist"></textarea>
         </label>
 
         <div class="actions">

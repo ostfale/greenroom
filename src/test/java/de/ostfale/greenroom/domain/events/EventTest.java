@@ -42,7 +42,7 @@ class EventTest {
 
     @Test
     void anEveningNeedsAtLeastOneTalk() {
-        assertThatThrownBy(() -> new Event(null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE,
+        assertThatThrownBy(() -> new Event(null, null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE,
                 null, List.of(), List.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("talk");
@@ -274,5 +274,14 @@ class EventTest {
     @Test
     void aTopicStartsWithoutOne() {
         assertThat(Event.draftFor(aReadyTalk(SPEAKER)).moderator()).isNull();
+    }
+
+    @Test
+    void theNotesAreFreeTextAndBlankIsNone() {
+        Event event = Event.draftFor(aReadyTalk(SPEAKER));
+
+        assertThat(event.notes()).isNull();
+        assertThat(event.withNotes("   ").notes()).isNull();
+        assertThat(event.withNotes("Beamer mitbringen.").notes()).isEqualTo("Beamer mitbringen.");
     }
 }

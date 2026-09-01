@@ -30,6 +30,7 @@ public record Event(
         LocalDate date,
         String motto,
         String moderator,
+        String notes,
         EventStatus status,
         EventMode mode,
         Long locationId,
@@ -58,13 +59,14 @@ public record Event(
         }
         motto = optional(motto);
         moderator = optional(moderator);
+        notes = optional(notes);
         talks = List.copyOf(talks);
         tags = tags == null ? List.of() : List.copyOf(normalised(tags));
     }
 
     /** A topic: somebody we want to hear, and nothing settled yet. */
     public static Event draftFor(Talk talk) {
-        return new Event(null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE, null, List.of(talk), List.of());
+        return new Event(null, null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE, null, List.of(talk), List.of());
     }
 
     /**
@@ -77,15 +79,15 @@ public record Event(
         if (!status.canMoveTo(target)) {
             throw new IllegalStateException("Event :: " + status + " does not move to " + target);
         }
-        return new Event(id, date, motto, moderator, target, mode, locationId, talks, tags);
+        return new Event(id, date, motto, moderator, notes, target, mode, locationId, talks, tags);
     }
 
     public Event withDate(LocalDate newDate) {
-        return new Event(id, newDate, motto, moderator, status, mode, locationId, talks, tags);
+        return new Event(id, newDate, motto, moderator, notes, status, mode, locationId, talks, tags);
     }
 
     public Event withMotto(String newMotto) {
-        return new Event(id, date, newMotto, moderator, status, mode, locationId, talks, tags);
+        return new Event(id, date, newMotto, moderator, notes, status, mode, locationId, talks, tags);
     }
 
     /**
@@ -93,19 +95,24 @@ public record Event(
      * one of us, and a person the tool does not otherwise have to know anything about.
      */
     public Event withModerator(String newModerator) {
-        return new Event(id, date, motto, newModerator, status, mode, locationId, talks, tags);
+        return new Event(id, date, motto, newModerator, notes, status, mode, locationId, talks, tags);
+    }
+
+    /** Anything worth writing down that has no field of its own. */
+    public Event withNotes(String newNotes) {
+        return new Event(id, date, motto, moderator, newNotes, status, mode, locationId, talks, tags);
     }
 
     public Event withMode(EventMode newMode) {
-        return new Event(id, date, motto, moderator, status, newMode, locationId, talks, tags);
+        return new Event(id, date, motto, moderator, notes, status, newMode, locationId, talks, tags);
     }
 
     public Event withLocation(Long newLocationId) {
-        return new Event(id, date, motto, moderator, status, mode, newLocationId, talks, tags);
+        return new Event(id, date, motto, moderator, notes, status, mode, newLocationId, talks, tags);
     }
 
     public Event withTalks(List<Talk> newTalks) {
-        return new Event(id, date, motto, moderator, status, mode, locationId, newTalks, tags);
+        return new Event(id, date, motto, moderator, notes, status, mode, locationId, newTalks, tags);
     }
 
     public Event withAdditionalTalk(Talk talk) {
@@ -151,7 +158,7 @@ public record Event(
      * announced with — the same reason the speaker's biography is copied onto the talk.
      */
     public Event withTags(List<String> newTags) {
-        return new Event(id, date, motto, moderator, status, mode, locationId, talks, newTags);
+        return new Event(id, date, motto, moderator, notes, status, mode, locationId, talks, newTags);
     }
 
     public boolean carries(String tag) {

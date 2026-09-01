@@ -49,13 +49,13 @@ Early. Events (`/event`), speakers (`/speaker`), locations (`/location`) and the
 tags (`/settings`) are listed and created through the UI — every slice runs from the
 Thymeleaf form through the use case down to Postgres and is covered end to end.
 
-An evening is planned from its detail page: date, motto, moderator, venue, its talks with
-their titles and abstracts, the keywords it is announced with, and the status transitions
-that carry it from a topic to an announced event. The page offers only the steps the state
-machine allows and says in German what a refused one is still missing; a second evening on
-a day that is already taken is pointed out, not refused. Speakers, locations and the
-keyword list can be edited; a keyword can be dropped, and a speaker as long as no talk
-announces them.
+An evening is planned from its detail page: date, event name, moderator, notes, venue, its
+talks with their titles and abstracts, the keywords it is announced with, and the status
+transitions that carry it from a topic to an announced event. The page offers only the
+steps the state machine allows and says in German what a refused one is still missing; a
+second evening on a day that is already taken is pointed out, not refused. Speakers,
+locations and the keyword list can be edited; a keyword can be dropped, and a speaker as
+long as no talk announces them.
 
 The announced biography is copied onto a talk the moment the speaker is put on it, and is
 edited there. It does not follow the speaker afterwards: what an evening was announced with

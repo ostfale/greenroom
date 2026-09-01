@@ -171,13 +171,15 @@ public class EventController {
                          @RequestParam(defaultValue = "") String date,
                          @RequestParam(defaultValue = "") String motto,
                          @RequestParam(defaultValue = "") String moderator,
+                         @RequestParam(defaultValue = "") String notes,
                          Model model) {
         try {
             Event known = events.byId(id).orElseThrow(() ->
                     new IllegalArgumentException("EventController :: unknown event"));
             events.change(known.withDate(evening(date))
                     .withMotto(motto)
-                    .withModerator(moderator));
+                    .withModerator(moderator)
+                    .withNotes(notes));
         } catch (IllegalArgumentException e) {
             model.addAttribute("error", planningMessage(e));
         }

@@ -82,6 +82,7 @@ create table event
     date        date,
     motto       text,
     moderator   text,
+    notes       text,
     status      text   not null,
     mode        text   not null,
     location_id bigint references location (id),

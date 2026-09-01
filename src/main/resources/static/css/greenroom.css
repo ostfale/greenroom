@@ -420,6 +420,11 @@ input[type=search] {
     gap: 1rem;
 }
 
+/* Two fields of equal standing — a date next to a name, not a label next to a value. */
+.row.even {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 fieldset {
     display: grid;
     gap: 1rem;
