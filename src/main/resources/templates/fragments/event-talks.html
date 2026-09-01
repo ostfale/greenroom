@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="event-talks" class="stack" th:fragment="event-talks">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <form class="boxed" method="post"
+          th:each="talk, i : ${event.talks}"
+          th:action="@{/event/{id}/talk/{pos}(id=${event.id},pos=${i.index})}"
+          th:hx-post="@{/event/{id}/talk/{pos}(id=${event.id},pos=${i.index})}"
+          hx-target="#event-talks"
+          hx-swap="outerHTML">
+        <p class="hint">
+            <span th:each="announced, s : ${talk.speakers}"
+            ><span th:text="${speakerNames[announced.speakerId]} ?: 'Unbekannt'">Max Muster</span
+            ><span th:unless="${s.last}">, </span></span>
+            <span class="badge quiet" th:unless="${talk.isReadyToPublish()}">unvollständig</span>
+        </p>
+        <label>Titel
+            <input type="text" name="title" th:value="${talk.title}">
+        </label>
+        <label>Abstract
+            <textarea name="abstractText" rows="4" th:text="${talk.abstractText}"></textarea>
+        </label>
+
+        <div class="actions">
+            <button type="submit">Vortrag speichern</button>
+            <button type="button" class="danger" th:if="${event.hasSeveralTalks()}"
+                    th:hx-post="@{/event/{id}/talk/{pos}/remove(id=${event.id},pos=${i.index})}"
+                    hx-target="#event-talks"
+                    hx-swap="outerHTML">Vortrag entfernen</button>
+        </div>
+    </form>
+
+    <!-- A second voice is the exception, so the fields wait to be asked for. -->
+    <details class="reveal">
+        <summary>Weiterer Vortrag</summary>
+        <form class="boxed new" method="post"
+              th:action="@{/event/{id}/talk(id=${event.id})}"
+              th:hx-post="@{/event/{id}/talk(id=${event.id})}"
+              hx-target="#event-talks"
+              hx-swap="outerHTML"
+              hx-on::after-request="closeUnlessRefused(this, '#event-talks')">
+            <label>Referent
+                <select name="speakerId" required>
+                    <option value="">Bitte auswählen</option>
+                    <option th:each="person : ${speakers}"
+                            th:value="${person.id}"
+                            th:text="${person.name}">Max Muster</option>
+                </select>
+            </label>
+            <label>Titel des Vortrags
+                <input type="text" name="title" placeholder="Kann noch offen bleiben">
+            </label>
+            <button type="submit">Vortrag hinzufügen</button>
+        </form>
+    </details>
+</div>
+</body>
+</html>

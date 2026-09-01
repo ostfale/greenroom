@@ -20,7 +20,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -199,6 +201,43 @@ public class EventController {
         }
     }
 
+    /** A further talk. Like the first one, it comes into being with its speaker. */
+    @PostMapping("/{id}/talk")
+    public String addTalk(@PathVariable Long id,
+                          @RequestParam(defaultValue = "") String speakerId,
+                          @RequestParam(defaultValue = "") String title,
+                          Model model) {
+        return talks(id, model, () -> events.addTalk(id,
+                Talk.by(TalkSpeaker.of(speaker(speakerId))).withTitle(title)));
+    }
+
+    @PostMapping("/{id}/talk/{position}")
+    public String changeTalk(@PathVariable Long id,
+                             @PathVariable int position,
+                             @RequestParam(defaultValue = "") String title,
+                             @RequestParam(defaultValue = "") String abstractText,
+                             Model model) {
+        return talks(id, model, () -> events.changeTalk(id, position, title, abstractText));
+    }
+
+    @PostMapping("/{id}/talk/{position}/remove")
+    public String removeTalk(@PathVariable Long id, @PathVariable int position, Model model) {
+        return talks(id, model, () -> events.removeTalk(id, position));
+    }
+
+    /**
+     * Every change to the talks answers with the same list. On a refusal the stored state
+     * comes back unchanged, together with the reason.
+     */
+    private String talks(Long id, Model model, Supplier<Event> change) {
+        try {
+            change.get();
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", planningMessage(e));
+        }
+        return tile(id, model, "fragments/event-talks :: event-talks");
+    }
+
     /** Every change answers with the tile it was made in, showing what is stored now. */
     private String tile(Long id, Model model, String fragment) {
         events.byId(id).ifPresent(event -> show(model, event));
@@ -210,7 +249,9 @@ public class EventController {
         model.addAttribute("transitions", event.status().allowedTargets());
         model.addAttribute("locations", locations.all());
         model.addAttribute("clashes", events.clashesWith(event));
-        model.addAttribute("speakerNames", speakers.all().stream()
+        List<Speaker> known = speakers.all();
+        model.addAttribute("speakers", known);
+        model.addAttribute("speakerNames", known.stream()
                 .collect(Collectors.toMap(Speaker::id, Speaker::name)));
         locations.byId(event.locationId())
                 .ifPresent(location -> model.addAttribute("location", location));
@@ -219,6 +260,15 @@ public class EventController {
     /** The records refuse in English; the page has to say in German what is missing. */
     private static String planningMessage(RuntimeException e) {
         String reason = e.getMessage() == null ? "" : e.getMessage();
+        if (reason.contains("at least one talk")) {
+            return "Der letzte Vortrag kann nicht entfernt werden — ohne ihn ist es kein Event.";
+        }
+        if (reason.contains("no talk at position")) {
+            return "Diesen Vortrag gibt es nicht mehr — bitte die Seite neu laden.";
+        }
+        if (reason.contains("no speaker was chosen")) {
+            return "Bitte einen Referenten auswählen.";
+        }
         if (reason.contains("no location was chosen")) {
             return "Bitte einen Ort auswählen.";
         }

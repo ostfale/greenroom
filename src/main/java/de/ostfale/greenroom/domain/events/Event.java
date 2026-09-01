@@ -101,6 +101,37 @@ public record Event(
         return withTalks(more);
     }
 
+    /** The talk at that position — for changing it and putting it back. */
+    public Talk talkAt(int position) {
+        return talks.get(known(position));
+    }
+
+    /** Replaces the talk at that position: a title found, an abstract finally written. */
+    public Event withTalkChanged(int position, Talk talk) {
+        List<Talk> changed = new ArrayList<>(talks);
+        changed.set(known(position), talk);
+        return withTalks(changed);
+    }
+
+    /**
+     * Drops the talk at that position.
+     *
+     * @throws IllegalArgumentException if it was the last one — an evening without a talk
+     *                                  is not an evening
+     */
+    public Event withTalkRemoved(int position) {
+        List<Talk> left = new ArrayList<>(talks);
+        left.remove(known(position));
+        return withTalks(left);
+    }
+
+    private int known(int position) {
+        if (position < 0 || position >= talks.size()) {
+            throw new IllegalArgumentException("Event :: there is no talk at position " + position);
+        }
+        return position;
+    }
+
     /**
      * The keywords as they were picked from the list in the settings. Copied, not
      * referenced: renaming or deleting a tag later must not rewrite what an evening was

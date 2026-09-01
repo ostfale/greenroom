@@ -2,6 +2,7 @@ package de.ostfale.greenroom.application.port.in;
 
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
+import de.ostfale.greenroom.domain.events.Talk;
 
 import java.util.List;
 import java.util.Optional;
@@ -48,4 +49,25 @@ public interface ManageEvents {
      * nothing.
      */
     List<Event> clashesWith(Event event);
+
+    /** A further talk on the same evening, with the person who gives it. */
+    Event addTalk(Long eventId, Talk talk);
+
+    /**
+     * Title and abstract of the talk at that position. Its speakers stay untouched: the
+     * form does not carry them, so it must not be able to lose them.
+     *
+     * @throws IllegalArgumentException if there is no talk at that position, or if the
+     *                                  evening is already announced and the change would
+     *                                  leave a talk without a title or an abstract
+     */
+    Event changeTalk(Long eventId, int position, String title, String abstractText);
+
+    /**
+     * Drops the talk at that position.
+     *
+     * @throws IllegalArgumentException if it was the last one — an evening without a talk
+     *                                  is not an evening
+     */
+    Event removeTalk(Long eventId, int position);
 }

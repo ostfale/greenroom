@@ -42,19 +42,11 @@
 
         <section class="tile">
             <h2>Vorträge</h2>
-            <ul class="plain">
-                <li th:each="talk : ${event.talks}">
-                    <strong th:text="${talk.title} ?: 'Noch ohne Titel'">Noch ohne Titel</strong>
-                    <span class="badge quiet" th:unless="${talk.isReadyToPublish()}">unvollständig</span>
-                    <p class="hint">
-                        <span th:each="announced, i : ${talk.speakers}">
-                            <span th:text="${speakerNames[announced.speakerId]} ?: 'Unbekannt'">Max Muster</span
-                            ><span th:unless="${i.last}">, </span>
-                        </span>
-                    </p>
-                    <p th:text="${talk.abstractText} ?: 'Noch ohne Beschreibung.'">Noch ohne Beschreibung.</p>
-                </li>
-            </ul>
+            <p class="hint">
+                Ein Vortrag entsteht immer mit der Person, die ihn hält. Titel und Abstract
+                dürfen lange offen bleiben — angekündigt wird erst, wenn beide stehen.
+            </p>
+            <div th:replace="~{fragments/event-talks :: event-talks}"></div>
         </section>
     </div>
 </main>

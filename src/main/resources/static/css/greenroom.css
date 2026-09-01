@@ -450,14 +450,19 @@ form.inline label {
     flex: 1 1 9rem;
 }
 
-form.inline.boxed {
+form.boxed {
     padding: 1rem;
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
 }
 
-form.inline.boxed.new {
+form.boxed.new {
     border-style: dashed;
+}
+
+/* Boxed forms under each other — the talks of an evening, one form each. */
+.stack > * + * {
+    margin-top: 1rem;
 }
 
 .actions {

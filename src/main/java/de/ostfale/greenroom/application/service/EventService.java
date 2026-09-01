@@ -4,6 +4,7 @@ import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
+import de.ostfale.greenroom.domain.events.Talk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -88,5 +89,25 @@ public class EventService implements ManageEvents {
     private Event known(Long eventId) {
         return byId(eventId).orElseThrow(() ->
                 new IllegalArgumentException("EventService :: there is no event " + eventId));
+    }
+
+    @Override
+    public Event addTalk(Long eventId, Talk talk) {
+        log.debug("EventService :: add a talk to event {}", eventId);
+        return eventRepository.save(known(eventId).withAdditionalTalk(talk));
+    }
+
+    @Override
+    public Event changeTalk(Long eventId, int position, String title, String abstractText) {
+        Event event = known(eventId);
+        Talk talk = event.talkAt(position).withTitle(title).withAbstract(abstractText);
+        log.debug("EventService :: change talk {} of event {}", position, eventId);
+        return eventRepository.save(event.withTalkChanged(position, talk));
+    }
+
+    @Override
+    public Event removeTalk(Long eventId, int position) {
+        log.debug("EventService :: remove talk {} from event {}", position, eventId);
+        return eventRepository.save(known(eventId).withTalkRemoved(position));
     }
 }

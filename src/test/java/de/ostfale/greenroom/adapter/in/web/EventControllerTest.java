@@ -26,6 +26,7 @@ import static de.ostfale.greenroom.Fixtures.aContact;
 import static de.ostfale.greenroom.Fixtures.aLocation;
 import static de.ostfale.greenroom.Fixtures.aReadyTalk;
 import static de.ostfale.greenroom.Fixtures.aSpeaker;
+import static de.ostfale.greenroom.Fixtures.aTalk;
 import static de.ostfale.greenroom.Fixtures.anAddress;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -266,9 +267,9 @@ class EventControllerTest {
         assertThat(page.selectFirst("input[name=date]").val()).isEqualTo("2026-09-24");
         assertThat(page.selectFirst("input[name=motto]").val()).isEqualTo("Java-Herbst");
         assertThat(page.selectFirst("#event-status .label").text()).isEqualTo("Thema");
-        assertThat(page.select(".tile ul.plain li strong").eachText())
-                .containsExactly("Records in Java 25");
-        assertThat(page.selectFirst(".tile ul.plain li p.hint").text()).isEqualTo("Max Muster");
+        assertThat(page.selectFirst("#event-talks input[name=title]").val())
+                .isEqualTo("Records in Java 25");
+        assertThat(page.selectFirst("#event-talks p.hint").text()).isEqualTo("Max Muster");
     }
 
     @Test
@@ -589,5 +590,164 @@ class EventControllerTest {
         assertThat(tile.select("p.error")).isEmpty();
         assertThat(tile.selectFirst("p.notice").text()).contains("Java-Herbst");
         assertThat(events.byId(id).orElseThrow().date()).isEqualTo(EVENING);
+    }
+
+    // --- the talks of an evening -----------------------------------------------------
+
+    @Test
+    void everyTalkGetsItsOwnFormWithWhatIsStored() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withAdditionalTalk(aTalk(speakerOf("Anna Albers")))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-talks form.boxed:not(.new)")).hasSize(2);
+        assertThat(page.select("#event-talks input[name=title]").eachAttr("value"))
+                .containsExactly("Records in Java 25", "");
+        assertThat(page.selectFirst("#event-talks textarea[name=abstractText]").val())
+                .isEqualTo("Warum Records mehr sind als weniger Tippen.");
+        assertThat(page.select("#event-talks .badge.quiet").eachText())
+                .containsExactly("unvollständig");
+    }
+
+    @Test
+    void theTitleAndTheAbstractOfATalkAreChanged() throws Exception {
+        Long id = events.add(Event.draftFor(aTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/talk/0")
+                        .param("title", "Records in Java 25")
+                        .param("abstractText", "Warum Records mehr sind als weniger Tippen."))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).select("#event-talks .badge.quiet")).isEmpty();
+        Talk stored = events.byId(id).orElseThrow().talkAt(0);
+        assertThat(stored.title()).isEqualTo("Records in Java 25");
+        assertThat(stored.abstractText()).isEqualTo("Warum Records mehr sind als weniger Tippen.");
+    }
+
+    /** The form carries no speakers, so it must not be able to lose them. */
+    @Test
+    void changingATalkLeavesItsSpeakerAlone() throws Exception {
+        Long id = events.add(Event.draftFor(aTalk(speakerId))).id();
+
+        mvc.perform(post("/event/" + id + "/talk/0")
+                        .param("title", "Records in Java 25")
+                        .param("abstractText", ""))
+                .andExpect(status().isOk());
+
+        assertThat(events.byId(id).orElseThrow().talkAt(0).speakers())
+                .extracting(TalkSpeaker::speakerId).containsExactly(speakerId);
+    }
+
+    @Test
+    void aFurtherTalkComesWithItsOwnSpeaker() throws Exception {
+        Long anna = speakerOf("Anna Albers");
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/talk")
+                        .param("speakerId", anna.toString())
+                        .param("title", "Virtual Threads"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).select("#event-talks input[name=title]")
+                .eachAttr("value")).containsExactly("Records in Java 25", "Virtual Threads");
+        Event stored = events.byId(id).orElseThrow();
+        assertThat(stored.talks()).hasSize(2);
+        assertThat(stored.talkAt(1).speakers()).extracting(TalkSpeaker::speakerId)
+                .containsExactly(anna);
+    }
+
+    @Test
+    void aTalkWithoutASpeakerIsRefused() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/talk")
+                        .param("speakerId", "")
+                        .param("title", "Virtual Threads"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("Referenten");
+        assertThat(events.byId(id).orElseThrow().talks()).hasSize(1);
+    }
+
+    @Test
+    void aTalkIsRemovedFromAnEveningThatCarriesTwo() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withAdditionalTalk(aTalk(speakerOf("Anna Albers")))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/talk/0/remove"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).select("#event-talks form.boxed:not(.new)"))
+                .hasSize(1);
+        assertThat(events.byId(id).orElseThrow().talks()).hasSize(1);
+    }
+
+    @Test
+    void theLastTalkIsNeitherOfferedNorGivenUp() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String page = mvc.perform(get("/event/" + id)).andReturn().getResponse().getContentAsString();
+        assertThat(Jsoup.parse(page).select("#event-talks button.danger")).isEmpty();
+
+        String fragment = mvc.perform(post("/event/" + id + "/talk/0/remove"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("letzte Vortrag");
+        assertThat(events.byId(id).orElseThrow().talks()).hasSize(1);
+    }
+
+    @Test
+    void anAnnouncedEveningDoesNotLetGoOfATitle() throws Exception {
+        Long locationId = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withDate(EVENING)
+                .withLocation(locationId)
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .moveTo(EventStatus.VENUE_CONFIRMED)
+                .moveTo(EventStatus.PUBLISHED)).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/talk/0")
+                        .param("title", "")
+                        .param("abstractText", "Warum Records mehr sind als weniger Tippen."))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("Titel und eine Beschreibung");
+        assertThat(events.byId(id).orElseThrow().talkAt(0).title()).isEqualTo("Records in Java 25");
+    }
+
+    @Test
+    void anAnnouncedEveningTakesNoHalfFinishedTalk() throws Exception {
+        Long locationId = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withDate(EVENING)
+                .withLocation(locationId)
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .moveTo(EventStatus.VENUE_CONFIRMED)
+                .moveTo(EventStatus.PUBLISHED)).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/talk")
+                        .param("speakerId", speakerOf("Anna Albers").toString())
+                        .param("title", "Virtual Threads"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("Titel und eine Beschreibung");
+        assertThat(events.byId(id).orElseThrow().talks()).hasSize(1);
+    }
+
+    private Long speakerOf(String name) {
+        return speakers.add(Speaker.of(name, "anna@example.org")).id();
     }
 }

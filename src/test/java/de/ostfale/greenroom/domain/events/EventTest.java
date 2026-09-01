@@ -203,4 +203,57 @@ class EventTest {
 
         assertThat(online.mode()).isEqualTo(EventMode.ONLINE);
     }
+
+    // --- the talks of an evening -----------------------------------------------------
+
+    @Test
+    void aTalkIsChangedWhereItStandsAndKeepsItsSpeakers() {
+        Event event = Event.draftFor(aTalk(SPEAKER)).withAdditionalTalk(aTalk(2L));
+
+        Event changed = event.withTalkChanged(1,
+                event.talkAt(1).withTitle("Records in Java 25"));
+
+        assertThat(changed.talks()).extracting(Talk::title)
+                .containsExactly(null, "Records in Java 25");
+        assertThat(changed.talkAt(1).speakers()).extracting(TalkSpeaker::speakerId)
+                .containsExactly(2L);
+    }
+
+    @Test
+    void aTalkIsDroppedByItsPosition() {
+        Event event = Event.draftFor(aReadyTalk(SPEAKER)).withAdditionalTalk(aTalk(2L));
+
+        assertThat(event.withTalkRemoved(0).talks()).extracting(Talk::title)
+                .containsExactly((String) null);
+    }
+
+    @Test
+    void theLastTalkStays() {
+        Event event = Event.draftFor(aReadyTalk(SPEAKER));
+
+        assertThatThrownBy(() -> event.withTalkRemoved(0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("at least one talk");
+    }
+
+    @Test
+    void thereIsNoTalkOutsideTheList() {
+        Event event = Event.draftFor(aReadyTalk(SPEAKER));
+
+        assertThatThrownBy(() -> event.talkAt(1))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("no talk at position");
+        assertThatThrownBy(() -> event.withTalkRemoved(-1))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("no talk at position");
+    }
+
+    @Test
+    void anAnnouncedEveningKeepsEveryTalkWorthAnnouncing() {
+        Event published = published();
+
+        assertThatThrownBy(() -> published.withTalkChanged(0, published.talkAt(0).withTitle(null)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("needs a title and an abstract");
+    }
 }
