@@ -2,102 +2,65 @@
 
 [![build](https://github.com/ostfale/greenroom/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/ostfale/greenroom/actions/workflows/build.yml)
 
-Planning tool for the Java User Group Hamburg. It replaces an Obsidian vault: one user,
-running in a container on a Raspberry Pi 5 in a home network, no authentication by design.
+Planning tool for the Java User Group Hamburg, replacing an Obsidian vault. One user, one
+machine in a home network, no authentication by design.
 
-An `Event` is one evening. It carries at least one `Talk`, and every talk has at least one
-`Speaker` — a topic without a person does not exist here. See `CLAUDE.md` for the
-ubiquitous language and the architectural decisions behind it.
+An evening is planned from its own page: the talks with their speakers, the date, the
+venue, the tags it is announced with, and the steps that carry it from a topic to an
+announced event. Along the way it records what was asked of whom and what came back —
+first the speakers about a date, then the places about the room — and reads back as one
+chronology. Beside that there is a slip box for ideas that have no evening yet, and the
+years before this one can be entered as they were.
 
-## Running it
-
-    mvn spring-boot:run      # starts Postgres via compose automatically, profile dev
-    docker compose up -d db  # database only
-    mvn verify               # build and all tests
-
-Every push and pull request runs `mvn verify` on GitHub. The tests bring their own
-Postgres through Testcontainers, so the workflow needs nothing but Docker, which the
-runner already has.
-
-The application listens on port 8383, actuator on 8382 under `/mgmt`.
-
-Running from the build activates the `dev` profile, which lets Flyway rebuild the schema
-after `V1__schema.sql` was edited — while the model is still moving, that one script is
-extended in place instead of adding migrations. In production there is no profile and no
-such rebuild.
-
-## Layout
-
-    de.ostfale.greenroom
-    ├── domain        aggregates, value objects, state transitions
-    ├── application   port.in, port.out, service
-    ├── adapter       in.web, in.scheduling, in.importer,
-    │                 out.persistence, out.mail, out.geo
-    └── config
-
-Ports and adapters. The domain classes are the persistence model and carry Spring Data
-mapping annotations, but no framework behaviour — `ArchitectureTest` enforces the cut.
+`CLAUDE.md` holds the domain language and the decisions behind the design.
 
 ## Stack
 
-Java 25, Spring Boot 4, PostgreSQL with Spring Data JDBC and Flyway, Thymeleaf plus
-vendored htmx. No JPA, no Lombok, no npm, no build step for the frontend.
+Java 25, Spring Boot 4, Maven. PostgreSQL with Spring Data JDBC and Flyway — no JPA, no
+Hibernate. Thymeleaf with vendored htmx for the pages. JUnit 5, Testcontainers and ArchUnit
+for the tests. No Lombok, no npm, no build step for the frontend.
 
-## Status
+## Building and running it
 
-Early. Events (`/event`), speakers (`/speaker`), locations (`/location`) and the list of
-tags (`/settings`) are listed and created through the UI — every slice runs from the
-Thymeleaf form through the use case down to Postgres and is covered end to end.
+    mvn verify               # build and all tests
+    mvn spring-boot:run      # starts Postgres via compose, profile dev
+    docker compose up -d db  # database only
 
-An evening is planned from its detail page: date, event name, moderator, notes, venue, its
-talks with their titles and abstracts, the keywords it is announced with, and the status
-transitions that carry it from a topic to an announced event. The page offers only the
-steps the state machine allows and says in German what a refused one is still missing; a
-second evening on a day that is already taken is pointed out, not refused. Speakers,
-locations and the keyword list can be edited; a keyword can be dropped, and a speaker as
-long as no talk announces them.
+The tests bring their own PostgreSQL through Testcontainers, so nothing but Docker has to
+be installed. Every push and pull request runs `mvn verify` on GitHub.
 
-The announced biography is copied onto a talk the moment the speaker is put on it, and is
-edited there. It does not follow the speaker afterwards: what an evening was announced with
-stays, the same reason an event stores its keywords as words.
+Running from the build activates the `dev` profile, which lets Flyway rebuild the schema
+after `V1__schema.sql` was edited, turns the Thymeleaf cache off and serves the static
+files from the source tree. While the model is still moving, that one migration script is
+extended in place rather than followed by a `V2`; after editing it, throw the development
+database away with `docker compose down -v`.
 
-`SpeakerInquiry` records what was asked of a speaker and what came back, with the proposed
-date copied onto it and the number of days it has been waiting on the page. An inquiry is
-answered once; asking again after a refusal is a new inquiry and both stay.
+## Operation
 
-`/event/import` enters an evening that already happened: date, form, speaker, talk and the
-biography of the day, in one form and without any of the planning that led to it. The
-speaker is recognised by their address, so somebody who spoke before is not written down
-twice, and the evening is moved as far along as the data carries it — to `DONE` with a
-venue and a full talk, and no further otherwise.
+The application listens on port 8383, the actuator on 8382 under `/mgmt` with `info`,
+`health`, `prometheus` and `mappings` exposed.
 
-`VenueInquiry` is the second question, and the mirror image of the first: there the person
-is fixed and the date is asked, here the date is fixed and the place is asked. That is why
-the two are separate aggregates and why a venue inquiry refuses to exist without a date.
-Whom we wrote to is copied onto the inquiry, so a contact person who leaves the company
-does not rewrite who was asked back then. Places are asked one after another — the tile
-names the place still being waited on and how long, but it does not refuse the next
-inquiry: that stays a decision, like the clash warning and like an accepted inquiry that
-moves nothing on by itself.
+In production it runs **without a profile**: no schema rebuild, the Thymeleaf cache on,
+static files from the classpath. Flyway applies the migrations in
+`src/main/resources/db/migration` at startup, and from the first real installation onwards
+an applied migration is never edited — a new one is added instead.
 
-The `Verlauf` tile reads the evening as one chronology: the inquiries to the speakers and
-to the places, and the `Activity` entries written by hand for everything that has no field
-of its own. Only the hand-written entries are stored — the inquiries are mixed in when the
-page asks for the history, so no fact is kept in two tables. Entries are append-only: the
-record has no way to change one and the port declares no way to delete one. A line that
-turned out wrong is answered by the next line.
+Timezone is Europe/Berlin, set by the application rather than by the host.
 
-The list opens on this year and is narrowed by year, speaker, place and tags in one row;
-the fields add up, except the tags, which take several and let through whatever carries any
-of them. Only the table is swapped, so the selects keep what was picked. A topic
-without a date belongs to no year and shows only under "Alle Jahre" — the page says how
-many are being held back.
+### Mail
 
-`/note` is the slip box: a stamp, a keyword and free text, written down, put right and
-thrown away again. A card and its editor are the same tile in two states and each swaps
-only itself; the stamp says when the note was written and does not move when it is changed. A `Note` points at nothing and nothing points at it — an idea is written down before
-there is an evening to file it under, and when one comes of it, that evening is created as
-a topic of its own.
+An inquiry can be sent from the application or handed to the local mail client; both write
+the inquiry down. Sending needs a host, and without one nothing goes out — the mail is
+written to the log instead, which is the state in development and in the tests. On the Pi:
 
-What is missing are the mail, geo, importer and scheduling adapters the layout above
-already names.
+    SPRING_MAIL_HOST=smtp.strato.de
+    SPRING_MAIL_USERNAME=info@jug-hh.de
+    SPRING_MAIL_PASSWORD=...
+    GREENROOM_MAIL_FROM=info@jug-hh.de
+
+Port 465 with SSL is the default; 587 with STARTTLS works as a relay. Every mail carries a
+blind copy to the sending address, because a mail sent this way never reaches the sent
+folder of the mailbox.
+
+The container image for the Raspberry Pi is still to be written, and so is the backup of
+the database off the machine.

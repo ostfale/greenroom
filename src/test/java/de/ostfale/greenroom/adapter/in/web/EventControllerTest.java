@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.adapter.in.web;
 
+import de.ostfale.greenroom.FakeMailer;
 import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.WebTest;
 import de.ostfale.greenroom.application.port.in.ManageActivities;
@@ -89,11 +90,15 @@ class EventControllerTest {
     private Long speakerId;
 
     @Autowired
+    private FakeMailer mailer;
+
+    @Autowired
     private TestDatabase database;
 
     @BeforeEach
     void aSpeakerToPointAt() {
         database.empty();
+        mailer.forgetEverything();
         speakerId = speakers.add(aSpeaker()).id();
     }
 
@@ -1418,7 +1423,7 @@ class EventControllerTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        assertThat(Jsoup.parseBodyFragment(fragment).select("select#venue-inquiry-contact option")
+        assertThat(Jsoup.parseBodyFragment(fragment).select("select[name=contactName] option")
                 .eachText()).containsExactly("Max Muster", "Anna Albers");
     }
 
@@ -1782,5 +1787,145 @@ class EventControllerTest {
         assertThat(page.selectFirst("select[name=locationId] option[selected]").text())
                 .isEqualTo("Musterfirma GmbH");
         assertThat(page.selectFirst("input[name=hideClosed]").hasAttr("checked")).isTrue();
+    }
+
+    // Asking by mail: the application sends it, or the local client is woken with it.
+
+    @Test
+    void theMailGoesOutAndTheInquiryIsWrittenDownWithIt() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/inquiry/mail")
+                        .param("speakerId", speakerId.toString())
+                        .param("subject", "JUG Hamburg — Vortrag am 24.09.2026")
+                        .param("body", "Hallo, passt dir der Termin?")
+                        .param("sentAt", "2026-09-01")
+                        .param("note", "Nachfassen am Montag."))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(mailer.onlyOne()).satisfies(mail -> {
+            assertThat(mail.to()).isEqualTo("max@example.org");
+            assertThat(mail.subject()).isEqualTo("JUG Hamburg — Vortrag am 24.09.2026");
+            assertThat(mail.body()).isEqualTo("Hallo, passt dir der Termin?");
+        });
+        assertThat(inquiries.forEvent(id)).singleElement().satisfies(sent -> {
+            assertThat(sent.channel()).isEqualTo(ContactChannel.EMAIL);
+            assertThat(sent.askedAbout()).isEqualTo(EVENING);
+            assertThat(sent.outcome()).isEqualTo(InquiryOutcome.PENDING);
+        });
+        assertThat(Jsoup.parseBodyFragment(fragment).select("#event-inquiries p.error")).isEmpty();
+    }
+
+    /** The mail first: an inquiry that never left the house must not stand in the history. */
+    @Test
+    void aRefusedMailWritesNothingDown() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+        mailer.refuse();
+
+        String fragment = mvc.perform(post("/event/" + id + "/inquiry/mail")
+                        .param("speakerId", speakerId.toString())
+                        .param("subject", "Betreff")
+                        .param("body", "Text"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("nicht rausgegangen");
+        assertThat(inquiries.forEvent(id)).isEmpty();
+    }
+
+    @Test
+    void aMailWithoutATextIsNotSent() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/inquiry/mail")
+                        .param("speakerId", speakerId.toString())
+                        .param("subject", "Betreff")
+                        .param("body", "   "))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("einen Text eingeben");
+        assertThat(mailer.sent()).isEmpty();
+        assertThat(inquiries.forEvent(id)).isEmpty();
+    }
+
+    /** The draft is rendered with the date of the evening and can be edited before it goes. */
+    @Test
+    void theDraftOpensWithTheDateTheEveningIsPlannedFor() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.selectFirst("#event-inquiries input[name=subject]").val())
+                .isEqualTo("JUG Hamburg — Vortrag am 24.09.2026");
+        assertThat(page.selectFirst("#event-inquiries textarea[name=body]").val())
+                .contains("24.09.2026").contains("Java User Group Hamburg");
+    }
+
+    /** Nothing to ask a date about, so the draft is not offered at all. */
+    @Test
+    void theMailFormIsNotThereWhileTheEveningHasNoDate() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-inquiries textarea[name=body]")).isEmpty();
+    }
+
+    /** The other way out: the local client needs the address, so the option carries it. */
+    @Test
+    void theSelectCarriesTheAddressForTheMailClient() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-inquiries textarea[name=body]")).isNotEmpty();
+        assertThat(page.selectFirst("#event-inquiries option[data-email]").attr("data-email"))
+                .isEqualTo("max@example.org");
+    }
+
+    @Test
+    void theMailToAPlaceGoesToTheContactThatWasPicked() throws Exception {
+        Long place = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        mvc.perform(post("/event/" + id + "/venue-inquiry/mail")
+                        .param("locationId", place.toString())
+                        .param("contactName", "Max Muster")
+                        .param("subject", "Raumanfrage")
+                        .param("body", "Wäre das bei euch möglich?"))
+                .andExpect(status().isOk());
+
+        assertThat(mailer.onlyOne().to()).isEqualTo("max@example.org");
+        assertThat(venueInquiries.forEvent(id)).singleElement().satisfies(sent -> {
+            assertThat(sent.contactName()).isEqualTo("Max Muster");
+            assertThat(sent.channel()).isEqualTo(ContactChannel.EMAIL);
+        });
+    }
+
+    /** A name is not an address: without a contact of that place there is nowhere to send. */
+    @Test
+    void aMailToAPlaceNeedsAContactThatIsActuallyThere() throws Exception {
+        Long place = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/venue-inquiry/mail")
+                        .param("locationId", place.toString())
+                        .param("contactName", "Wer Anders")
+                        .param("subject", "Raumanfrage")
+                        .param("body", "Wäre das bei euch möglich?"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("wer an diesem Ort angeschrieben wird");
+        assertThat(mailer.sent()).isEmpty();
+        assertThat(venueInquiries.forEvent(id)).isEmpty();
     }
 }

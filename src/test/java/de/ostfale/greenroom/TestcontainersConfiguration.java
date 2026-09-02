@@ -8,6 +8,7 @@ import de.ostfale.greenroom.application.port.out.TagRepository;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -21,6 +22,16 @@ public class TestcontainersConfiguration {
     @ServiceConnection
     public PostgreSQLContainer<?> postgresContainer() {
         return new PostgreSQLContainer<>(DockerImageName.parse("postgres:17-alpine"));
+    }
+
+    /**
+     * In front of whatever MailConfiguration built: no test may reach a real mail server,
+     * and the tests want to read what would have gone out.
+     */
+    @Bean
+    @Primary
+    public FakeMailer fakeMailer() {
+        return new FakeMailer();
     }
 
     /** Available wherever this configuration is imported, which is every test with a database. */

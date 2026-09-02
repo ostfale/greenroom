@@ -1,5 +1,6 @@
 package de.ostfale.greenroom;
 
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -7,6 +8,7 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.library.GeneralCodingRules;
 import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition;
 
+import static com.tngtech.archunit.base.DescribedPredicate.describe;
 import static com.tngtech.archunit.base.DescribedPredicate.not;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
@@ -109,11 +111,19 @@ public class ArchitectureTest {
                     "javax.sql..")
             .because("driving adapters go through use cases, never to the database");
 
+    /**
+     * The rule is about the ports, not about what travels through them. A record that
+     * crosses a port and the failure a port declares are values, not ports — the earlier
+     * wording forbade both, which was never the decision.
+     */
     @ArchTest
     static final ArchRule outgoingPortsAreInterfaces = com.tngtech.archunit.lang.syntax
             .ArchRuleDefinition.classes()
             .that().resideInAPackage("..application.port.out..")
-            .should().beInterfaces();
+            .and(not(describe("a value or a failure that crosses a port",
+                    (JavaClass type) -> type.isRecord() || type.isAssignableTo(Throwable.class))))
+            .should().beInterfaces()
+            .because("an outgoing port is an interface that an adapter implements");
 
     // --- general hygiene ----------------------------------------------------------
 

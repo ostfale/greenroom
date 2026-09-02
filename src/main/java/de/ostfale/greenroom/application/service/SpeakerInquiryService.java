@@ -1,6 +1,8 @@
 package de.ostfale.greenroom.application.service;
 
 import de.ostfale.greenroom.application.port.in.ManageSpeakerInquiries;
+import de.ostfale.greenroom.application.port.out.MailMessage;
+import de.ostfale.greenroom.application.port.out.SendMail;
 import de.ostfale.greenroom.application.port.out.SpeakerInquiryRepository;
 import de.ostfale.greenroom.domain.activities.InquiryOutcome;
 import de.ostfale.greenroom.domain.activities.SpeakerInquiry;
@@ -19,9 +21,11 @@ public class SpeakerInquiryService implements ManageSpeakerInquiries {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final SpeakerInquiryRepository inquiryRepository;
+    private final SendMail mailer;
 
-    public SpeakerInquiryService(SpeakerInquiryRepository inquiryRepository) {
+    public SpeakerInquiryService(SpeakerInquiryRepository inquiryRepository, SendMail mailer) {
         this.inquiryRepository = inquiryRepository;
+        this.mailer = mailer;
     }
 
     @Override
@@ -38,6 +42,14 @@ public class SpeakerInquiryService implements ManageSpeakerInquiries {
         log.debug("SpeakerInquiryService :: inquiry to speaker {} for event {}",
                 inquiry.speakerId(), inquiry.eventId());
         return inquiryRepository.save(inquiry);
+    }
+
+    @Override
+    public SpeakerInquiry sendByMail(SpeakerInquiry inquiry, MailMessage mail) {
+        // The mail first. A refusal from the server ends this here, and the history stays
+        // free of an inquiry that never left the house.
+        mailer.send(mail);
+        return send(inquiry);
     }
 
     @Override

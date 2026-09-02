@@ -52,8 +52,7 @@ the source tree. Never activate it there.
     de.ostfale.greenroom
     ├── domain        aggregates, value objects, state transitions
     ├── application   port.in, port.out, service (use cases, @Transactional)
-    ├── adapter       in.web, in.scheduling, in.importer,
-    │                 out.persistence, out.mail, out.geo
+    ├── adapter       in.web, in.importer, out.image, out.mail, out.geo
     └── config
 
 The hexagon is about direction of dependency, not about purity:
@@ -64,6 +63,12 @@ The hexagon is about direction of dependency, not about purity:
 - What the domain must stay free of is framework *behaviour*: no `@Controller`,
   no `@Service`, no `@Transactional`, nothing from `org.springframework.web` or Thymeleaf.
   State transitions and invariants are plain Java and testable without a context.
+- There is no `out.persistence`. The outgoing ports are Spring Data interfaces and Spring
+  Data implements them; a hand-written adapter would hold nothing but delegation. The
+  consequence is that swapping the database means rewriting the ports, not an adapter —
+  accepted knowingly, because that swap is not going to happen.
+- `outgoingPortsAreInterfaces` is about the ports themselves. A record that crosses a port
+  and the failure a port declares live in `port.out` too and are not ports.
 - ArchUnit enforces this in `ArchitectureTest`. The rules encode decisions, so a failing
   rule usually means the design drifted — fix the design. Changing a rule is allowed when
   the *decision* changed, and then only together with a note here.

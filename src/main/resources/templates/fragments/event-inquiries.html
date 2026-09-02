@@ -58,6 +58,56 @@
         </tbody>
     </table>
 
+
+    <!--
+      One draft, two ways out: the application hands it to the mail server itself, or the
+      local client is woken with the same text. Both write the inquiry down — the first
+      once the server has taken it, the second when the button is pressed.
+    -->
+    <details class="reveal" th:if="${event.date} != null and not ${#lists.isEmpty(eventSpeakers)}">
+        <summary>Per Mail fragen</summary>
+        <form class="boxed new" method="post"
+              th:action="@{/event/{id}/inquiry/mail(id=${event.id})}"
+              th:hx-post="@{/event/{id}/inquiry/mail(id=${event.id})}"
+              hx-target="#event-inquiries"
+              hx-swap="outerHTML"
+              hx-on::after-request="closeUnlessRefused(this, '#event-inquiries')">
+            <!-- The other button records through the ordinary route, which wants a channel. -->
+            <input type="hidden" name="channel" value="EMAIL">
+            <label>Referent
+                <select name="speakerId" required>
+                    <option value="">Bitte auswählen</option>
+                    <option th:each="person : ${eventSpeakers}" th:value="${person.id}"
+                            th:data-email="${person.email}"
+                            th:text="${person.name}">Max Muster</option>
+                </select>
+            </label>
+            <label>Betreff
+                <input type="text" name="subject" required
+                       th:value="#{inquiry.mail.speaker.subject(${#temporals.format(event.date, 'dd.MM.yyyy')})}">
+            </label>
+            <label>Text
+                <textarea name="body" rows="10" required
+                          th:text="#{inquiry.mail.speaker.body(${#temporals.format(event.date, 'dd.MM.yyyy')})}"></textarea>
+            </label>
+            <label>Gefragt am
+                <input type="date" name="sentAt" th:value="${today}">
+            </label>
+            <label>Notiz
+                <input type="text" name="note">
+            </label>
+
+            <div class="actions">
+                <button type="submit">Senden und notieren</button>
+                <button type="button" class="link"
+                        th:hx-post="@{/event/{id}/inquiry(id=${event.id})}"
+                        hx-include="closest form"
+                        hx-target="#event-inquiries" hx-swap="outerHTML"
+                        onclick="openMailClient(this.closest('form'))">Im Mailprogramm öffnen</button>
+            </div>
+        </form>
+    </details>
+
     <!-- Asking again after a refusal is a new inquiry: both attempts stay in the list. -->
     <details class="reveal">
         <summary>Anfrage notieren</summary>

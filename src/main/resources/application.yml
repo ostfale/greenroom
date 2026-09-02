@@ -2,6 +2,17 @@ spring:
   application:
     name: greenroom
     version: "@project.version@"
+  mail:
+    # Host, user and password come from the environment on the Pi: SPRING_MAIL_HOST,
+    # SPRING_MAIL_USERNAME, SPRING_MAIL_PASSWORD. Without a host nothing is sent and the
+    # application logs the mail instead — that has to be the harmless default.
+    port: ${SPRING_MAIL_PORT:465}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
   servlet:
     multipart:
       # Room for a photo straight from a phone. It is scaled down before it is stored,
@@ -23,3 +34,9 @@ management:
   endpoint:
     health:
       show-details: always
+
+greenroom:
+  mail:
+    # The address every inquiry is sent from, replied to and blind-copied to. Empty here:
+    # without it the application does not send.
+    from: ${GREENROOM_MAIL_FROM:}

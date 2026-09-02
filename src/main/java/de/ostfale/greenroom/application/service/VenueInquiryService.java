@@ -1,6 +1,8 @@
 package de.ostfale.greenroom.application.service;
 
 import de.ostfale.greenroom.application.port.in.ManageVenueInquiries;
+import de.ostfale.greenroom.application.port.out.MailMessage;
+import de.ostfale.greenroom.application.port.out.SendMail;
 import de.ostfale.greenroom.application.port.out.VenueInquiryRepository;
 import de.ostfale.greenroom.domain.activities.InquiryOutcome;
 import de.ostfale.greenroom.domain.activities.VenueInquiry;
@@ -20,9 +22,11 @@ public class VenueInquiryService implements ManageVenueInquiries {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final VenueInquiryRepository inquiryRepository;
+    private final SendMail mailer;
 
-    public VenueInquiryService(VenueInquiryRepository inquiryRepository) {
+    public VenueInquiryService(VenueInquiryRepository inquiryRepository, SendMail mailer) {
         this.inquiryRepository = inquiryRepository;
+        this.mailer = mailer;
     }
 
     @Override
@@ -39,6 +43,14 @@ public class VenueInquiryService implements ManageVenueInquiries {
         log.debug("VenueInquiryService :: inquiry to location {} for event {} about {}",
                 inquiry.locationId(), inquiry.eventId(), inquiry.forDate());
         return inquiryRepository.save(inquiry);
+    }
+
+    @Override
+    public VenueInquiry sendByMail(VenueInquiry inquiry, MailMessage mail) {
+        // The mail first. A refusal from the server ends this here, and the history stays
+        // free of an inquiry that never left the house.
+        mailer.send(mail);
+        return send(inquiry);
     }
 
     @Override

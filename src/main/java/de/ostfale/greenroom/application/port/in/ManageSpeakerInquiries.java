@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.application.port.in;
 
+import de.ostfale.greenroom.application.port.out.MailMessage;
 import de.ostfale.greenroom.domain.activities.InquiryOutcome;
 import de.ostfale.greenroom.domain.activities.SpeakerInquiry;
 
@@ -17,6 +18,16 @@ public interface ManageSpeakerInquiries {
 
     /** Writes down an inquiry that has gone out. */
     SpeakerInquiry send(SpeakerInquiry inquiry);
+
+    /**
+     * Sends the mail and, only once it has gone out, writes the inquiry down. In that
+     * order on purpose: an inquiry that was never sent must not appear in the history,
+     * while a mail that went out and could not be recorded can still be noted by hand.
+     *
+     * @throws de.ostfale.greenroom.application.port.out.SendMail.MailNotSent
+     *         if the mail server refused it — nothing is recorded then
+     */
+    SpeakerInquiry sendByMail(SpeakerInquiry inquiry, MailMessage mail);
 
     /**
      * Writes down the answer.

@@ -8,6 +8,8 @@ import de.ostfale.greenroom.application.port.in.ManageSpeakerInquiries;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.in.ManageTags;
 import de.ostfale.greenroom.application.port.in.ManageVenueInquiries;
+import de.ostfale.greenroom.application.port.out.MailMessage;
+import de.ostfale.greenroom.application.port.out.SendMail;
 import de.ostfale.greenroom.domain.activities.Activity;
 import de.ostfale.greenroom.domain.activities.ActivityDirection;
 import de.ostfale.greenroom.domain.activities.ContactChannel;
@@ -436,6 +438,70 @@ public class EventController {
     }
 
     /**
+     * The mail goes out and the inquiry is written down with it. What is sent is what
+     * stands in the form — the draft was rendered from the message bundle and could be
+     * edited before it went.
+     */
+    @PostMapping("/{id}/inquiry/mail")
+    public String mailInquiry(@PathVariable Long id,
+                              @RequestParam(defaultValue = "") String speakerId,
+                              @RequestParam(defaultValue = "") String subject,
+                              @RequestParam(defaultValue = "") String body,
+                              @RequestParam(defaultValue = "") String sentAt,
+                              @RequestParam(defaultValue = "") String note,
+                              Model model) {
+        try {
+            Event known = events.byId(id).orElseThrow(() ->
+                    new IllegalArgumentException("EventController :: unknown event"));
+            Speaker person = speakers.byId(speaker(speakerId)).orElseThrow(() ->
+                    new IllegalArgumentException("Event :: no speaker was chosen"));
+            inquiries.sendByMail(
+                    SpeakerInquiry.sent(id, person.id(), known.date(), day(sentAt), ContactChannel.EMAIL)
+                            .withNote(note),
+                    new MailMessage(person.email(), subject, body));
+        } catch (IllegalArgumentException | SendMail.MailNotSent e) {
+            model.addAttribute("error", planningMessage(e));
+        }
+        return tile(id, model, "fragments/event-inquiries :: event-inquiries");
+    }
+
+    /** The same for a place, addressed to the contact that was picked. */
+    @PostMapping("/{id}/venue-inquiry/mail")
+    public String mailVenueInquiry(@PathVariable Long id,
+                                   @RequestParam(defaultValue = "") String locationId,
+                                   @RequestParam(defaultValue = "") String contactName,
+                                   @RequestParam(defaultValue = "") String subject,
+                                   @RequestParam(defaultValue = "") String body,
+                                   @RequestParam(defaultValue = "") String sentAt,
+                                   @RequestParam(defaultValue = "") String note,
+                                   Model model) {
+        try {
+            Event known = events.byId(id).orElseThrow(() ->
+                    new IllegalArgumentException("EventController :: unknown event"));
+            Long place = askedPlace(locationId);
+            venueInquiries.sendByMail(
+                    VenueInquiry.sent(id, place, contactName, known.date(), day(sentAt),
+                            ContactChannel.EMAIL).withNote(note),
+                    new MailMessage(addressOf(place, contactName), subject, body));
+        } catch (IllegalArgumentException | SendMail.MailNotSent e) {
+            model.addAttribute("error", planningMessage(e));
+        }
+        return tile(id, model, "fragments/event-venue-inquiries :: event-venue-inquiries");
+    }
+
+    /**
+     * The address of the contact that was picked. Looked up rather than posted along: what
+     * the form sends is a name, and a name is not something to write a mail to.
+     */
+    private String addressOf(Long locationId, String contactName) {
+        return contactsAt(locationId).stream()
+                .filter(person -> person.name().equals(contactName))
+                .findFirst()
+                .map(ContactPerson::email)
+                .orElseThrow(() -> new IllegalArgumentException("Event :: no contact was chosen"));
+    }
+
+    /**
      * The people to write to at the place that was just picked. Its own little route
      * because the second select depends on the first, and htmx swaps it rather than the
      * whole tile — swapping the tile would fold the form away mid-entry.
@@ -592,6 +658,19 @@ public class EventController {
         }
         if (reason.contains("PENDING is not an answer")) {
             return "Bitte eine Antwort auswählen.";
+        }
+        if (reason.contains("the mail server refused")) {
+            return "Die Mail ist nicht rausgegangen — der Mailserver hat sie abgelehnt. "
+                    + "Die Anfrage wurde deshalb auch nicht notiert.";
+        }
+        if (reason.contains("no contact was chosen")) {
+            return "Bitte auswählen, wer an diesem Ort angeschrieben wird.";
+        }
+        if (reason.contains("a mail needs a subject")) {
+            return "Bitte einen Betreff eingeben.";
+        }
+        if (reason.contains("an empty mail is not worth sending")) {
+            return "Bitte einen Text eingeben.";
         }
         if (reason.contains("an inquiry needs a channel")) {
             return "Bitte angeben, auf welchem Weg gefragt wurde.";

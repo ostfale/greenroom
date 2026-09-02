@@ -74,6 +74,67 @@
 
     <p class="hint" th:if="${#lists.isEmpty(locations)}">Es ist noch kein Ort erfasst.</p>
 
+
+    <!--
+      One draft, two ways out: the application hands it to the mail server itself, or the
+      local client is woken with the same text. Both write the inquiry down — the first
+      once the server has taken it, the second when the button is pressed.
+    -->
+    <details class="reveal" th:if="${event.date} != null and not ${#lists.isEmpty(locations)}">
+        <summary>Per Mail fragen</summary>
+        <form class="boxed new" method="post"
+              th:action="@{/event/{id}/venue-inquiry/mail(id=${event.id})}"
+              th:hx-post="@{/event/{id}/venue-inquiry/mail(id=${event.id})}"
+              hx-target="#event-venue-inquiries"
+              hx-swap="outerHTML"
+              hx-on::after-request="closeUnlessRefused(this, '#event-venue-inquiries')">
+            <!-- The other button records through the ordinary route, which wants a channel. -->
+            <input type="hidden" name="channel" value="EMAIL">
+            <label>Ort
+                <select name="locationId" required
+                        th:hx-get="@{/event/{id}/venue-inquiry/contacts(id=${event.id})}"
+                        hx-trigger="change"
+                        hx-target="next select"
+                        hx-swap="outerHTML">
+                    <option value="">Bitte auswählen</option>
+                    <option th:each="place : ${locations}" th:value="${place.id}"
+                            th:text="${place.name}">Musterfirma GmbH</option>
+                </select>
+            </label>
+            <label>Kontakt
+                <select name="contactName">
+                    <option value="" th:if="${#lists.isEmpty(venueContacts)}">Bitte zuerst einen Ort wählen</option>
+                    <option th:each="person : ${venueContacts}" th:value="${person.name}"
+                            th:data-email="${person.email}"
+                            th:text="${person.name}">Max Muster</option>
+                </select>
+            </label>
+            <label>Betreff
+                <input type="text" name="subject" required
+                       th:value="#{inquiry.mail.venue.subject(${#temporals.format(event.date, 'dd.MM.yyyy')})}">
+            </label>
+            <label>Text
+                <textarea name="body" rows="10" required
+                          th:text="#{inquiry.mail.venue.body(${#temporals.format(event.date, 'dd.MM.yyyy')})}"></textarea>
+            </label>
+            <label>Gefragt am
+                <input type="date" name="sentAt" th:value="${today}">
+            </label>
+            <label>Notiz
+                <input type="text" name="note">
+            </label>
+
+            <div class="actions">
+                <button type="submit">Senden und notieren</button>
+                <button type="button" class="link"
+                        th:hx-post="@{/event/{id}/venue-inquiry(id=${event.id})}"
+                        hx-include="closest form"
+                        hx-target="#event-venue-inquiries" hx-swap="outerHTML"
+                        onclick="openMailClient(this.closest('form'))">Im Mailprogramm öffnen</button>
+            </div>
+        </form>
+    </details>
+
     <!-- A refusal is not overwritten: the next place is a new inquiry, and both stay. -->
     <details class="reveal" th:unless="${#lists.isEmpty(locations)}">
         <summary>Anfrage notieren</summary>
@@ -88,7 +149,7 @@
                 <select name="locationId" required
                         th:hx-get="@{/event/{id}/venue-inquiry/contacts(id=${event.id})}"
                         hx-trigger="change"
-                        hx-target="#venue-inquiry-contact"
+                        hx-target="next select"
                         hx-swap="outerHTML">
                     <option value="">Bitte auswählen</option>
                     <option th:each="place : ${locations}" th:value="${place.id}"
@@ -96,9 +157,10 @@
                 </select>
             </label>
             <label>Kontakt
-                <select id="venue-inquiry-contact" name="contactName" th:fragment="venue-contacts">
+                <select name="contactName" th:fragment="venue-contacts">
                     <option value="" th:if="${#lists.isEmpty(venueContacts)}">Bitte zuerst einen Ort wählen</option>
                     <option th:each="person : ${venueContacts}" th:value="${person.name}"
+                            th:data-email="${person.email}"
                             th:text="${person.name}">Max Muster</option>
                 </select>
             </label>
