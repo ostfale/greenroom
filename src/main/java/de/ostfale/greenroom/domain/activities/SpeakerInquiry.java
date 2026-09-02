@@ -17,6 +17,10 @@ import static de.ostfale.greenroom.domain.Texts.optional;
  *
  * <p>An inquiry is answered once. Asking again after a refusal is a new inquiry, so the
  * history keeps both attempts instead of overwriting the first.
+ *
+ * <p>{@code answeredOn} is set with the answer and only with it: waiting and having been
+ * answered are the two states of an inquiry, and the date is what makes both of them
+ * readable as a history rather than as a status.
  */
 public record SpeakerInquiry(
         @Id Long id,
@@ -26,6 +30,7 @@ public record SpeakerInquiry(
         LocalDate sentAt,
         ContactChannel channel,
         InquiryOutcome outcome,
+        LocalDate answeredOn,
         String note) {
 
     public SpeakerInquiry {
@@ -44,6 +49,9 @@ public record SpeakerInquiry(
         if (outcome == null) {
             throw new IllegalArgumentException("SpeakerInquiry :: an inquiry needs an outcome");
         }
+        if ((outcome == InquiryOutcome.PENDING) != (answeredOn == null)) {
+            throw new IllegalArgumentException("SpeakerInquiry :: an answer is dated, and only an answer is");
+        }
         note = optional(note);
     }
 
@@ -51,28 +59,33 @@ public record SpeakerInquiry(
     public static SpeakerInquiry sent(Long eventId, Long speakerId, LocalDate askedAbout,
                                       LocalDate sentAt, ContactChannel channel) {
         return new SpeakerInquiry(null, eventId, speakerId, askedAbout, sentAt, channel,
-                InquiryOutcome.PENDING, null);
+                InquiryOutcome.PENDING, null, null);
     }
 
     /**
-     * The answer came in.
+     * The answer came in, on the day it came in.
      *
      * @throws IllegalStateException    if this inquiry was answered before
      * @throws IllegalArgumentException if the answer is {@code PENDING}, which is the
-     *                                  absence of an answer rather than one
+     *                                  absence of an answer rather than one, or if the day
+     *                                  it arrived is missing
      */
-    public SpeakerInquiry answered(InquiryOutcome answer) {
+    public SpeakerInquiry answered(InquiryOutcome answer, LocalDate on) {
         if (outcome != InquiryOutcome.PENDING) {
             throw new IllegalStateException("SpeakerInquiry :: this inquiry was already answered");
         }
         if (answer == null || answer == InquiryOutcome.PENDING) {
             throw new IllegalArgumentException("SpeakerInquiry :: PENDING is not an answer");
         }
-        return new SpeakerInquiry(id, eventId, speakerId, askedAbout, sentAt, channel, answer, note);
+        if (on == null) {
+            throw new IllegalArgumentException("SpeakerInquiry :: an answer is dated, and only an answer is");
+        }
+        return new SpeakerInquiry(id, eventId, speakerId, askedAbout, sentAt, channel, answer, on, note);
     }
 
     public SpeakerInquiry withNote(String newNote) {
-        return new SpeakerInquiry(id, eventId, speakerId, askedAbout, sentAt, channel, outcome, newNote);
+        return new SpeakerInquiry(id, eventId, speakerId, askedAbout, sentAt, channel, outcome,
+                answeredOn, newNote);
     }
 
     /** Still waiting for a word. */

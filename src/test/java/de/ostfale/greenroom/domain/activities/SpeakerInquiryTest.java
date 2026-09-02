@@ -14,6 +14,7 @@ class SpeakerInquiryTest {
     private static final Long EVENT = 1L;
     private static final Long SPEAKER = 2L;
     private static final LocalDate SENT = LocalDate.of(2026, 9, 1);
+    private static final LocalDate ANSWERED = LocalDate.of(2026, 9, 5);
 
     private static SpeakerInquiry sent() {
         return SpeakerInquiry.sent(EVENT, SPEAKER, EVENING, SENT, ContactChannel.EMAIL);
@@ -58,7 +59,7 @@ class SpeakerInquiryTest {
 
     @Test
     void theAnswerArrivesOnce() {
-        SpeakerInquiry answered = sent().answered(InquiryOutcome.ACCEPTED);
+        SpeakerInquiry answered = sent().answered(InquiryOutcome.ACCEPTED, ANSWERED);
 
         assertThat(answered.outcome()).isEqualTo(InquiryOutcome.ACCEPTED);
         assertThat(answered.isAccepted()).isTrue();
@@ -68,9 +69,9 @@ class SpeakerInquiryTest {
     /** Asking again after a refusal is a new inquiry, so both attempts stay. */
     @Test
     void anAnsweredInquiryIsNotAnsweredAgain() {
-        SpeakerInquiry declined = sent().answered(InquiryOutcome.DECLINED);
+        SpeakerInquiry declined = sent().answered(InquiryOutcome.DECLINED, ANSWERED);
 
-        assertThatThrownBy(() -> declined.answered(InquiryOutcome.ACCEPTED))
+        assertThatThrownBy(() -> declined.answered(InquiryOutcome.ACCEPTED, ANSWERED))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("already answered");
     }
@@ -79,10 +80,10 @@ class SpeakerInquiryTest {
     void pendingIsTheAbsenceOfAnAnswerAndNotOne() {
         SpeakerInquiry inquiry = sent();
 
-        assertThatThrownBy(() -> inquiry.answered(InquiryOutcome.PENDING))
+        assertThatThrownBy(() -> inquiry.answered(InquiryOutcome.PENDING, ANSWERED))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not an answer");
-        assertThatThrownBy(() -> inquiry.answered(null))
+        assertThatThrownBy(() -> inquiry.answered(null, ANSWERED))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not an answer");
     }
@@ -92,7 +93,7 @@ class SpeakerInquiryTest {
         SpeakerInquiry inquiry = sent();
 
         assertThat(inquiry.daysWaiting(LocalDate.of(2026, 9, 13))).isEqualTo(12);
-        assertThat(inquiry.answered(InquiryOutcome.ACCEPTED).daysWaiting(LocalDate.of(2026, 9, 13)))
+        assertThat(inquiry.answered(InquiryOutcome.ACCEPTED, ANSWERED).daysWaiting(LocalDate.of(2026, 9, 13)))
                 .isZero();
     }
 
@@ -101,5 +102,17 @@ class SpeakerInquiryTest {
         assertThat(sent().withNote("   ").note()).isNull();
         assertThat(sent().withNote("Nachfassen am Montag.").note())
                 .isEqualTo("Nachfassen am Montag.");
+    }
+
+    /** Waiting and answered are the two states, and the date is what tells them apart. */
+    @Test
+    void theAnswerIsDatedAndOnlyTheAnswerIs() {
+        assertThat(sent().answeredOn()).isNull();
+        assertThat(sent().answered(InquiryOutcome.ACCEPTED, ANSWERED).answeredOn())
+                .isEqualTo(ANSWERED);
+
+        assertThatThrownBy(() -> sent().answered(InquiryOutcome.ACCEPTED, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("an answer is dated");
     }
 }

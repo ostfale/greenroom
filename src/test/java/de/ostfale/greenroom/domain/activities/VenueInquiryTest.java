@@ -14,6 +14,7 @@ class VenueInquiryTest {
     private static final Long EVENT = 1L;
     private static final Long LOCATION = 2L;
     private static final LocalDate SENT = LocalDate.of(2026, 9, 1);
+    private static final LocalDate ANSWERED = LocalDate.of(2026, 9, 5);
 
     private static VenueInquiry sent() {
         return VenueInquiry.sent(EVENT, LOCATION, "Max Muster", EVENING, SENT, ContactChannel.EMAIL);
@@ -71,7 +72,7 @@ class VenueInquiryTest {
 
     @Test
     void theAnswerArrivesOnce() {
-        VenueInquiry answered = sent().answered(InquiryOutcome.ACCEPTED);
+        VenueInquiry answered = sent().answered(InquiryOutcome.ACCEPTED, ANSWERED);
 
         assertThat(answered.outcome()).isEqualTo(InquiryOutcome.ACCEPTED);
         assertThat(answered.isAccepted()).isTrue();
@@ -81,9 +82,9 @@ class VenueInquiryTest {
     /** Asking the next place after a refusal is a new inquiry, so both attempts stay. */
     @Test
     void anAnsweredInquiryIsNotAnsweredAgain() {
-        VenueInquiry declined = sent().answered(InquiryOutcome.DECLINED);
+        VenueInquiry declined = sent().answered(InquiryOutcome.DECLINED, ANSWERED);
 
-        assertThatThrownBy(() -> declined.answered(InquiryOutcome.ACCEPTED))
+        assertThatThrownBy(() -> declined.answered(InquiryOutcome.ACCEPTED, ANSWERED))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("already answered");
     }
@@ -92,10 +93,10 @@ class VenueInquiryTest {
     void pendingIsTheAbsenceOfAnAnswerAndNotOne() {
         VenueInquiry inquiry = sent();
 
-        assertThatThrownBy(() -> inquiry.answered(InquiryOutcome.PENDING))
+        assertThatThrownBy(() -> inquiry.answered(InquiryOutcome.PENDING, ANSWERED))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not an answer");
-        assertThatThrownBy(() -> inquiry.answered(null))
+        assertThatThrownBy(() -> inquiry.answered(null, ANSWERED))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not an answer");
     }
@@ -105,14 +106,14 @@ class VenueInquiryTest {
         VenueInquiry inquiry = sent();
 
         assertThat(inquiry.daysWaiting(LocalDate.of(2026, 9, 10))).isEqualTo(9);
-        assertThat(inquiry.answered(InquiryOutcome.DECLINED).daysWaiting(LocalDate.of(2026, 9, 10)))
+        assertThat(inquiry.answered(InquiryOutcome.DECLINED, ANSWERED).daysWaiting(LocalDate.of(2026, 9, 10)))
                 .isZero();
     }
 
     /** The date is copied, so a refusal keeps what was asked even if the evening moves. */
     @Test
     void theDateThatWasAskedAboutStaysOnTheInquiry() {
-        VenueInquiry declined = sent().answered(InquiryOutcome.DECLINED);
+        VenueInquiry declined = sent().answered(InquiryOutcome.DECLINED, ANSWERED);
 
         assertThat(declined.forDate()).isEqualTo(EVENING);
     }
@@ -121,5 +122,17 @@ class VenueInquiryTest {
     void aBlankNoteIsNoNote() {
         assertThat(sent().withNote("   ").note()).isNull();
         assertThat(sent().withNote("Raum nur bis 21 Uhr.").note()).isEqualTo("Raum nur bis 21 Uhr.");
+    }
+
+    /** Waiting and answered are the two states, and the date is what tells them apart. */
+    @Test
+    void theAnswerIsDatedAndOnlyTheAnswerIs() {
+        assertThat(sent().answeredOn()).isNull();
+        assertThat(sent().answered(InquiryOutcome.ACCEPTED, ANSWERED).answeredOn())
+                .isEqualTo(ANSWERED);
+
+        assertThatThrownBy(() -> sent().answered(InquiryOutcome.ACCEPTED, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("an answer is dated");
     }
 }

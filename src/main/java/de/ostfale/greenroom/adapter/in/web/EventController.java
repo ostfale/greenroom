@@ -1,11 +1,14 @@
 package de.ostfale.greenroom.adapter.in.web;
 
+import de.ostfale.greenroom.application.port.in.ManageActivities;
 import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.in.ManageSpeakerInquiries;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.in.ManageTags;
 import de.ostfale.greenroom.application.port.in.ManageVenueInquiries;
+import de.ostfale.greenroom.domain.activities.Activity;
+import de.ostfale.greenroom.domain.activities.ActivityDirection;
 import de.ostfale.greenroom.domain.activities.ContactChannel;
 import de.ostfale.greenroom.domain.activities.InquiryOutcome;
 import de.ostfale.greenroom.domain.activities.SpeakerInquiry;
@@ -48,16 +51,18 @@ public class EventController {
     private final ManageTags tags;
     private final ManageSpeakerInquiries inquiries;
     private final ManageVenueInquiries venueInquiries;
+    private final ManageActivities activities;
 
     public EventController(ManageEvents events, ManageSpeakers speakers, ManageLocations locations,
                            ManageTags tags, ManageSpeakerInquiries inquiries,
-                           ManageVenueInquiries venueInquiries) {
+                           ManageVenueInquiries venueInquiries, ManageActivities activities) {
         this.events = events;
         this.speakers = speakers;
         this.locations = locations;
         this.tags = tags;
         this.inquiries = inquiries;
         this.venueInquiries = venueInquiries;
+        this.activities = activities;
     }
 
     @GetMapping
@@ -381,6 +386,36 @@ public class EventController {
         return locations.byId(locationId).map(Location::contacts).orElse(List.of());
     }
 
+    /**
+     * One more line in the history. Append-only, so there is no counterpart that changes
+     * or drops one — a line that was wrong is answered by the next line.
+     */
+    @PostMapping("/{id}/activity")
+    public String appendActivity(@PathVariable Long id,
+                                 @RequestParam(defaultValue = "") String happenedOn,
+                                 @RequestParam(defaultValue = "") String direction,
+                                 @RequestParam(defaultValue = "") String channel,
+                                 @RequestParam(defaultValue = "") String what,
+                                 Model model) {
+        try {
+            ActivityDirection kind = kind(direction);
+            // A note went nowhere, so whatever the channel select was left on is dropped.
+            ContactChannel way = kind == ActivityDirection.NOTE ? null : how(channel);
+            activities.append(new Activity(null, id, day(happenedOn), kind, way, what));
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", planningMessage(e));
+        }
+        return tile(id, model, "fragments/event-history :: event-history");
+    }
+
+    private static ActivityDirection kind(String direction) {
+        try {
+            return ActivityDirection.valueOf(direction.strip());
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Activity :: an entry needs a direction");
+        }
+    }
+
     /** Empty means today: an inquiry is written down right after it went out. */
     private static LocalDate day(String date) {
         if (date == null || date.isBlank()) {
@@ -448,6 +483,8 @@ public class EventController {
                 .flatMap(speaking -> known.stream().filter(one -> one.id().equals(speaking)))
                 .toList());
         model.addAttribute("allAccepted", allAccepted(asked, answers));
+        model.addAttribute("history", activities.historyOf(event.id()));
+        model.addAttribute("directions", ActivityDirection.values());
         model.addAttribute("today", LocalDate.now());
         model.addAttribute("channels", ContactChannel.values());
         model.addAttribute("speakers", known);
@@ -483,6 +520,12 @@ public class EventController {
         }
         if (reason.contains("an inquiry needs a channel")) {
             return "Bitte angeben, auf welchem Weg gefragt wurde.";
+        }
+        if (reason.contains("an entry needs a direction")) {
+            return "Bitte angeben, ob der Eintrag raus, rein oder nur notiert ist.";
+        }
+        if (reason.contains("an entry needs to say what happened")) {
+            return "Bitte eintragen, was passiert ist.";
         }
         if (reason.contains("a place is asked about a date")) {
             return "Zuerst braucht das Event einen Termin — danach werden die Orte gefragt.";

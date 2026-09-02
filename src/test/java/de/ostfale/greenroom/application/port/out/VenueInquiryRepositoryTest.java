@@ -112,7 +112,7 @@ class VenueInquiryRepositoryTest {
     void theAnswerIsStoredOnTheInquiryThatWasSent() {
         VenueInquiry open = inquiries.save(sentOn(LocalDate.of(2026, 9, 1), null));
 
-        inquiries.save(open.answered(InquiryOutcome.DECLINED));
+        inquiries.save(open.answered(InquiryOutcome.DECLINED, LocalDate.of(2026, 9, 5)));
 
         assertThat(inquiries.findByEvent(eventId)).singleElement()
                 .extracting(VenueInquiry::outcome).isEqualTo(InquiryOutcome.DECLINED);

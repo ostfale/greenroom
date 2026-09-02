@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -44,6 +45,6 @@ public class SpeakerInquiryService implements ManageSpeakerInquiries {
         SpeakerInquiry known = inquiryRepository.findById(inquiryId).orElseThrow(() ->
                 new IllegalArgumentException("SpeakerInquiryService :: there is no inquiry " + inquiryId));
         log.debug("SpeakerInquiryService :: inquiry {} answered with {}", inquiryId, outcome);
-        return inquiryRepository.save(known.answered(outcome));
+        return inquiryRepository.save(known.answered(outcome, LocalDate.now()));
     }
 }

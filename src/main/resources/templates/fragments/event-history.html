@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="event-history" class="stack" th:fragment="event-history">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <p class="hint" th:if="${#lists.isEmpty(history)}">Noch nichts passiert.</p>
+
+    <table th:unless="${#lists.isEmpty(history)}">
+        <tbody>
+        <tr th:each="entry : ${history}">
+            <td class="data" th:text="${#temporals.format(entry.on, 'dd.MM.yyyy')}">24.08.2026</td>
+            <td class="data" th:title="#{'activity.direction.' + ${entry.direction}}"
+                th:switch="${entry.direction.name()}">
+                <span th:case="'OUTGOING'">↗</span>
+                <span th:case="'INCOMING'">↙</span>
+                <span th:case="*">✎</span>
+            </td>
+            <!--
+              Three shapes of line, and the German for them lives here rather than in the
+              service: a hand-written entry, an answer that came back, a question that went
+              out — with the date it named, when it named one.
+            -->
+            <td th:if="${entry.note}" th:text="${entry.note}">Beamer defekt</td>
+            <td th:if="${entry.outcome}">
+                <span th:text="${entry.who} ?: 'Unbekannt'">Max Muster</span>:
+                <span th:text="#{'inquiry.outcome.' + ${entry.outcome}}">Zugesagt</span>
+            </td>
+            <td th:if="${entry.note} == null and ${entry.outcome} == null">
+                <span th:text="${entry.who} ?: 'Unbekannt'">Max Muster</span>
+                <span th:if="${entry.about}"
+                      th:text="|nach dem ${#temporals.format(entry.about, 'dd.MM.yyyy')}|">nach dem 24.09.2026</span>
+                gefragt
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Append-only: what is written stays. A line that was wrong is answered by the next. -->
+    <details class="reveal">
+        <summary>Eintrag festhalten</summary>
+        <form class="inline boxed new" method="post"
+              th:action="@{/event/{id}/activity(id=${event.id})}"
+              th:hx-post="@{/event/{id}/activity(id=${event.id})}"
+              hx-target="#event-history"
+              hx-swap="outerHTML"
+              hx-on::after-request="closeUnlessRefused(this, '#event-history')">
+            <label>Am
+                <input type="date" name="happenedOn" th:value="${today}">
+            </label>
+            <label>Art
+                <select name="direction" required>
+                    <option th:each="way : ${directions}" th:value="${way}"
+                            th:text="#{'activity.direction.' + ${way}}">Notiz</option>
+                </select>
+            </label>
+            <!-- Ignored for a note: a note went nowhere, so there is no way it went. -->
+            <label>Weg
+                <select name="channel">
+                    <option th:each="way : ${channels}" th:value="${way}"
+                            th:text="#{'inquiry.channel.' + ${way}}">E-Mail</option>
+                </select>
+            </label>
+            <label>Was
+                <input type="text" name="what" required
+                       placeholder="Abstract nachgefragt, kommt nächste Woche">
+            </label>
+            <button type="submit">Festhalten</button>
+        </form>
+    </details>
+</div>
+</body>
+</html>

@@ -80,5 +80,12 @@ names the place still being waited on and how long, but it does not refuse the n
 inquiry: that stays a decision, like the clash warning and like an accepted inquiry that
 moves nothing on by itself.
 
-What is missing is `Activity` and `PlanningSettings`, and the mail, geo, importer and
-scheduling adapters the layout above already names.
+The `Verlauf` tile reads the evening as one chronology: the inquiries to the speakers and
+to the places, and the `Activity` entries written by hand for everything that has no field
+of its own. Only the hand-written entries are stored — the inquiries are mixed in when the
+page asks for the history, so no fact is kept in two tables. Entries are append-only: the
+record has no way to change one and the port declares no way to delete one. A line that
+turned out wrong is answered by the next line.
+
+What is missing are the mail, geo, importer and scheduling adapters the layout above
+already names.

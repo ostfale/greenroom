@@ -2,6 +2,7 @@ package de.ostfale.greenroom.adapter.in.web;
 
 import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.WebTest;
+import de.ostfale.greenroom.application.port.in.ManageActivities;
 import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.in.ManageSpeakerInquiries;
@@ -10,6 +11,8 @@ import de.ostfale.greenroom.application.port.in.ManageTags;
 import de.ostfale.greenroom.application.port.in.ManageVenueInquiries;
 import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.application.port.out.SpeakerRepository;
+import de.ostfale.greenroom.domain.activities.Activity;
+import de.ostfale.greenroom.domain.activities.ActivityDirection;
 import de.ostfale.greenroom.domain.activities.ContactChannel;
 import de.ostfale.greenroom.domain.activities.InquiryOutcome;
 import de.ostfale.greenroom.domain.activities.SpeakerInquiry;
@@ -73,6 +76,9 @@ class EventControllerTest {
 
     @Autowired
     private ManageVenueInquiries venueInquiries;
+
+    @Autowired
+    private ManageActivities activities;
 
     @Autowired
     private EventRepository eventRepository;
@@ -1289,7 +1295,8 @@ class EventControllerTest {
 
         assertThat(page.select("section.tile h2").eachText())
                 .containsExactly("Eckdaten", "Planung", "Schlagwörter", "Ort", "Referenten",
-                        "Vorträge", "Anfragen an Referenten", "Anfragen an Orte");
+                        "Vorträge", "Anfragen an Referenten", "Anfragen an Orte",
+                        "Verlauf");
         // Stretch is what makes venue and speakers end together, and the keywords close
         // flush with the basics beside them.
         assertThat(page.selectFirst("div.bento").className()).contains("stretch");
@@ -1432,5 +1439,117 @@ class EventControllerTest {
                 .andReturn().getResponse().getContentAsString());
         assertThat(page.select("#event-venue-inquiries tbody tr td").eachText())
                 .contains("Max Muster").doesNotContain("Anna Albers");
+    }
+
+    // The history: three sources, one order, mixed the moment the page asks for it.
+
+    @Test
+    void anEntryIsWrittenDownAndShowsUpInTheHistory() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/activity")
+                        .param("happenedOn", "2026-09-02")
+                        .param("direction", "OUTGOING")
+                        .param("channel", "PHONE")
+                        .param("what", "Sponsor wegen Getränken angerufen"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document tile = Jsoup.parseBodyFragment(fragment);
+        assertThat(tile.select("#event-history tbody tr td").eachText())
+                .contains("02.09.2026", "Sponsor wegen Getränken angerufen");
+        assertThat(activities.historyOf(id)).singleElement().satisfies(line -> {
+            assertThat(line.direction()).isEqualTo(ActivityDirection.OUTGOING);
+            assertThat(line.note()).isEqualTo("Sponsor wegen Getränken angerufen");
+        });
+    }
+
+    /** A note went nowhere, so whatever the channel select was left on is dropped. */
+    @Test
+    void aNoteLosesTheChannelTheFormStillSent() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        mvc.perform(post("/event/" + id + "/activity")
+                        .param("happenedOn", "2026-09-02")
+                        .param("direction", "NOTE")
+                        .param("channel", "EMAIL")
+                        .param("what", "Beamer defekt — eigenen mitbringen"))
+                .andExpect(status().isOk());
+
+        assertThat(activities.historyOf(id)).singleElement()
+                .extracting(entry -> entry.direction()).isEqualTo(ActivityDirection.NOTE);
+    }
+
+    @Test
+    void anEntryWithoutATextIsRefused() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/activity")
+                        .param("direction", "NOTE")
+                        .param("what", "   "))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("was passiert ist");
+        assertThat(activities.historyOf(id)).isEmpty();
+    }
+
+    /**
+     * The inquiries are not written into the log; they are mixed in when it is read. What
+     * the page shows is one chronology, and nothing is stored twice.
+     */
+    @Test
+    void theInquiriesAndTheOwnEntriesReadAsOneChronology() throws Exception {
+        Long place = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        // Left unanswered on purpose: an answer is stamped with today, and this test is
+        // about the order of what has a date of its own.
+        inquiries.send(SpeakerInquiry.sent(id, speakerId, EVENING,
+                LocalDate.of(2026, 8, 24), ContactChannel.EMAIL));
+        activities.append(Activity.noted(id, LocalDate.of(2026, 8, 30), "Abstract nachgefragt"));
+        venueInquiries.send(VenueInquiry.sent(id, place, "Max Muster", EVENING,
+                LocalDate.of(2026, 9, 1), ContactChannel.EMAIL));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+        List<String> rows = page.select("#event-history tbody tr").stream()
+                .map(row -> row.select("td").getFirst().text() + " " + row.select("td").last().text())
+                .toList();
+
+        assertThat(rows).containsExactly(
+                "24.08.2026 Max Muster nach dem 24.09.2026 gefragt",
+                "30.08.2026 Abstract nachgefragt",
+                "01.09.2026 Musterfirma GmbH nach dem 24.09.2026 gefragt");
+    }
+
+    @Test
+    void anAnswerEntersTheHistoryOnTheDayItArrived() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+        Long asked = inquiries.send(SpeakerInquiry.sent(id, speakerId, EVENING,
+                LocalDate.now().minusDays(5), ContactChannel.EMAIL)).id();
+
+        inquiries.answer(asked, InquiryOutcome.ACCEPTED);
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+        assertThat(page.select("#event-history tbody tr").getLast().text())
+                .contains("Max Muster", "Zugesagt");
+        assertThat(activities.historyOf(id)).last().satisfies(line -> {
+            assertThat(line.on()).isEqualTo(LocalDate.now());
+            assertThat(line.outcome()).isEqualTo(InquiryOutcome.ACCEPTED);
+        });
+    }
+
+    @Test
+    void anEveningWithoutAHistorySaysSo() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.selectFirst("#event-history p.hint").text()).isEqualTo("Noch nichts passiert.");
+        assertThat(page.select("#event-history tbody tr")).isEmpty();
     }
 }

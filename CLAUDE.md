@@ -75,8 +75,13 @@ Use these names — they come from the domain, not from the framework:
 - `Talk` — one presentation inside an Event (1..n).
 - `motto` — optional name for an evening, used when it carries several talks.
 - `SpeakerInquiry`, `VenueInquiry` — a request that was sent, with an outcome.
-- `Speaker`, `Location`, `ContactPerson`, `Tag`, `Activity`, `PlanningSettings`
-- `Activity` is append-only: entries are never edited or deleted.
+- `Speaker`, `Location`, `ContactPerson`, `Tag`, `Activity`
+- `Activity` is append-only: entries are never edited or deleted. The record has no
+  `with…` method and `ActivityRepository` is not a `CrudRepository` — it declares
+  `save` and one finder and nothing else, so there is no call that could break the
+  rule. The one deletion is the cascade when the evening goes.
+- there is no `PlanningSettings`: lead times and reminders were dropped, and without them
+  it had nothing left to hold.
 - Domain events are named after what happened: `SpeakerConfirmed`, `VenueConfirmed`.
 
 
@@ -134,6 +139,15 @@ UI texts, in Thymeleaf templates and in the data itself.
 - `VenueInquiry.contactName` copies the name of the person who was written to, for the
   reason the announced biography is copied: somebody who leaves the company must not
   rewrite whom we asked back then
+- both inquiries carry `answeredOn`, set with the answer and only with it: `PENDING` has no
+  date, an answer has one. Without it a "yes" would be dated the day it was asked, and the
+  history would be a list of questions rather than a chronology
+- the history of an evening is mixed when it is read, never written: `Activity` stores only
+  what has no field of its own, and `ManageActivities.historyOf` merges it with the two
+  kinds of inquiry into `HistoryEntry`. Logging an inquiry a second time would keep one
+  fact in two tables, and the copy is the one that goes stale
+- `HistoryEntry` carries what happened, never how it reads. The German lives in the
+  template, as everywhere else: the service must not build a sentence
 - a Talk has no duration — how long somebody speaks is not planned here
 
 

@@ -25,6 +25,9 @@ import static de.ostfale.greenroom.domain.Texts.optional;
  * <p>{@code contactName} is copied for the reason the announced biography is copied: the
  * person who leaves the company must not rewrite who was written to back then.
  *
+ * <p>{@code answeredOn} is set with the answer and only with it, so the evening reads as
+ * a history and not only as a state.
+ *
  * <p>Places are asked one after another, but that order is a matter of judgement rather
  * than an invariant: the page points at an inquiry that is still open, and whoever plans
  * the evening decides whether to ask the next one anyway.
@@ -38,6 +41,7 @@ public record VenueInquiry(
         LocalDate sentAt,
         ContactChannel channel,
         InquiryOutcome outcome,
+        LocalDate answeredOn,
         String note) {
 
     public VenueInquiry {
@@ -59,6 +63,9 @@ public record VenueInquiry(
         if (outcome == null) {
             throw new IllegalArgumentException("VenueInquiry :: an inquiry needs an outcome");
         }
+        if ((outcome == InquiryOutcome.PENDING) != (answeredOn == null)) {
+            throw new IllegalArgumentException("VenueInquiry :: an answer is dated, and only an answer is");
+        }
         contactName = optional(contactName);
         note = optional(note);
     }
@@ -67,28 +74,34 @@ public record VenueInquiry(
     public static VenueInquiry sent(Long eventId, Long locationId, String contactName,
                                     LocalDate forDate, LocalDate sentAt, ContactChannel channel) {
         return new VenueInquiry(null, eventId, locationId, contactName, forDate, sentAt, channel,
-                InquiryOutcome.PENDING, null);
+                InquiryOutcome.PENDING, null, null);
     }
 
     /**
-     * The answer came in.
+     * The answer came in, on the day it came in.
      *
      * @throws IllegalStateException    if this inquiry was answered before
      * @throws IllegalArgumentException if the answer is {@code PENDING}, which is the
-     *                                  absence of an answer rather than one
+     *                                  absence of an answer rather than one, or if the day
+     *                                  it arrived is missing
      */
-    public VenueInquiry answered(InquiryOutcome answer) {
+    public VenueInquiry answered(InquiryOutcome answer, LocalDate on) {
         if (outcome != InquiryOutcome.PENDING) {
             throw new IllegalStateException("VenueInquiry :: this inquiry was already answered");
         }
         if (answer == null || answer == InquiryOutcome.PENDING) {
             throw new IllegalArgumentException("VenueInquiry :: PENDING is not an answer");
         }
-        return new VenueInquiry(id, eventId, locationId, contactName, forDate, sentAt, channel, answer, note);
+        if (on == null) {
+            throw new IllegalArgumentException("VenueInquiry :: an answer is dated, and only an answer is");
+        }
+        return new VenueInquiry(id, eventId, locationId, contactName, forDate, sentAt, channel,
+                answer, on, note);
     }
 
     public VenueInquiry withNote(String newNote) {
-        return new VenueInquiry(id, eventId, locationId, contactName, forDate, sentAt, channel, outcome, newNote);
+        return new VenueInquiry(id, eventId, locationId, contactName, forDate, sentAt, channel,
+                outcome, answeredOn, newNote);
     }
 
     /** Still waiting for a word — the one place that is currently being waited for. */
