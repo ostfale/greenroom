@@ -11,17 +11,22 @@ of an evening easier than a Markdown note would — that is the only benchmark.
 - **KISS.** One user, one machine, a few hundred rows. Do not build for scale, for
   multi-tenancy or for a persistence swap that will never happen.
 - **DRY.** One field list per concept. No parallel model that exists only to be mapped.
+- **What is copied is not referenced.** Whatever an evening was announced with must stay
+  what it was, however the underlying record changes later.
+- **What is a matter of judgement is shown, not refused.** A clash, an inquiry still
+  waiting, an answer that came back — the page says so, somebody decides. Refuse only what
+  would be nonsense.
 - When a rule here and a simpler solution collide, say so instead of following the rule
   silently.
 
 ## Language
 
 - Code, identifiers, comments, commit messages, log messages: English.
-- UI texts and Thymeleaf templates: German.
+- UI texts and Thymeleaf templates: German. The German lives in the template — a service
+  never builds a sentence.
 - Talk to me in German.
-- git commit messages should be short and precise: a subject line, then dashed bullets.
-  No prose paragraphs — one point per bullet, and only what a reader of the diff cannot
-  see for themselves
+- Commit messages: a subject line, then dashed bullets. No prose paragraphs — one point
+  per bullet, and only what a reader of the diff cannot see for themselves.
 
 ## Stack
 
@@ -39,7 +44,8 @@ of an evening easier than a Markdown note would — that is the only benchmark.
 
 The `dev` profile is activated by the Boot Maven plugin, not by `application.yml`: on the
 Pi the application runs without a profile. It lets Flyway drop and rebuild the schema when
-`V1__schema.sql` changed, and turns the Thymeleaf cache off. Never activate it there.
+`V1__schema.sql` changed, turns the Thymeleaf cache off and serves the static files from
+the source tree. Never activate it there.
 
 ## Architecture: ports and adapters
 
@@ -61,11 +67,6 @@ The hexagon is about direction of dependency, not about purity:
 - ArchUnit enforces this in `ArchitectureTest`. The rules encode decisions, so a failing
   rule usually means the design drifted — fix the design. Changing a rule is allowed when
   the *decision* changed, and then only together with a note here.
-- `adaptersAreIsolated` is a slice rule, not a package predicate. The earlier wording
-  forbade every dependency between two classes under `adapter..`, two classes inside the
-  same adapter included, which is not what "adapters talk through the application layer"
-  means. Changed when the first shared helper appeared in `adapter.in.web`: the decision
-  stayed, only its expression was wrong.
 
 ## Ubiquitous language
 
@@ -75,27 +76,16 @@ Use these names — they come from the domain, not from the framework:
 - `Talk` — one presentation inside an Event (1..n).
 - `motto` — optional name for an evening, used when it carries several talks.
 - `SpeakerInquiry`, `VenueInquiry` — a request that was sent, with an outcome.
-- `Speaker`, `Location`, `ContactPerson`, `Tag`, `Activity`
-- `Activity` is append-only: entries are never edited or deleted. The record has no
-  `with…` method and `ActivityRepository` is not a `CrudRepository` — it declares
-  `save` and one finder and nothing else, so there is no call that could break the
-  rule. The one deletion is the cascade when the evening goes.
-- there is no `PlanningSettings`: lead times and reminders were dropped, and without them
-  it had nothing left to hold.
+- `Activity` — a line of what happened that has no field of its own.
+- `Speaker`, `Location`, `ContactPerson`, `Tag`
 - Domain events are named after what happened: `SpeakerConfirmed`, `VenueConfirmed`.
-
-
-An `Event` has **at least one** `Talk`, and a `Talk` has **at least one** `Speaker` — from
-the moment it is created, in every state. Both are invariants, not just the common case,
-and they follow from how a talk is found: by reading an article, watching a video or
-hearing someone speak, and then approaching that person. The talk comes into being with
-its speaker. There is no topic without a person, so there is nothing to model for one.
 
 The `Event` has no title. Its display name is the `motto` if one is set, otherwise the
 title of its single talk. With one talk nothing is maintained twice; with several the
 evening gets a name of its own.
 
-In the German UI an `Event` is called "Event", not "Abend".
+In the German UI an `Event` is called "Event", not "Abend", and a `Tag` is called "Tag",
+not "Schlagwort" — one concept, one word, and it is the one the domain uses.
 
 Everything in the source tree is English: package names, class names, enum constants,
 method names, table and column names, migration file names. German appears only in
@@ -103,53 +93,44 @@ UI texts, in Thymeleaf templates and in the data itself.
 
 ## Domain model
 
-- Event consists of at least one talk
-- each talk has at least one speaker
-- An event has exactly one location
-- a location has at least one contact person
-- each, a contact person and a speaker have at least an email adress
-- a `Tag` belongs to the Event, not to the Talk. Tags are one maintained list, edited in
-  the settings — but an event stores the words it was given, not a reference to that list.
-  Renaming or deleting a tag later must not rewrite what an evening was announced with,
-  the same reason the speaker's biography is copied onto the talk
-- a location keeps every address it ever had; only the active flag moves. An evening held
-  at an old address was held there
-- `capacity` sits on the `Address`, not on the `Location`: a place that moves rarely keeps
-  the same room, and the seat count of an old address is part of what that evening was.
-  The binding numbers are entered on meetup.com anyway; here the figure is a planning aid
-- the announced biography is copied onto the `Talk` the moment the speaker is put on it,
-  and is edited there from then on. It does not follow the speaker: rewriting a `Speaker`
-  bio leaves every evening that was announced with the old one untouched
-- an `Event` carries a `moderator`: the name of whoever leads through the evening, and
-  nothing else. Not a reference to a `Speaker` or a `ContactPerson` — that person is
-  usually one of us, and there is nothing further about them to plan here
-- the order of asking is part of the domain: the speaker is asked about the date first,
-  and only once everybody has said yes do the venues get asked, one after another. That is
-  why `SpeakerInquiry` and `VenueInquiry` are separate aggregates — one asks about a date
-  with the person fixed, the other asks a place with the date fixed. They share only
-  `InquiryOutcome` and `ContactChannel`
-- an inquiry is answered once. A second attempt after a refusal is a new inquiry, so both
-  stay in the history, and `askedAbout` copies the date that was proposed. An accepted
-  inquiry does not move the event on by itself — the page says so, somebody decides
-- "one after another" is how the venues are asked, not a rule the code enforces. The page
-  names the place still being waited on and how long it has been, and lets the next inquiry
-  go out anyway — the same choice as the clash warning: what is a matter of judgement is
-  shown, not refused. A `VenueInquiry` without a date is refused, though: that one is not
-  judgement but the order of asking, and it is the only field where the two inquiries differ
-- `VenueInquiry.contactName` copies the name of the person who was written to, for the
-  reason the announced biography is copied: somebody who leaves the company must not
-  rewrite whom we asked back then
-- both inquiries carry `answeredOn`, set with the answer and only with it: `PENDING` has no
-  date, an answer has one. Without it a "yes" would be dated the day it was asked, and the
-  history would be a list of questions rather than a chronology
-- the history of an evening is mixed when it is read, never written: `Activity` stores only
-  what has no field of its own, and `ManageActivities.historyOf` merges it with the two
-  kinds of inquiry into `HistoryEntry`. Logging an inquiry a second time would keep one
-  fact in two tables, and the copy is the one that goes stale
-- `HistoryEntry` carries what happened, never how it reads. The German lives in the
-  template, as everywhere else: the service must not build a sentence
-- a Talk has no duration — how long somebody speaks is not planned here
+Shape:
 
+- an `Event` has at least one `Talk`, and a `Talk` at least one `Speaker` — from the moment
+  it is created, in every state. A talk is found by approaching a person, so it comes into
+  being with its speaker. There is no topic without a person
+- an `Event` has exactly one `Location`, a `Location` at least one `ContactPerson`
+- a `ContactPerson` and a `Speaker` each have at least an email address
+- a `Talk` has no duration, and an `Event` carries a `moderator` as a name and nothing
+  else — not a reference to anybody
+
+Copied, not referenced:
+
+- the announced biography is copied onto the `Talk` when the speaker is put on it and is
+  edited there; rewriting a `Speaker` bio leaves earlier evenings untouched
+- an `Event` stores the tag words it was given, not a reference to the list in the settings
+- an inquiry copies the date it asked about, and a `VenueInquiry` the contact it went to
+- a `Location` keeps every address it ever had; only the active flag moves. `capacity` sits
+  on the `Address`, because the seat count of an old address is part of what that evening
+  was
+
+The order of asking:
+
+- the speaker is asked about the date first, and only once everybody has said yes are the
+  venues asked, one after another
+- `SpeakerInquiry` and `VenueInquiry` are separate aggregates for that reason: one asks
+  about a date with the person fixed, the other asks a place with the date fixed. They
+  share only `InquiryOutcome` and `ContactChannel`
+- a `VenueInquiry` without a date is refused. Asking a second venue while one is still open
+  is not — that one is judgement
+- an inquiry is answered once, and the answer carries the day it arrived. Asking again
+  after a refusal is a new inquiry, and both stay
+
+History:
+
+- an `Activity` is never edited or deleted. The record has no `with…` method and its port
+  declares no way to; the only deletion is the cascade when the evening goes
+- `Activity` holds only what has no field of its own. The inquiries are merged in when the
+  history is read, so no fact is kept in two tables
 
 ## Database
 
@@ -171,7 +152,9 @@ UI texts, in Thymeleaf templates and in the data itself.
 
 ## htmx
 
-- Full page and fragment share one route. The fragment handler is the same method,
-  selected by `headers = "HX-Request"` on the mapping — no extra library.
+- Full page and fragment share one route, the fragment selected by `headers = "HX-Request"`
+  on its own mapping — no extra library.
 - Fragments live in `templates/fragments` and are named after what they replace.
-- No JavaScript framework, no inline script blocks beyond a few lines.
+- No JavaScript framework, no inline script blocks beyond a few lines. A control the
+  browser does not have — a dropdown with several choices, a form that folds away — is a
+  `details` with checkboxes, not a library.
