@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Zettelkasten')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar('note')}"></header>
+
+<main>
+    <div class="headline">
+        <h1>Zettelkasten</h1>
+    </div>
+
+    <p class="hint">
+        Einfälle, bevor sie weg sind. Ein Zettel gehört zu keinem Event und wird auch zu
+        keinem — wenn aus einer Idee ein Abend wird, entsteht der als eigenes Thema.
+    </p>
+
+    <!--
+      Not boxed: a boxed form insets its fields by its own padding, and the board below
+      starts at the form's outer edge — the cards would read as jutting out to the left.
+      The same shape as the filter row over the event list.
+    -->
+    <div class="stack">
+        <form class="inline" method="post" th:action="@{/note}"
+              th:hx-post="@{/note}"
+              hx-target="#note-board"
+              hx-swap="outerHTML"
+              hx-on::after-request="closeUnlessRefused(this, '#note-board')">
+            <label>Stichwort
+                <input type="text" name="title" required placeholder="Testcontainers-Abend?"
+                       th:value="${submittedTitle}">
+            </label>
+            <label>Notiz
+                <input type="text" name="text" th:value="${submittedText}">
+            </label>
+            <button type="submit">Notieren</button>
+        </form>
+
+        <div th:replace="~{fragments/note-board :: note-board}"></div>
+    </div>
+</main>
+</body>
+</html>

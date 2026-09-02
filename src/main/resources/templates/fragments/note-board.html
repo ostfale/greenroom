@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="note-board" th:fragment="note-board">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <p class="hint" th:if="${#lists.isEmpty(notes)}">Noch nichts notiert.</p>
+
+    <div class="bento" th:unless="${#lists.isEmpty(notes)}">
+        <!--
+          One slip per tile, newest first. The card and the editor are the same tile in two
+          states, and each swaps only itself — the board around it is not re-rendered.
+        -->
+        <th:block th:each="note : ${notes}">
+            <section th:replace="~{:: note-card}"></section>
+        </th:block>
+    </div>
+</div>
+
+<section class="tile quarter" th:fragment="note-card">
+    <p class="hint"
+       th:text="${#temporals.format(note.writtenAt, 'dd.MM.yyyy HH:mm')}">02.09.2026 09:14</p>
+    <h3 th:text="${note.title}">Ein Stichwort</h3>
+    <p th:if="${note.text}" th:text="${note.text}">Der Freitext dazu.</p>
+
+    <div class="actions">
+        <button type="button" class="link"
+                th:hx-get="@{/note/{id}/edit(id=${note.id})}"
+                hx-target="closest .tile" hx-swap="outerHTML">Ändern</button>
+        <button type="button" class="link"
+                th:hx-post="@{/note/{id}/remove(id=${note.id})}"
+                hx-target="#note-board" hx-swap="outerHTML">Wegwerfen</button>
+    </div>
+</section>
+
+<!-- The same tile, opened. The stamp stays visible: changing a note does not re-date it. -->
+<section class="tile quarter" th:fragment="note-editor">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <p class="hint"
+       th:text="${#temporals.format(note.writtenAt, 'dd.MM.yyyy HH:mm')}">02.09.2026 09:14</p>
+
+    <form method="post" th:action="@{/note/{id}(id=${note.id})}"
+          th:hx-post="@{/note/{id}(id=${note.id})}"
+          hx-target="closest .tile" hx-swap="outerHTML">
+        <label>Stichwort
+            <input type="text" name="title" required th:value="${note.title}">
+        </label>
+        <label>Notiz
+            <textarea name="text" rows="3" th:text="${note.text}"></textarea>
+        </label>
+
+        <div class="actions">
+            <button type="submit">Speichern</button>
+            <button type="button" class="link"
+                    th:hx-get="@{/note/{id}(id=${note.id})}"
+                    hx-target="closest .tile" hx-swap="outerHTML">Abbrechen</button>
+        </div>
+    </form>
+</section>
+
+<!-- Somebody threw it away in another tab. The tile says so instead of coming back empty. -->
+<section class="tile quarter" th:fragment="note-gone">
+    <p class="error">Diese Notiz gibt es nicht mehr — bitte die Seite neu laden.</p>
+</section>
+</body>
+</html>

@@ -213,3 +213,18 @@ create index activity_event on activity (event_id);
 
 comment on column activity.channel is
     'Null exactly for a NOTE: a note went nowhere, so there is no way it went.';
+
+-- The slip box. Points at nothing and nothing points at it: an idea is written down before
+-- there is an evening to file it under.
+create table note
+(
+    id         bigserial primary key,
+    written_at timestamp not null,
+    title      text      not null,
+    text       text
+);
+
+create index note_written_at on note (written_at desc);
+
+comment on table note is
+    'Unlike activity these may be thrown away: a note records what was thought, not what happened.';

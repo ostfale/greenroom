@@ -2,6 +2,7 @@ package de.ostfale.greenroom;
 
 import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.application.port.out.LocationRepository;
+import de.ostfale.greenroom.application.port.out.NoteRepository;
 import de.ostfale.greenroom.application.port.out.SpeakerRepository;
 import de.ostfale.greenroom.application.port.out.TagRepository;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -25,7 +26,8 @@ public class TestcontainersConfiguration {
     /** Available wherever this configuration is imported, which is every test with a database. */
     @Bean
     public TestDatabase testDatabase(EventRepository events, SpeakerRepository speakers,
-                                     LocationRepository locations, TagRepository tags) {
-        return new TestDatabase(events, speakers, locations, tags);
+                                     LocationRepository locations, TagRepository tags,
+                                     NoteRepository notes) {
+        return new TestDatabase(events, speakers, locations, tags, notes);
     }
 }

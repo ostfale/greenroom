@@ -93,5 +93,11 @@ of them. Only the table is swapped, so the selects keep what was picked. A topic
 without a date belongs to no year and shows only under "Alle Jahre" — the page says how
 many are being held back.
 
+`/note` is the slip box: a stamp, a keyword and free text, written down, put right and
+thrown away again. A card and its editor are the same tile in two states and each swaps
+only itself; the stamp says when the note was written and does not move when it is changed. A `Note` points at nothing and nothing points at it — an idea is written down before
+there is an evening to file it under, and when one comes of it, that evening is created as
+a topic of its own.
+
 What is missing are the mail, geo, importer and scheduling adapters the layout above
 already names.

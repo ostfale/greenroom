@@ -77,6 +77,7 @@ Use these names — they come from the domain, not from the framework:
 - `motto` — optional name for an evening, used when it carries several talks.
 - `SpeakerInquiry`, `VenueInquiry` — a request that was sent, with an outcome.
 - `Activity` — a line of what happened that has no field of its own.
+- `Note` — a slip in the box: an idea with a stamp, belonging to nothing.
 - `Speaker`, `Location`, `ContactPerson`, `Tag`
 - Domain events are named after what happened: `SpeakerConfirmed`, `VenueConfirmed`.
 
@@ -131,6 +132,9 @@ History:
   declares no way to; the only deletion is the cascade when the evening goes
 - `Activity` holds only what has no field of its own. The inquiries are merged in when the
   history is read, so no fact is kept in two tables
+- a `Note` is the opposite and points at nothing: it records what was thought, not what
+  happened, so it may be changed and thrown away. Its stamp says when it was written and
+  does not move when it is put right
 
 ## Database
 
