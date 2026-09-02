@@ -80,7 +80,7 @@ class SettingsControllerTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        assertThat(Jsoup.parse(html).selectFirst("p.error").text()).contains("Schlagwort");
+        assertThat(Jsoup.parse(html).selectFirst("p.error").text()).contains("Tag");
         assertThat(tags.all()).isEmpty();
     }
 
@@ -103,7 +103,7 @@ class SettingsControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         assertThat(Jsoup.parse(html).selectFirst("#tag-list p.hint").text())
-                .isEqualTo("Noch keine Schlagwörter angelegt.");
+                .isEqualTo("Noch keine Tags angelegt.");
     }
 
     @Test
@@ -189,7 +189,7 @@ class SettingsControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("#tag-list p.hint").text())
-                .contains("Noch keine Schlagwörter");
+                .contains("Noch keine Tags");
         assertThat(tags.all()).isEmpty();
     }
 

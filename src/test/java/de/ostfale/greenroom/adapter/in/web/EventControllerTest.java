@@ -207,7 +207,7 @@ class EventControllerTest {
     void aTopicShowsADashForWhatIsNotSettledYet() throws Exception {
         events.add(Event.draftFor(Talk.by(TalkSpeaker.of(speakerId))));
 
-        String html = mvc.perform(get("/event")).andExpect(status().isOk())
+        String html = mvc.perform(get("/event").param("year", "")).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
         assertThat(Jsoup.parse(html).select("#event-table tbody tr td").eachText())
@@ -219,11 +219,11 @@ class EventControllerTest {
         events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Noch offen"));
         events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Abgesagt").moveTo(EventStatus.CANCELLED));
 
-        String all = mvc.perform(get("/event")).andReturn().getResponse().getContentAsString();
+        String all = mvc.perform(get("/event").param("year", "")).andReturn().getResponse().getContentAsString();
         assertThat(Jsoup.parse(all).select("#event-table tbody tr td:nth-child(2)").eachText())
                 .containsExactlyInAnyOrder("Noch offen", "Abgesagt");
 
-        String open = mvc.perform(get("/event").param("hideClosed", "true"))
+        String open = mvc.perform(get("/event").param("year", "").param("hideClosed", "true"))
                 .andReturn().getResponse().getContentAsString();
         assertThat(Jsoup.parse(open).select("#event-table tbody tr td:nth-child(2)").eachText())
                 .containsExactly("Noch offen");
@@ -233,7 +233,7 @@ class EventControllerTest {
     void anHtmxRequestGetsTheBareTableAndNoPageAroundIt() throws Exception {
         events.add(Event.draftFor(aReadyTalk(speakerId)));
 
-        String fragment = mvc.perform(get("/event").header("HX-Request", "true"))
+        String fragment = mvc.perform(get("/event").param("year", "").header("HX-Request", "true"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
@@ -263,7 +263,7 @@ class EventControllerTest {
         events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Alt").withDate(EVENING.minusMonths(1)));
         events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Neu").withDate(EVENING));
 
-        String html = mvc.perform(get("/event")).andReturn().getResponse().getContentAsString();
+        String html = mvc.perform(get("/event").param("year", "")).andReturn().getResponse().getContentAsString();
 
         assertThat(Jsoup.parse(html).select("#event-table tbody tr td:nth-child(2)").eachText())
                 .containsExactly("Neu", "Alt", "Ohne Termin");
@@ -275,7 +275,7 @@ class EventControllerTest {
     void theListLinksToTheEvening() throws Exception {
         Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Java-Herbst")).id();
 
-        String html = mvc.perform(get("/event")).andReturn().getResponse().getContentAsString();
+        String html = mvc.perform(get("/event").param("year", "")).andReturn().getResponse().getContentAsString();
 
         assertThat(Jsoup.parse(html).selectFirst("#event-table tbody tr a").attr("href"))
                 .isEqualTo("/event/" + id);
@@ -1294,7 +1294,7 @@ class EventControllerTest {
                 .andReturn().getResponse().getContentAsString());
 
         assertThat(page.select("section.tile h2").eachText())
-                .containsExactly("Eckdaten", "Planung", "Schlagwörter", "Ort", "Referenten",
+                .containsExactly("Eckdaten", "Planung", "Tags", "Ort", "Referenten",
                         "Vorträge", "Anfragen an Referenten", "Anfragen an Orte",
                         "Verlauf");
         // Stretch is what makes venue and speakers end together, and the keywords close
@@ -1551,5 +1551,236 @@ class EventControllerTest {
 
         assertThat(page.selectFirst("#event-history p.hint").text()).isEqualTo("Noch nichts passiert.");
         assertThat(page.select("#event-history tbody tr")).isEmpty();
+    }
+
+    // The filter bar over the list: year, speaker, place, keyword — and they add up.
+
+    @Test
+    void theListIsNarrowedToAYear() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(LocalDate.of(2026, 9, 24))
+                .withMotto("Dieses Jahr"));
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(LocalDate.of(2025, 9, 24))
+                .withMotto("Letztes Jahr"));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event").param("year", "2025"))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-table tbody tr td:nth-child(2)").eachText())
+                .containsExactly("Letztes Jahr");
+    }
+
+    /** A topic has no date, so it belongs to no year and only shows under "Alle Jahre". */
+    @Test
+    void aTopicWithoutADateIsNotInAnyYear() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Noch ohne Termin"));
+
+        Document everyYear = Jsoup.parse(mvc.perform(get("/event").param("year", ""))
+                .andReturn().getResponse().getContentAsString());
+        assertThat(everyYear.select("#event-table tbody tr")).hasSize(1);
+        assertThat(everyYear.select("p.hint")).isEmpty();
+
+        Document oneYear = Jsoup.parse(mvc.perform(get("/event").param("year", "2026"))
+                .andReturn().getResponse().getContentAsString());
+        assertThat(oneYear.select("#event-table tbody tr")).isEmpty();
+        assertThat(oneYear.selectFirst("p.hint").text()).contains("gehören noch in kein Jahr");
+    }
+
+    /** The list opens on what is being planned, without anybody picking a year. */
+    @Test
+    void theListOpensOnThisYear() throws Exception {
+        int thisYear = LocalDate.now().getYear();
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Dieses Jahr")
+                .withDate(LocalDate.of(thisYear, 9, 24)));
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Letztes Jahr")
+                .withDate(LocalDate.of(thisYear - 1, 9, 24)));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event"))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-table tbody tr td:nth-child(2)").eachText())
+                .containsExactly("Dieses Jahr");
+        assertThat(page.selectFirst("select[name=year] option[selected]").text())
+                .isEqualTo("Dieses Jahr (" + thisYear + ")");
+    }
+
+    /** The hint is only said when a topic is actually being held back. */
+    @Test
+    void theYearIsSilentWhenNoTopicIsHeldBack() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event"))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("p.hint")).isEmpty();
+    }
+
+    @Test
+    void theListIsNarrowedToASpeaker() throws Exception {
+        Long anna = speakers.add(Speaker.of("Anna Albers", "anna@example.org")).id();
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Von Max"));
+        events.add(Event.draftFor(aReadyTalk(anna)).withMotto("Von Anna"));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event").param("year", "")
+                        .param("speakerId", anna.toString()))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-table tbody tr td:nth-child(2)").eachText())
+                .containsExactly("Von Anna");
+    }
+
+    @Test
+    void theListIsNarrowedToAPlace() throws Exception {
+        Long place = locations.add(aLocation()).id();
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Bei der Musterfirma")
+                .withLocation(place));
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Noch ohne Ort"));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event").param("year", "")
+                        .param("locationId", place.toString()))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-table tbody tr td:nth-child(2)").eachText())
+                .containsExactly("Bei der Musterfirma");
+    }
+
+    /**
+     * Both sources: the maintained list holds what is ready but sits on no evening yet, and
+     * the evenings hold what was dropped in the settings and is still what they carry.
+     */
+    @Test
+    void theTagsOfferedAreTheListAndWhatTheEveningsCarry() throws Exception {
+        tags.add(Tag.named("Noch ungenutzt"));
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Mit Spring")
+                .withTags(List.of("Spring")));
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Ohne"));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event").param("year", ""))
+                .andReturn().getResponse().getContentAsString());
+
+        // Sorted, ignoring case, and with no "Alle" entry: picking none means all of them.
+        assertThat(page.select("form.filters .combo .toggle").eachText())
+                .containsExactly("Noch ungenutzt", "Spring");
+        assertThat(page.select("form.filters input[name=tag][type=checkbox]")).hasSize(2);
+        // Collapsed, so a long list does not push the table down.
+        assertThat(page.selectFirst("form.filters details.combo").hasAttr("open")).isFalse();
+        assertThat(page.selectFirst("form.filters details.combo > summary").text()).isEqualTo("Alle");
+    }
+
+    @Test
+    void oneTagNarrowsTheListAndIgnoresCase() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Mit Spring")
+                .withTags(List.of("Spring")));
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Ohne"));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event").param("year", "")
+                        .param("tag", "spring"))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-table tbody tr td:nth-child(2)").eachText())
+                .containsExactly("Mit Spring");
+    }
+
+    /** Several tags widen: an evening passes when it carries any one of them. */
+    @Test
+    void severalTagsLetThroughWhateverCarriesAnyOfThem() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Mit Spring")
+                .withTags(List.of("Spring")));
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Mit Kotlin")
+                .withTags(List.of("Kotlin")));
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Mit Testing")
+                .withTags(List.of("Testing")));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event").param("year", "")
+                        .param("tag", "Spring").param("tag", "Kotlin"))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-table tbody tr td:nth-child(2)").eachText())
+                .containsExactlyInAnyOrder("Mit Spring", "Mit Kotlin");
+        assertThat(page.select("form.filters input[name=tag][checked]").eachAttr("value"))
+                .containsExactlyInAnyOrder("Spring", "Kotlin");
+        // What is picked is readable while the panel is shut.
+        assertThat(page.selectFirst("form.filters details.combo > summary").text())
+                .isEqualTo("2 ausgewählt");
+    }
+
+    @Test
+    void theFieldsOfTheFilterAddUp() throws Exception {
+        Long anna = speakers.add(Speaker.of("Anna Albers", "anna@example.org")).id();
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING).withMotto("Max 2026"));
+        events.add(Event.draftFor(aReadyTalk(anna)).withDate(EVENING).withMotto("Anna 2026"));
+        events.add(Event.draftFor(aReadyTalk(anna)).withDate(LocalDate.of(2025, 9, 24))
+                .withMotto("Anna 2025"));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event")
+                        .param("year", "2026")
+                        .param("speakerId", anna.toString()))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-table tbody tr td:nth-child(2)").eachText())
+                .containsExactly("Anna 2026");
+    }
+
+    /** An empty list because of a filter is a different sentence from an empty database. */
+    @Test
+    void anEmptyResultSaysItIsTheFilterAndOffersAWayBack() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event").param("year", "2019"))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.selectFirst("#event-table caption").text())
+                .isEqualTo("Kein Event passt zu diesem Filter.");
+        assertThat(page.select("form.filters a").eachText()).contains("Filter zurücksetzen");
+    }
+
+    /** The year the list opens on is not a filter somebody picked, so there is no way back. */
+    @Test
+    void theListAsItOpensOffersNoWayBack() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event"))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("form.filters a")).isEmpty();
+        assertThat(page.selectFirst("#event-table caption")).isNull();
+    }
+
+    /** Picking any other year does offer one. */
+    @Test
+    void aPickedYearOffersTheWayBack() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event").param("year", ""))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("form.filters a").eachText()).contains("Filter zurücksetzen");
+    }
+
+    /** Only the table is swapped, so the selects keep what was picked. */
+    @Test
+    void theFilterBarIsNotPartOfTheSwappedFragment() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId)));
+
+        String fragment = mvc.perform(get("/event").header("HX-Request", "true")
+                        .param("hideClosed", "true"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(fragment).doesNotContain("form").doesNotContain("select");
+    }
+
+    @Test
+    void whatWasPickedComesBackSelectedOnTheFullPage() throws Exception {
+        Long place = locations.add(aLocation()).id();
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING).withLocation(place));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event")
+                        .param("locationId", place.toString())
+                        .param("hideClosed", "true"))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.selectFirst("select[name=locationId] option[selected]").text())
+                .isEqualTo("Musterfirma GmbH");
+        assertThat(page.selectFirst("input[name=hideClosed]").hasAttr("checked")).isTrue();
     }
 }

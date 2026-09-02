@@ -660,6 +660,115 @@ ul.tags {
     accent-color: var(--green);
 }
 
+/* --- the filter bar over the event list -------------------------------------------- */
+
+/* The four selects share one line. They have no width of their own — a min-width floor is
+   what would break the row, not the number of controls. */
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    /* Tops, not bottoms: the tag box is taller than the rest, and this way the four
+       labels still line up and the box hangs down instead of pushing its label above. */
+    align-items: flex-start;
+    gap: .75rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.filters > label,
+.filters > .field {
+    flex: 1 1 0;
+    margin: 0;
+}
+
+/* Not a label, because it holds a details rather than one control — but it reads as one. */
+.filters > .field {
+    display: grid;
+    gap: .3125rem;
+    min-width: 0;
+}
+
+.filters > .field > span {
+    color: var(--muted);
+    font: 500 .6875rem/1 var(--mono);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.filters .combo {
+    position: relative;
+}
+
+.filters .combo > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .5rem .6875rem;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    font: 400 .9375rem/1.4 var(--sans);
+    white-space: nowrap;
+    overflow: hidden;
+    list-style: none;
+    cursor: pointer;
+}
+
+.filters .combo > summary::-webkit-details-marker {
+    display: none;
+}
+
+.filters .combo > summary::after {
+    content: "▾";
+    color: var(--muted);
+    font-size: .75rem;
+}
+
+/* Over the page, not in it: opening this must not move the table underneath. */
+.filters .combo > .options {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + .25rem);
+    left: 0;
+    min-width: 100%;
+    max-height: 15rem;
+    margin: 0;
+    padding: .5rem .6875rem;
+    overflow-y: auto;
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow);
+}
+
+.filters .combo .toggle {
+    margin: 0;
+    padding: .1875rem 0;
+    color: var(--ink);
+    font-size: .875rem;
+    white-space: nowrap;
+}
+
+/* Full width, so it starts the line below the selects rather than squeezing onto theirs. */
+.filters .tail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem 1rem;
+    flex: 1 0 100%;
+}
+
+.filters .tail .toggle {
+    margin: 0;
+}
+
+.filters a {
+    white-space: nowrap;
+    font: 400 .8125rem/1.4 var(--sans);
+}
+
 /* In the row of keywords the toggles are chips, and chips sit side by side. */
 ul.tags .toggle {
     margin-bottom: 0;
@@ -689,6 +798,13 @@ ul.tags .toggle {
 @media (max-width: 62rem) {
     .bento {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* Below this the four selects would be too narrow to read, so they wrap among
+       themselves — the line below stays the line below either way. */
+    .filters > label,
+    .filters > .field {
+        flex: 1 1 10rem;
     }
 
     .tile.three,

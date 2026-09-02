@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.adapter.in.web;
 
+import de.ostfale.greenroom.application.port.in.EventFilter;
 import de.ostfale.greenroom.application.port.in.ManageActivities;
 import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
@@ -34,6 +35,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -66,16 +69,61 @@ public class EventController {
     }
 
     @GetMapping
-    public String list(@RequestParam(defaultValue = "false") boolean hideClosed, Model model) {
-        fill(model, hideClosed);
+    public String list(@RequestParam(defaultValue = "false") boolean hideClosed,
+                       @RequestParam(required = false) String year,
+                       @RequestParam(defaultValue = "") String speakerId,
+                       @RequestParam(defaultValue = "") String locationId,
+                       @RequestParam(name = "tag", required = false) List<String> tag,
+                       Model model) {
+        fill(model, narrowedTo(hideClosed, year, speakerId, locationId, tag));
         return "event/list";
     }
 
-    /** The same route for htmx: only the table comes back when the filter is toggled. */
+    /**
+     * The same route for htmx: only the table comes back. The filter bar is not swapped
+     * with it, so the selects keep what was picked.
+     */
     @GetMapping(headers = "HX-Request")
-    public String listFragment(@RequestParam(defaultValue = "false") boolean hideClosed, Model model) {
-        fill(model, hideClosed);
+    public String listFragment(@RequestParam(defaultValue = "false") boolean hideClosed,
+                               @RequestParam(required = false) String year,
+                               @RequestParam(defaultValue = "") String speakerId,
+                               @RequestParam(defaultValue = "") String locationId,
+                               @RequestParam(name = "tag", required = false) List<String> tag,
+                               Model model) {
+        fill(model, narrowedTo(hideClosed, year, speakerId, locationId, tag));
         return "fragments/event-table :: event-table";
+    }
+
+    /** An empty select is not a value but the absence of one, so it narrows nothing. */
+    private static EventFilter narrowedTo(boolean hideClosed, String year, String speakerId,
+                                          String locationId, List<String> tag) {
+        return new EventFilter(hideClosed, yearOrThisOne(year), number(speakerId),
+                number(locationId), tag);
+    }
+
+    /**
+     * No parameter at all means this year: the list opens on what is being planned. An
+     * empty one is the "Alle Jahre" somebody picked, and the form sends it from then on —
+     * which is why the two cases have to stay apart.
+     */
+    private static Integer yearOrThisOne(String year) {
+        if (year == null) {
+            return LocalDate.now().getYear();
+        }
+        Long picked = number(year);
+        return picked == null ? null : picked.intValue();
+    }
+
+    /** What a select sends, or {@code null} when it was left on "alle". */
+    private static Long number(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(value.strip());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     @GetMapping("/new")
@@ -140,11 +188,38 @@ public class EventController {
         return "Bitte einen Referenten auswählen.";
     }
 
-    private void fill(Model model, boolean hideClosed) {
-        model.addAttribute("events", hideClosed ? events.allStillOpen() : events.all());
-        model.addAttribute("hideClosed", hideClosed);
+    private void fill(Model model, EventFilter filter) {
+        List<Event> all = events.all();
+        int thisYear = LocalDate.now().getYear();
+        model.addAttribute("events", events.matching(filter));
+        model.addAttribute("filter", filter);
+        model.addAttribute("thisYear", thisYear);
+        model.addAttribute("lastYear", thisYear - 1);
+        // What the list opens with is not a filter somebody picked, so it offers no way back.
+        model.addAttribute("filtered", !filter.equals(EventFilter.forYear(thisYear)));
+        // An empty table because of a filter is a different sentence from an empty database.
+        model.addAttribute("anyEvents", !all.isEmpty());
+        // A year holds only what has a date, and the topics are the ones worth missing.
+        model.addAttribute("topicsHidden", filter.year() == null ? 0
+                : all.stream().filter(event -> event.date() == null).count());
+        model.addAttribute("speakers", speakers.all());
+        model.addAttribute("locations", locations.all());
+        model.addAttribute("tagChoices", tagFilterChoices(all));
         model.addAttribute("locationNames", locations.all().stream()
                 .collect(Collectors.toMap(Location::id, Location::name)));
+    }
+
+    /**
+     * Both sources, because either alone leaves something out: the maintained list holds
+     * the words that are ready to be used but sit on no evening yet, and the evenings hold
+     * the words that were renamed or dropped in the settings and are still what an evening
+     * was announced with. Case is ignored, the way an event matches its own tags.
+     */
+    private List<String> tagFilterChoices(List<Event> all) {
+        Set<String> words = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        tags.all().forEach(word -> words.add(word.name()));
+        all.forEach(event -> words.addAll(event.tags()));
+        return List.copyOf(words);
     }
 
     private static Map<String, String> submitted(String speakerId, String title, String date) {
@@ -534,10 +609,10 @@ public class EventController {
             return "Diese Anfrage gibt es nicht mehr — bitte die Seite neu laden.";
         }
         if (reason.contains("is on this event twice")) {
-            return "Dieses Schlagwort steht schon an diesem Event.";
+            return "Dieser Tag steht schon an diesem Event.";
         }
         if (reason.contains("a tag needs a word")) {
-            return "Ein Schlagwort braucht ein Wort.";
+            return "Ein Tag braucht ein Wort.";
         }
         if (reason.contains("at least one talk")) {
             return "Der letzte Vortrag kann nicht entfernt werden — ohne ihn ist es kein Event.";

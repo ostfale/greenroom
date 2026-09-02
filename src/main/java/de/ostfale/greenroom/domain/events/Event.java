@@ -165,6 +165,21 @@ public record Event(
         return tags.stream().anyMatch(own -> own.equalsIgnoreCase(tag));
     }
 
+    /** In that calendar year. A topic without a date belongs to no year yet. */
+    public boolean isIn(int year) {
+        return date != null && date.getYear() == year;
+    }
+
+    /** Whether that person speaks here, on whichever of the talks. */
+    public boolean isGivenBy(Long speaker) {
+        return speaker != null && talks.stream().anyMatch(talk -> talk.speakers().stream()
+                .anyMatch(announced -> speaker.equals(announced.speakerId())));
+    }
+
+    public boolean isAt(Long place) {
+        return place != null && place.equals(locationId);
+    }
+
     /** What to put in a list or a heading. Null while a single talk still has no title. */
     public String displayName() {
         return motto != null ? motto : nameFromItsTalk();

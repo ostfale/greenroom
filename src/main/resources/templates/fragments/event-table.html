@@ -3,7 +3,10 @@
 <body>
 <div id="event-table" class="card" th:fragment="event-table">
     <table>
-        <caption th:if="${#lists.isEmpty(events)}">Noch kein Event geplant.</caption>
+        <!-- Nothing planned and nothing matching are two different empty lists. -->
+        <caption th:if="${#lists.isEmpty(events)}"
+                 th:text="${anyEvents} ? 'Kein Event passt zu diesem Filter.'
+                                       : 'Noch kein Event geplant.'">Noch kein Event geplant.</caption>
         <thead th:unless="${#lists.isEmpty(events)}">
         <tr>
             <th>Datum</th>

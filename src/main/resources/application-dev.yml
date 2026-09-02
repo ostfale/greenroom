@@ -7,3 +7,11 @@ spring:
     clean-disabled: false
   thymeleaf:
     cache: false
+  web:
+    resources:
+      # CSS and the vendored htmx straight from the source tree instead of from
+      # target/classes, and without a cache header. The same idea as the Thymeleaf cache
+      # being off: an edit shows on reload, with no rebuild and no stale file in between.
+      static-locations: file:src/main/resources/static/,classpath:/static/
+      cache:
+        period: 0

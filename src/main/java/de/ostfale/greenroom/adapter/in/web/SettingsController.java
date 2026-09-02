@@ -115,15 +115,15 @@ public class SettingsController {
     private static String message(IllegalArgumentException e, String name) {
         String reason = e.getMessage() == null ? "" : e.getMessage();
         if (reason.contains("already on the list")) {
-            return "Das Schlagwort " + name.strip() + " steht schon auf der Liste.";
+            return "Der Tag " + name.strip() + " steht schon auf der Liste.";
         }
         if (reason.contains("there is no tag")) {
             return gone();
         }
-        return "Bitte ein Schlagwort eingeben.";
+        return "Bitte einen Tag eingeben.";
     }
 
     private static String gone() {
-        return "Dieses Schlagwort gibt es nicht mehr — bitte die Seite neu laden.";
+        return "Diesen Tag gibt es nicht mehr — bitte die Seite neu laden.";
     }
 }

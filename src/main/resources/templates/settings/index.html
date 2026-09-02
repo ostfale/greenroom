@@ -11,9 +11,9 @@
 
     <div class="bento">
         <section class="tile half">
-            <h2>Schlagwörter</h2>
+            <h2>Tags</h2>
             <p class="hint">
-                Die Liste, aus der ein Event seine Schlagwörter bekommt. Groß- und
+                Die Liste, aus der ein Event seine Tags bekommt. Groß- und
                 Kleinschreibung spielt keine Rolle: dasselbe Wort gibt es nur einmal.
             </p>
 
@@ -22,7 +22,7 @@
                   hx-target="#tag-list"
                   hx-swap="outerHTML"
                   hx-on::after-request="this.reset()">
-                <label>Neues Schlagwort
+                <label>Neuer Tag
                     <input type="text" name="name" required placeholder="Spring"
                            th:value="${submittedName}">
                 </label>

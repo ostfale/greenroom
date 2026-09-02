@@ -13,14 +13,89 @@
         </div>
     </div>
 
-    <label class="toggle">
-        <input type="checkbox" name="hideClosed" value="true" th:checked="${hideClosed}"
-               th:hx-get="@{/event}"
-               hx-target="#event-table"
-               hx-swap="outerHTML"
-               hx-trigger="change">
-        Abgesagte und erledigte Events ausblenden
-    </label>
+    <!--
+      One row. Only the table is swapped, never this form: the selects have to keep what
+      was picked. "Filter zurücksetzen" is a plain link for the same reason — it reloads
+      the page, and that is what puts the row back to how it opens.
+    -->
+    <form class="filters" method="get" th:action="@{/event}"
+          th:hx-get="@{/event}"
+          hx-target="#event-table"
+          hx-swap="outerHTML"
+          hx-trigger="change">
+        <label>Jahr
+            <select name="year">
+                <option th:value="${thisYear}" th:selected="${filter.year} == ${thisYear}"
+                        th:text="|Dieses Jahr (${thisYear})|">Dieses Jahr</option>
+                <option th:value="${lastYear}" th:selected="${filter.year} == ${lastYear}"
+                        th:text="|Letztes Jahr (${lastYear})|">Letztes Jahr</option>
+                <option value="" th:selected="${filter.year} == null">Alle Jahre</option>
+            </select>
+        </label>
+
+        <label>Referent
+            <select name="speakerId">
+                <option value="">Alle</option>
+                <option th:each="person : ${speakers}" th:value="${person.id}"
+                        th:selected="${person.id} == ${filter.speakerId}"
+                        th:text="${person.name}">Max Muster</option>
+            </select>
+        </label>
+
+        <label>Ort
+            <select name="locationId">
+                <option value="">Alle</option>
+                <option th:each="place : ${locations}" th:value="${place.id}"
+                        th:selected="${place.id} == ${filter.locationId}"
+                        th:text="${place.name}">Musterfirma GmbH</option>
+            </select>
+        </label>
+
+        <!--
+          Several at once, so no "Alle" entry: picking none is what means all of them.
+          Not a native multiple select — that is always a list box, and a list box pushes
+          the table below it down. This is the details-and-checkboxes the forms already
+          use, and its panel floats over the page instead of moving it.
+        -->
+        <div class="field">
+            <span>Tags</span>
+            <details class="combo">
+                <summary th:text="${#lists.isEmpty(filter.tags)} ? 'Alle'
+                                : (${#lists.size(filter.tags)} == 1 ? ${filter.tags[0]}
+                                : ${#lists.size(filter.tags)} + ' ausgewählt')">Alle</summary>
+                <ul class="options">
+                    <li th:if="${#lists.isEmpty(tagChoices)}" class="hint">
+                        Noch keine Tags angelegt.
+                    </li>
+                    <li th:each="word : ${tagChoices}">
+                        <label class="toggle">
+                            <input type="checkbox" name="tag" th:value="${word}"
+                                   th:checked="${filter.tags.contains(word)}">
+                            <span th:text="${word}">Spring</span>
+                        </label>
+                    </li>
+                </ul>
+            </details>
+        </div>
+
+        <!-- Everything that is not one of the four selects gets the line below them. -->
+        <div class="tail">
+            <label class="toggle">
+                <input type="checkbox" name="hideClosed" value="true"
+                       th:checked="${filter.hideClosed}">
+                Abgeschlossene ausblenden
+            </label>
+
+            <a th:if="${filtered}" th:href="@{/event}">Filter zurücksetzen</a>
+        </div>
+    </form>
+
+    <!-- Said only when something is actually being held back, not on every year. -->
+    <p class="hint" th:if="${topicsHidden} > 0">
+        <span th:text="${topicsHidden}">3</span>
+        Themen ohne Termin gehören noch in kein Jahr und stehen deshalb nicht in dieser
+        Liste — unter „Alle Jahre" schon.
+    </p>
 
     <div th:replace="~{fragments/event-table :: event-table}"></div>
 </main>

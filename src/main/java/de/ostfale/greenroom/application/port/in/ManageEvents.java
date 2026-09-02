@@ -17,8 +17,12 @@ public interface ManageEvents {
     /** Newest evening first; the topics without a date sit at the end. */
     List<Event> all();
 
-    /** The same list without what is over and done with. */
-    List<Event> allStillOpen();
+    /**
+     * The same list, narrowed down. One way of selecting rather than a method per filter:
+     * the fields of {@link EventFilter} add up, and "everything" is
+     * {@link EventFilter#none()}.
+     */
+    List<Event> matching(EventFilter filter);
 
     Optional<Event> byId(Long id);
 

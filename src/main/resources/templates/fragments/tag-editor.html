@@ -10,7 +10,7 @@
           th:hx-post="@{/settings/tag/{id}(id=${tagId})}"
           hx-target="#tag-list"
           hx-swap="outerHTML">
-        <label>Schlagwort
+        <label>Tag
             <input type="text" name="name" required th:value="${tagName}" autofocus>
         </label>
         <button type="submit">Speichern</button>

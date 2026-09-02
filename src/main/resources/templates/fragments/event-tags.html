@@ -5,8 +5,8 @@
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
     <div th:if="${#lists.isEmpty(tagChoices)}">
-        <p class="hint">Es ist noch kein Schlagwort angelegt.</p>
-        <p><a class="button" th:href="@{/settings}">Schlagwörter pflegen</a></p>
+        <p class="hint">Es ist noch kein Tag angelegt.</p>
+        <p><a class="button" th:href="@{/settings}">Tags pflegen</a></p>
     </div>
 
     <form th:unless="${#lists.isEmpty(tagChoices)}" method="post"
@@ -25,7 +25,7 @@
         </ul>
 
         <div class="actions">
-            <button type="submit">Schlagwörter speichern</button>
+            <button type="submit">Tags speichern</button>
         </div>
     </form>
 </div>

@@ -87,5 +87,11 @@ page asks for the history, so no fact is kept in two tables. Entries are append-
 record has no way to change one and the port declares no way to delete one. A line that
 turned out wrong is answered by the next line.
 
+The list opens on this year and is narrowed by year, speaker, place and tags in one row;
+the fields add up, except the tags, which take several and let through whatever carries any
+of them. Only the table is swapped, so the selects keep what was picked. A topic
+without a date belongs to no year and shows only under "Alle Jahre" — the page says how
+many are being held back.
+
 What is missing are the mail, geo, importer and scheduling adapters the layout above
 already names.

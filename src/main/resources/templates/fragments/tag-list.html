@@ -4,7 +4,7 @@
 <div id="tag-list" class="stack" th:fragment="tag-list">
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <p class="hint" th:if="${#lists.isEmpty(tags)}">Noch keine Schlagwörter angelegt.</p>
+    <p class="hint" th:if="${#lists.isEmpty(tags)}">Noch keine Tags angelegt.</p>
 
     <!-- A row of chips rather than a column of forms: thirty keywords stay a list. Picking
          one opens it below; renaming or dropping it there leaves the evenings alone, they

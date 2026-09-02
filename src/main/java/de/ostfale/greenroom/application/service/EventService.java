@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.application.service;
 
+import de.ostfale.greenroom.application.port.in.EventFilter;
 import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.domain.events.Event;
@@ -37,10 +38,12 @@ public class EventService implements ManageEvents {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Event> allStillOpen() {
-        var allOpenEvents = all().stream().filter(event -> !event.status().isClosed()).toList();
-        log.debug("EventService :: found {} open events", allOpenEvents.size());
-        return allOpenEvents;
+    public List<Event> matching(EventFilter filter) {
+        // In memory, on the list that was loaded anyway: a few hundred evenings, and a
+        // query assembled from five optional pieces would be the bigger thing by far.
+        var selected = all().stream().filter(filter::matches).toList();
+        log.debug("EventService :: {} of the events match", selected.size());
+        return selected;
     }
 
     @Override
