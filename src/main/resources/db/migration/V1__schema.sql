@@ -163,3 +163,30 @@ create table speaker_inquiry
 );
 
 create index speaker_inquiry_event on speaker_inquiry (event_id);
+
+-- The second question of an evening: the speakers have said yes, so the day is set, and
+-- what is asked is a place. The mirror image of speaker_inquiry, and a table of its own for
+-- the same reason it is an aggregate of its own.
+create table venue_inquiry
+(
+    id           bigserial primary key,
+    event_id     bigint not null references event (id) on delete cascade,
+    location_id  bigint not null references location (id),
+    contact_name text,
+    for_date     date   not null,
+    sent_at      date   not null,
+    channel      text   not null,
+    outcome      text   not null,
+    note         text
+);
+
+create index venue_inquiry_event on venue_inquiry (event_id);
+
+comment on column venue_inquiry.for_date is
+    'Not null, unlike speaker_inquiry.asked_about: a place is asked about a day that is set.';
+
+comment on column venue_inquiry.contact_name is
+    'Whom we wrote to, copied. A contact person who leaves must not rewrite who was asked.';
+
+comment on column venue_inquiry.location_id is
+    'No cascade on purpose: a place that was once asked is kept.';

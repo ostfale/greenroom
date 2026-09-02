@@ -71,6 +71,14 @@ speaker is recognised by their address, so somebody who spoke before is not writ
 twice, and the evening is moved as far along as the data carries it — to `DONE` with a
 venue and a full talk, and no further otherwise.
 
-What is missing is `VenueInquiry` — the sequential one, ask a place, and the next if it
-declines — and `Activity` and `PlanningSettings`, and the mail, geo, importer and
+`VenueInquiry` is the second question, and the mirror image of the first: there the person
+is fixed and the date is asked, here the date is fixed and the place is asked. That is why
+the two are separate aggregates and why a venue inquiry refuses to exist without a date.
+Whom we wrote to is copied onto the inquiry, so a contact person who leaves the company
+does not rewrite who was asked back then. Places are asked one after another — the tile
+names the place still being waited on and how long, but it does not refuse the next
+inquiry: that stays a decision, like the clash warning and like an accepted inquiry that
+moves nothing on by itself.
+
+What is missing is `Activity` and `PlanningSettings`, and the mail, geo, importer and
 scheduling adapters the layout above already names.

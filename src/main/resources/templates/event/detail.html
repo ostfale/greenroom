@@ -71,12 +71,23 @@
         </section>
 
         <section class="tile">
-            <h2>Anfragen</h2>
+            <h2>Anfragen an Referenten</h2>
             <p class="hint">
-                Zuerst der Referent nach dem Termin. Eine Absage wird nicht überschrieben —
-                wer nochmal fragt, legt eine neue Anfrage an, und beide bleiben stehen.
+                Die erste Frage des Abends: Passt der Termin? Eine Absage wird nicht
+                überschrieben — wer nochmal fragt, legt eine neue Anfrage an, und beide
+                bleiben stehen.
             </p>
             <div th:replace="~{fragments/event-inquiries :: event-inquiries}"></div>
+        </section>
+
+        <section class="tile">
+            <h2>Anfragen an Orte</h2>
+            <p class="hint">
+                Die zweite Frage, und andersherum: Der Termin steht, gefragt wird der Ort.
+                Ein Ort nach dem anderen — steht noch eine Antwort aus, sagt die Kachel das,
+                verbietet die nächste Anfrage aber nicht.
+            </p>
+            <div th:replace="~{fragments/event-venue-inquiries :: event-venue-inquiries}"></div>
         </section>
     </div>
 </main>

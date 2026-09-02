@@ -7,11 +7,13 @@ import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.in.ManageSpeakerInquiries;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.in.ManageTags;
+import de.ostfale.greenroom.application.port.in.ManageVenueInquiries;
 import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.application.port.out.SpeakerRepository;
 import de.ostfale.greenroom.domain.activities.ContactChannel;
 import de.ostfale.greenroom.domain.activities.InquiryOutcome;
 import de.ostfale.greenroom.domain.activities.SpeakerInquiry;
+import de.ostfale.greenroom.domain.activities.VenueInquiry;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
@@ -68,6 +70,9 @@ class EventControllerTest {
 
     @Autowired
     private ManageSpeakerInquiries inquiries;
+
+    @Autowired
+    private ManageVenueInquiries venueInquiries;
 
     @Autowired
     private EventRepository eventRepository;
@@ -1284,11 +1289,148 @@ class EventControllerTest {
 
         assertThat(page.select("section.tile h2").eachText())
                 .containsExactly("Eckdaten", "Planung", "Schlagwörter", "Ort", "Referenten",
-                        "Vorträge", "Anfragen");
+                        "Vorträge", "Anfragen an Referenten", "Anfragen an Orte");
         // Stretch is what makes venue and speakers end together, and the keywords close
         // flush with the basics beside them.
         assertThat(page.selectFirst("div.bento").className()).contains("stretch");
         assertThat(page.selectFirst("section.tile").className()).contains("rows-two");
         assertThat(page.select("section.tile").get(2).className()).contains("column-right");
+    }
+
+    // The second question of an evening: the date is fixed, the place is what is asked.
+
+    @Test
+    void aPlaceIsAskedAboutTheDateTheEveningAlreadyHas() throws Exception {
+        Long place = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/venue-inquiry")
+                        .param("locationId", place.toString())
+                        .param("contactName", "Max Muster")
+                        .param("channel", "EMAIL")
+                        .param("sentAt", "2026-09-01")
+                        .param("note", "Raum nur bis 21 Uhr."))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document tile = Jsoup.parseBodyFragment(fragment);
+        assertThat(tile.select("#event-venue-inquiries tbody tr td").eachText())
+                .contains("Musterfirma GmbH", "Max Muster", "01.09.2026", "E-Mail", "24.09.2026",
+                        "Raum nur bis 21 Uhr.");
+        assertThat(venueInquiries.forEvent(id)).singleElement().satisfies(sent -> {
+            assertThat(sent.locationId()).isEqualTo(place);
+            assertThat(sent.forDate()).isEqualTo(EVENING);
+            assertThat(sent.outcome()).isEqualTo(InquiryOutcome.PENDING);
+        });
+    }
+
+    /** The order of asking, as a refusal: a place is asked about a day, not about a topic. */
+    @Test
+    void aPlaceIsNotAskedWhileTheEveningHasNoDate() throws Exception {
+        Long place = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/venue-inquiry")
+                        .param("locationId", place.toString())
+                        .param("channel", "EMAIL"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("Zuerst braucht das Event einen Termin");
+        assertThat(venueInquiries.forEvent(id)).isEmpty();
+    }
+
+    @Test
+    void aVenueInquiryWithoutAPlaceIsRefused() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/venue-inquiry")
+                        .param("locationId", "")
+                        .param("channel", "EMAIL"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("einen Ort auswählen");
+        assertThat(venueInquiries.forEvent(id)).isEmpty();
+    }
+
+    /**
+     * One place after another — but as a hint. The tile points at what is still open and
+     * lets the next inquiry go out anyway: whoever plans the evening decides.
+     */
+    @Test
+    void theOpenInquiryIsPointedAtWithoutRefusingTheNextOne() throws Exception {
+        locations.add(aLocation());
+        Long second = locations.add(Location.of("Zweite GmbH", aContact())).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+        venueInquiries.send(VenueInquiry.sent(id, locations.all().getFirst().id(), "Max Muster",
+                EVENING, LocalDate.now().minusDays(9), ContactChannel.EMAIL));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+        assertThat(page.selectFirst("#event-venue-inquiries p.notice").text())
+                .isEqualTo("Beim Musterfirma GmbH steht seit 9 Tagen eine Antwort aus.");
+
+        mvc.perform(post("/event/" + id + "/venue-inquiry")
+                        .param("locationId", second.toString())
+                        .param("channel", "PHONE"))
+                .andExpect(status().isOk());
+
+        assertThat(venueInquiries.forEvent(id)).hasSize(2);
+    }
+
+    @Test
+    void theAnswerIsWrittenDownAndClosesTheVenueInquiry() throws Exception {
+        Long place = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+        Long inquiryId = venueInquiries.send(VenueInquiry.sent(
+                id, place, "Max Muster", EVENING, LocalDate.now(), ContactChannel.EMAIL)).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/venue-inquiry/" + inquiryId)
+                        .param("outcome", "DECLINED"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document tile = Jsoup.parseBodyFragment(fragment);
+        assertThat(tile.selectFirst("#event-venue-inquiries tbody .badge").text()).isEqualTo("Abgesagt");
+        assertThat(tile.select("#event-venue-inquiries p.notice")).isEmpty();
+        assertThat(venueInquiries.waitingOn(id)).isEmpty();
+    }
+
+    /** The second select is filled from the place that was picked, not typed by hand. */
+    @Test
+    void theContactsOfThePickedPlaceAreOffered() throws Exception {
+        Long place = locations.add(aLocation()).id();
+        locations.addContact(place, ContactPerson.of("Anna Albers", "anna@example.org"));
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        String fragment = mvc.perform(get("/event/" + id + "/venue-inquiry/contacts")
+                        .param("locationId", place.toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).select("select#venue-inquiry-contact option")
+                .eachText()).containsExactly("Max Muster", "Anna Albers");
+    }
+
+    /**
+     * Copied, not referenced — the same reason the announced biography is copied onto the
+     * talk: whoever leaves the company does not rewrite whom we wrote to back then.
+     */
+    @Test
+    void theContactStaysWhatItWasWhenTheLocationChangesIts() throws Exception {
+        Long place = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+        venueInquiries.send(VenueInquiry.sent(id, place, "Max Muster", EVENING,
+                LocalDate.now(), ContactChannel.EMAIL));
+
+        locations.changeContact(place, 0, ContactPerson.of("Anna Albers", "anna@example.org"));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+        assertThat(page.select("#event-venue-inquiries tbody tr td").eachText())
+                .contains("Max Muster").doesNotContain("Anna Albers");
     }
 }

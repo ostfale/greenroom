@@ -5,13 +5,16 @@ import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.in.ManageSpeakerInquiries;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.in.ManageTags;
+import de.ostfale.greenroom.application.port.in.ManageVenueInquiries;
 import de.ostfale.greenroom.domain.activities.ContactChannel;
 import de.ostfale.greenroom.domain.activities.InquiryOutcome;
 import de.ostfale.greenroom.domain.activities.SpeakerInquiry;
+import de.ostfale.greenroom.domain.activities.VenueInquiry;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
 import de.ostfale.greenroom.domain.events.TalkSpeaker;
+import de.ostfale.greenroom.domain.locations.ContactPerson;
 import de.ostfale.greenroom.domain.locations.Location;
 import de.ostfale.greenroom.domain.speakers.Speaker;
 import de.ostfale.greenroom.domain.tags.Tag;
@@ -44,14 +47,17 @@ public class EventController {
     private final ManageLocations locations;
     private final ManageTags tags;
     private final ManageSpeakerInquiries inquiries;
+    private final ManageVenueInquiries venueInquiries;
 
     public EventController(ManageEvents events, ManageSpeakers speakers, ManageLocations locations,
-                           ManageTags tags, ManageSpeakerInquiries inquiries) {
+                           ManageTags tags, ManageSpeakerInquiries inquiries,
+                           ManageVenueInquiries venueInquiries) {
         this.events = events;
         this.speakers = speakers;
         this.locations = locations;
         this.tags = tags;
         this.inquiries = inquiries;
+        this.venueInquiries = venueInquiries;
     }
 
     @GetMapping
@@ -311,6 +317,70 @@ public class EventController {
         return tile(id, model, "fragments/event-inquiries :: event-inquiries");
     }
 
+    /**
+     * An inquiry that went out to a place. The date is not asked for: the evening already
+     * has one, and it is copied onto the inquiry as it stands right now.
+     */
+    @PostMapping("/{id}/venue-inquiry")
+    public String sendVenueInquiry(@PathVariable Long id,
+                                   @RequestParam(defaultValue = "") String locationId,
+                                   @RequestParam(defaultValue = "") String contactName,
+                                   @RequestParam(defaultValue = "") String channel,
+                                   @RequestParam(defaultValue = "") String sentAt,
+                                   @RequestParam(defaultValue = "") String note,
+                                   Model model) {
+        try {
+            Event known = events.byId(id).orElseThrow(() ->
+                    new IllegalArgumentException("EventController :: unknown event"));
+            venueInquiries.send(VenueInquiry
+                    .sent(id, askedPlace(locationId), contactName, known.date(), day(sentAt), how(channel))
+                    .withNote(note));
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", planningMessage(e));
+        }
+        return tile(id, model, "fragments/event-venue-inquiries :: event-venue-inquiries");
+    }
+
+    /** What the place answered. Asking the next one is a new inquiry, and both stay. */
+    @PostMapping("/{id}/venue-inquiry/{inquiryId}")
+    public String answerVenueInquiry(@PathVariable Long id,
+                                     @PathVariable Long inquiryId,
+                                     @RequestParam InquiryOutcome outcome,
+                                     Model model) {
+        try {
+            venueInquiries.answer(inquiryId, outcome);
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            model.addAttribute("error", planningMessage(e));
+        }
+        return tile(id, model, "fragments/event-venue-inquiries :: event-venue-inquiries");
+    }
+
+    /**
+     * The people to write to at the place that was just picked. Its own little route
+     * because the second select depends on the first, and htmx swaps it rather than the
+     * whole tile — swapping the tile would fold the form away mid-entry.
+     */
+    @GetMapping("/{id}/venue-inquiry/contacts")
+    public String venueContacts(@PathVariable Long id,
+                                @RequestParam(defaultValue = "") String locationId,
+                                Model model) {
+        model.addAttribute("venueContacts", contactsAt(venue(locationId)));
+        return "fragments/event-venue-inquiries :: venue-contacts";
+    }
+
+    /** Unlike assigning a venue, asking one needs a place: there is nobody to write to else. */
+    private static Long askedPlace(String locationId) {
+        Long place = venue(locationId);
+        if (place == null) {
+            throw new IllegalArgumentException("Event :: no location was chosen");
+        }
+        return place;
+    }
+
+    private List<ContactPerson> contactsAt(Long locationId) {
+        return locations.byId(locationId).map(Location::contacts).orElse(List.of());
+    }
+
     /** Empty means today: an inquiry is written down right after it went out. */
     private static LocalDate day(String date) {
         if (date == null || date.isBlank()) {
@@ -355,15 +425,24 @@ public class EventController {
     }
 
     private void show(Model model, Event event) {
+        List<Location> places = locations.all();
         model.addAttribute("event", event);
         model.addAttribute("transitions", event.status().allowedTargets());
-        model.addAttribute("locations", locations.all());
+        model.addAttribute("locations", places);
         model.addAttribute("clashes", events.clashesWith(event));
         model.addAttribute("tagChoices", tagChoices(event));
         List<Speaker> known = speakers.all();
         List<SpeakerInquiry> answers = inquiries.forEvent(event.id());
         List<Long> asked = speakersOf(event);
         model.addAttribute("inquiries", answers);
+        model.addAttribute("venueInquiries", venueInquiries.forEvent(event.id()));
+        // The place the evening is waiting on. Shown before the next inquiry goes out, and
+        // shown only — asking two places at once stays the planner's call.
+        model.addAttribute("waitingOn", venueInquiries.waitingOn(event.id()).orElse(null));
+        model.addAttribute("locationNames", places.stream()
+                .collect(Collectors.toMap(Location::id, Location::name)));
+        // Filled by its own route once a place is picked; the form opens with none.
+        model.addAttribute("venueContacts", List.<ContactPerson>of());
         // In the order of the talks, not alphabetically: the evening reads that way.
         model.addAttribute("eventSpeakers", asked.stream()
                 .flatMap(speaking -> known.stream().filter(one -> one.id().equals(speaking)))
@@ -404,6 +483,9 @@ public class EventController {
         }
         if (reason.contains("an inquiry needs a channel")) {
             return "Bitte angeben, auf welchem Weg gefragt wurde.";
+        }
+        if (reason.contains("a place is asked about a date")) {
+            return "Zuerst braucht das Event einen Termin — danach werden die Orte gefragt.";
         }
         if (reason.contains("there is no inquiry")) {
             return "Diese Anfrage gibt es nicht mehr — bitte die Seite neu laden.";

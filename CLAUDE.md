@@ -126,6 +126,14 @@ UI texts, in Thymeleaf templates and in the data itself.
 - an inquiry is answered once. A second attempt after a refusal is a new inquiry, so both
   stay in the history, and `askedAbout` copies the date that was proposed. An accepted
   inquiry does not move the event on by itself — the page says so, somebody decides
+- "one after another" is how the venues are asked, not a rule the code enforces. The page
+  names the place still being waited on and how long it has been, and lets the next inquiry
+  go out anyway — the same choice as the clash warning: what is a matter of judgement is
+  shown, not refused. A `VenueInquiry` without a date is refused, though: that one is not
+  judgement but the order of asking, and it is the only field where the two inquiries differ
+- `VenueInquiry.contactName` copies the name of the person who was written to, for the
+  reason the announced biography is copied: somebody who leaves the company must not
+  rewrite whom we asked back then
 - a Talk has no duration — how long somebody speaks is not planned here
 
 

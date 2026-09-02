@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="event-venue-inquiries" class="stack" th:fragment="event-venue-inquiries">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <p class="hint" th:if="${event.date} == null">
+        Solange der Termin nicht steht, gibt es nichts zu fragen — ein Ort wird nach einem
+        Tag gefragt, nicht nach einem Thema.
+    </p>
+
+    <p class="hint" th:if="${event.date} != null and !${allAccepted}">
+        Erst sagen alle Referenten zu, dann werden die Orte gefragt.
+    </p>
+
+    <!-- Asked one after another. The open inquiry is pointed at, the next is not refused. -->
+    <p class="notice" th:if="${waitingOn}">
+        Beim <span th:text="${locationNames[waitingOn.locationId]} ?: 'Ort'">Musterfirma GmbH</span>
+        steht seit <span th:text="${waitingOn.daysWaiting(today)}">9</span> Tagen eine Antwort aus.
+    </p>
+
+    <p class="hint" th:if="${#lists.isEmpty(venueInquiries)}">Noch keinen Ort gefragt.</p>
+
+    <table th:unless="${#lists.isEmpty(venueInquiries)}">
+        <thead>
+        <tr>
+            <th>Ort</th>
+            <th>Kontakt</th>
+            <th>Gefragt am</th>
+            <th>Weg</th>
+            <th>Termin</th>
+            <th>Stand</th>
+            <th>Notiz</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="inquiry : ${venueInquiries}">
+            <td>
+                <a th:href="@{/location/{id}(id=${inquiry.locationId})}"
+                   th:text="${locationNames[inquiry.locationId]} ?: 'Unbekannt'">Musterfirma GmbH</a>
+            </td>
+            <!-- The name as it was then: whoever leaves does not rewrite who was asked. -->
+            <td th:text="${inquiry.contactName} ?: '—'">Max Muster</td>
+            <td class="data" th:text="${#temporals.format(inquiry.sentAt, 'dd.MM.yyyy')}">01.09.2026</td>
+            <td th:text="#{'inquiry.channel.' + ${inquiry.channel}}">E-Mail</td>
+            <td class="data" th:text="${#temporals.format(inquiry.forDate, 'dd.MM.yyyy')}">24.09.2026</td>
+            <td>
+                <span class="badge"
+                      th:classappend="${inquiry.isOpen()} ? 'warn'
+                                    : (${inquiry.isAccepted()} ? '' : 'quiet')"
+                      th:text="#{'inquiry.outcome.' + ${inquiry.outcome}}">Offen</span>
+                <span class="hint" th:if="${inquiry.isOpen()}"
+                      th:text="|seit ${inquiry.daysWaiting(today)} Tagen|">seit 9 Tagen</span>
+
+                <span class="actions" th:if="${inquiry.isOpen()}">
+                    <button type="button" class="link"
+                            th:hx-post="@{/event/{id}/venue-inquiry/{inq}(id=${event.id},inq=${inquiry.id},outcome='ACCEPTED')}"
+                            hx-target="#event-venue-inquiries" hx-swap="outerHTML"
+                            th:text="#{inquiry.outcome.ACCEPTED}">Zugesagt</button>
+                    <button type="button" class="link"
+                            th:hx-post="@{/event/{id}/venue-inquiry/{inq}(id=${event.id},inq=${inquiry.id},outcome='DECLINED')}"
+                            hx-target="#event-venue-inquiries" hx-swap="outerHTML"
+                            th:text="#{inquiry.outcome.DECLINED}">Abgesagt</button>
+                    <button type="button" class="link"
+                            th:hx-post="@{/event/{id}/venue-inquiry/{inq}(id=${event.id},inq=${inquiry.id},outcome='NO_RESPONSE')}"
+                            hx-target="#event-venue-inquiries" hx-swap="outerHTML"
+                            th:text="#{inquiry.outcome.NO_RESPONSE}">Keine Antwort</button>
+                </span>
+            </td>
+            <td th:text="${inquiry.note} ?: '—'">—</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <p class="hint" th:if="${#lists.isEmpty(locations)}">Es ist noch kein Ort erfasst.</p>
+
+    <!-- A refusal is not overwritten: the next place is a new inquiry, and both stay. -->
+    <details class="reveal" th:unless="${#lists.isEmpty(locations)}">
+        <summary>Anfrage notieren</summary>
+        <form class="inline boxed new" method="post"
+              th:action="@{/event/{id}/venue-inquiry(id=${event.id})}"
+              th:hx-post="@{/event/{id}/venue-inquiry(id=${event.id})}"
+              hx-target="#event-venue-inquiries"
+              hx-swap="outerHTML"
+              hx-on::after-request="closeUnlessRefused(this, '#event-venue-inquiries')">
+            <label>Ort
+                <!-- Picking a place refills the contacts below; htmx sends the value along. -->
+                <select name="locationId" required
+                        th:hx-get="@{/event/{id}/venue-inquiry/contacts(id=${event.id})}"
+                        hx-trigger="change"
+                        hx-target="#venue-inquiry-contact"
+                        hx-swap="outerHTML">
+                    <option value="">Bitte auswählen</option>
+                    <option th:each="place : ${locations}" th:value="${place.id}"
+                            th:text="${place.name}">Musterfirma GmbH</option>
+                </select>
+            </label>
+            <label>Kontakt
+                <select id="venue-inquiry-contact" name="contactName" th:fragment="venue-contacts">
+                    <option value="" th:if="${#lists.isEmpty(venueContacts)}">Bitte zuerst einen Ort wählen</option>
+                    <option th:each="person : ${venueContacts}" th:value="${person.name}"
+                            th:text="${person.name}">Max Muster</option>
+                </select>
+            </label>
+            <label>Weg
+                <select name="channel" required>
+                    <option th:each="way : ${channels}" th:value="${way}"
+                            th:text="#{'inquiry.channel.' + ${way}}">E-Mail</option>
+                </select>
+            </label>
+            <label>Gefragt am
+                <input type="date" name="sentAt" th:value="${today}">
+            </label>
+            <label>Notiz
+                <input type="text" name="note">
+            </label>
+            <button type="submit">Anfrage notieren</button>
+        </form>
+    </details>
+</div>
+</body>
+</html>
