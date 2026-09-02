@@ -19,7 +19,6 @@
         <section class="tile quarter">
             <h2>Aktuell</h2>
             <div th:replace="~{fragments/location-summary :: location-summary}"></div>
-            <div th:replace="~{fragments/location-map :: location-map}"></div>
         </section>
 
         <section class="tile three">
@@ -61,6 +60,15 @@
                 <button type="submit">Adresse hinzufügen</button>
             </form>
             </details>
+        </section>
+
+        <section class="tile three">
+            <h2>Karte</h2>
+            <p class="hint">
+                Der Punkt zur aktuellen Adresse, einmal nachgeschlagen und dort gespeichert.
+                Die Kacheln kommen von OpenStreetMap.
+            </p>
+            <div th:replace="~{fragments/location-map :: location-map}"></div>
         </section>
 
         <section class="tile three">

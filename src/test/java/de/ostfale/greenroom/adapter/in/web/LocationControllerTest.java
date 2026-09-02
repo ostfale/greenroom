@@ -764,4 +764,24 @@ class LocationControllerTest {
 
         assertThat(locations.byId(id).orElseThrow().currentAddress().isLocated()).isTrue();
     }
+
+    /** The map belongs beside what it depicts, and as wide as the tiles around it. */
+    @Test
+    void theMapHasATileOfItsOwnRightUnderTheAddresses() throws Exception {
+        Long id = locations.add(aLocation()).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/location/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("section.tile h2").eachText())
+                .containsExactly("Stammdaten", "Aktuell", "Adressen", "Karte", "Ansprechpartner");
+        Element tile = page.select("section.tile").stream()
+                .filter(one -> "Karte".equals(one.selectFirst("h2").text()))
+                .findFirst().orElseThrow();
+        // The same width as the addresses and the contacts, so the column edges line up.
+        assertThat(tile.className()).isEqualTo(page.select("section.tile").stream()
+                .filter(one -> "Adressen".equals(one.selectFirst("h2").text()))
+                .findFirst().orElseThrow().className());
+        assertThat(tile.selectFirst("#location-map")).isNotNull();
+    }
 }

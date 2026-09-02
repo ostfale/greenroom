@@ -783,13 +783,12 @@ ul.tags .toggle {
 
 /* --- the map ---------------------------------------------------------------------- */
 
-/* Wide as the tile, tall enough to recognise the street. No border of its own: the tile
-   already has one, and two would read as a picture in a frame in a frame. */
+/* The full width of its own tile, and tall enough to see the streets around the building
+   rather than the building alone. */
 .map {
     display: block;
     width: 100%;
-    height: 12rem;
-    margin-top: .875rem;
+    height: 20rem;
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
 }
