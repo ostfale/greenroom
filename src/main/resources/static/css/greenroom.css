@@ -393,6 +393,13 @@ input, textarea, select, button {
     font-size: inherit;
 }
 
+/* Height only. Dragging a textarea wider sets an inline width, and that width is not
+   bound by the tile it sits in — it would simply hang over the edge. */
+textarea {
+    max-width: 100%;
+    resize: vertical;
+}
+
 label input, label textarea, label select {
     width: 100%;
     min-width: 0;
