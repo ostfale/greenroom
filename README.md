@@ -99,4 +99,15 @@ to one group is either in the `.env` or in `messages.properties`.
 port may read and change everything. That is a home network decision, and forwarding the
 port to the outside would turn it into the wrong one.
 
-The backup of the database off the machine is still to be written.
+### Backup
+
+`backup.sh` dumps the database, commits what changed and pushes it to a bare Git repository
+at HiDrive over SSH — the history is the retention, and restoring is `psql < greenroom.sql`
+against an empty database, with no version-matched tooling and no key. Two dumps of
+unchanged data differ only in the random token PostgreSQL writes into the restore guards,
+which is why the comparison leaves those two lines out: a night in which nothing happened
+leaves no commit.
+
+Set up once beside `compose.pi.yaml`, then run it nightly from cron. The header of the
+script has both. The repository must not sit in an end-to-end encrypted folder — a bare
+repository has to be readable by the server to be one.
