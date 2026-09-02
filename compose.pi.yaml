@@ -1,0 +1,50 @@
+# The Raspberry Pi. Not compose.yaml: that one holds the database alone and is what
+# `mvn spring-boot:run` starts during development, where the application runs on the host.
+#
+#     docker compose -f compose.pi.yaml pull
+#     docker compose -f compose.pi.yaml up -d
+#
+# The image is built by GitHub Actions on every push to main and is public, so pulling it
+# needs no login. Another group can take this file as it is and point GREENROOM_IMAGE at
+# their own build.
+services:
+  app:
+    image: ${GREENROOM_IMAGE:-ghcr.io/ostfale/greenroom:latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # No profile: on the Pi Flyway migrates instead of rebuilding, and the caches are on.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/greenroom
+      SPRING_DATASOURCE_USERNAME: greenroom
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env}
+      # An application inside a container has no business starting containers.
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      GREENROOM_MAIL_FROM: ${GREENROOM_MAIL_FROM:-}
+    ports:
+      - "8383:8383"
+      - "8382:8382"
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: greenroom
+      POSTGRES_USER: greenroom
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env}
+    volumes:
+      - greenroom-db:/var/lib/postgresql/data
+    # No published port: only the application talks to it, and it does so over the network
+    # compose gives them. Nothing on the home network needs to reach the database.
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U greenroom -d greenroom" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  greenroom-db:

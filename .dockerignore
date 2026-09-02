@@ -1,0 +1,3 @@
+# Everything but the jar. The image is assembled from the build output, not from the source.
+*
+!target/greenroom-*.jar
