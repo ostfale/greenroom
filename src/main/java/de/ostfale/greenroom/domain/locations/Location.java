@@ -12,6 +12,11 @@ import static de.ostfale.greenroom.domain.Texts.required;
  * A place that hosts an evening. It exists on its own: a location is entered once and used
  * again for years, independently of any event.
  *
+ * <p>{@code inUse} is not {@link Address#active}. The address flag says where they are
+ * now; this one says whether we still go there at all. A place that closed, moved away or
+ * said no for good keeps every evening it ever hosted and every address it ever had — it
+ * is only no longer offered when the next evening looks for a venue.
+ *
  * <p>The address may still be missing — a host is often agreed before anybody has written
  * down the street — and it may be more than one: a place moves, or hosts at a second site.
  * The old address stays; only its {@code active} flag goes. The seat count belongs to the
@@ -23,6 +28,7 @@ public record Location(
         @Id Long id,
         String name,
         String notes,
+        boolean inUse,
         List<Address> addresses,
         List<ContactPerson> contacts) {
 
@@ -38,7 +44,15 @@ public record Location(
 
     /** A new location, not yet stored. The contact person comes with it, never later. */
     public static Location of(String name, ContactPerson contact) {
-        return new Location(null, name, null, List.of(), List.of(contact));
+        return new Location(null, name, null, true, List.of(), List.of(contact));
+    }
+
+    /**
+     * Whether the next evening may be planned here. Everything that already happened here
+     * stays, addresses included — this only takes the place out of the choice.
+     */
+    public Location withInUse(boolean nowInUse) {
+        return new Location(id, name, notes, nowInUse, addresses, contacts);
     }
 
     /** The one address that counts from now on; whatever was there before is kept as past. */
@@ -75,15 +89,15 @@ public record Location(
     }
 
     public Location withAddresses(List<Address> newAddresses) {
-        return new Location(id, name, notes, newAddresses, contacts);
+        return new Location(id, name, notes, inUse, newAddresses, contacts);
     }
 
     public Location withNotes(String newNotes) {
-        return new Location(id, name, newNotes, addresses, contacts);
+        return new Location(id, name, newNotes, inUse, addresses, contacts);
     }
 
     public Location withContacts(List<ContactPerson> newContacts) {
-        return new Location(id, name, notes, addresses, newContacts);
+        return new Location(id, name, notes, inUse, addresses, newContacts);
     }
 
     public Location withAdditionalContact(ContactPerson contact) {

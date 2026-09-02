@@ -29,6 +29,18 @@ public interface ManageLocations {
      */
     Location addAddress(Long locationId, Address address, boolean replacesTheOthers);
 
+    /**
+     * Looks up where the address at that position is and keeps the answer with it. For the
+     * addresses that were written down before anybody asked — and for a second try when
+     * the lookup was unreachable.
+     *
+     * @throws IllegalArgumentException if there is no address at that position
+     */
+    Location locate(Long locationId, int position);
+
+    /** Whether looking an address up is possible at all, or switched off in this install. */
+    boolean canLocateAddresses();
+
     /** Turns the address at that position on or off. */
     Location setAddressActive(Long locationId, int position, boolean active);
 

@@ -36,10 +36,15 @@ on column speaker_link.speaker_key is 'Position in the list, kept by Spring Data
 
 create table location
 (
-    id    bigserial primary key,
-    name  text not null,
-    notes text
+    id     bigserial primary key,
+    name   text    not null,
+    notes  text,
+    in_use boolean not null default true
 );
+
+comment on column location.in_use is
+    'Not address.active. That one says where they are now, this one whether we still go
+     there at all — a place that closed keeps its evenings and its addresses either way.';
 
 -- A place keeps every address it ever had; only the active flag moves.
 create table address
@@ -51,8 +56,14 @@ create table address
     city         text,
     capacity     int,
     active       boolean not null,
+    latitude     numeric(9, 6),
+    longitude    numeric(9, 6),
     primary key (location, location_key)
 );
+
+comment on column address.latitude is
+    'Looked up once from the written address and kept with it. Null where the address was
+     too thin to find — the page then simply shows no map.';
 
 comment on table address is
     'An evening held at an old address was held there. The address is kept, not overwritten.';

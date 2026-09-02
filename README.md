@@ -63,6 +63,18 @@ Port 465 with SSL is the default; 587 with STARTTLS works as a relay. Every mail
 blind copy to the sending address, because a mail sent this way never reaches the sent
 folder of the mailbox.
 
+### Maps
+
+A location page shows a small map where the address could be placed. The point is looked up
+once through OpenStreetMap's search and kept with the address; the map itself is an embed
+from openstreetmap.org, so the browser of whoever looks at the page fetches the tiles. It is
+off unless asked for, and OSM asks callers to identify themselves:
+
+    GREENROOM_GEO_ENABLED=true
+    GREENROOM_GEO_USER_AGENT=greenroom (info@example.org)
+
+Without it nothing is looked up and no map is shown — which is also the state in the tests.
+
 ### Deployment
 
 Every push to `main` runs the tests and then builds a container image for `linux/amd64` and

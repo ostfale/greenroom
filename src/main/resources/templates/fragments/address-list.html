@@ -5,6 +5,7 @@
 <th:block th:fragment="address-list-and-summary">
     <div th:replace="~{fragments/address-list :: address-list}"></div>
     <div th:replace="~{fragments/location-summary :: location-summary}"></div>
+    <div th:replace="~{fragments/location-map :: location-map}"></div>
 </th:block>
 
 <div id="address-list" th:fragment="address-list">
@@ -22,11 +23,18 @@
                       th:text="${address.active} ? 'aktiv' : 'ehemalig'">aktiv</span>
             </td>
             <td style="text-align: right">
-                <button type="button" class="link"
-                        th:hx-post="@{/location/{id}/address/{pos}(id=${location.id},pos=${i.index},active=${!address.active})}"
-                        hx-target="#address-list"
-                        hx-swap="outerHTML"
-                        th:text="${address.active} ? 'Stilllegen' : 'Wieder aktiv'">Stilllegen</button>
+                <span class="actions">
+                    <button type="button" class="link"
+                            th:if="${canLocate} and !${address.isLocated()}"
+                            th:hx-post="@{/location/{id}/address/{pos}/locate(id=${location.id},pos=${i.index})}"
+                            hx-target="#address-list"
+                            hx-swap="outerHTML">Auf der Karte suchen</button>
+                    <button type="button" class="link"
+                            th:hx-post="@{/location/{id}/address/{pos}(id=${location.id},pos=${i.index},active=${!address.active})}"
+                            hx-target="#address-list"
+                            hx-swap="outerHTML"
+                            th:text="${address.active} ? 'Stilllegen' : 'Wieder aktiv'">Stilllegen</button>
+                </span>
             </td>
         </tr>
         </tbody>

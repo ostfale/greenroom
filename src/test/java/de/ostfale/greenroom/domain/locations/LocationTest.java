@@ -22,11 +22,11 @@ class LocationTest {
 
     @Test
     void aLocationNeedsSomebodyToAsk() {
-        assertThatThrownBy(() -> new Location(null, "Musterfirma GmbH", null, List.of(), List.of()))
+        assertThatThrownBy(() -> new Location(null, "Musterfirma GmbH", null, true, List.of(), List.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("contact person");
 
-        assertThatThrownBy(() -> new Location(null, "Musterfirma GmbH", null, List.of(), null))
+        assertThatThrownBy(() -> new Location(null, "Musterfirma GmbH", null, true, List.of(), null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("contact person");
     }
@@ -230,5 +230,81 @@ class LocationTest {
         mutable.clear();
 
         assertThat(location.contacts()).containsExactly(aContact());
+    }
+
+    /**
+     * Not the same flag as on the address: that one says where they are now, this one
+     * whether we still go there at all.
+     */
+    @Test
+    void aNewLocationIsOneWeStillUse() {
+        assertThat(aLocation().inUse()).isTrue();
+    }
+
+    @Test
+    void aPlaceWeGaveUpKeepsItsAddressesAndItsContacts() {
+        Location moved = aLocation().withAddress("Musterweg 1", "22179", "Hamburg");
+
+        Location given = moved.withInUse(false);
+
+        assertThat(given.inUse()).isFalse();
+        assertThat(given.addressLine()).isEqualTo(moved.addressLine());
+        assertThat(given.activeAddresses()).hasSize(1);
+        assertThat(given.contacts()).isEqualTo(moved.contacts());
+    }
+
+    /** Giving a place up and taking one of its addresses out of service are two things. */
+    @Test
+    void theTwoFlagsDoNotTouchEachOther() {
+        Location closed = aLocation().withAddress("Musterweg 1", "22179", "Hamburg")
+                .withAddressActive(0, false);
+
+        assertThat(closed.inUse()).isTrue();
+        assertThat(closed.activeAddresses()).isEmpty();
+        assertThat(closed.withInUse(false).addresses()).hasSize(1);
+    }
+
+    @Test
+    void aPlaceCanBeTakenBack() {
+        assertThat(aLocation().withInUse(false).withInUse(true).inUse()).isTrue();
+    }
+
+    /** A point or no point — a latitude without a longitude is neither. */
+    @Test
+    void halfAPositionIsNoPosition() {
+        assertThatThrownBy(() -> new Address("Musterweg 1", null, null, null, true, 53.55, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("half a position");
+        assertThatThrownBy(() -> new Address("Musterweg 1", null, null, null, true, null, 9.99))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("half a position");
+    }
+
+    @Test
+    void aPositionIsOnThisPlanet() {
+        assertThatThrownBy(() -> Address.at("Musterweg 1", null, "Hamburg").at(91.0, 9.99))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("point on this planet");
+        assertThatThrownBy(() -> Address.at("Musterweg 1", null, "Hamburg").at(53.55, 181.0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("point on this planet");
+    }
+
+    @Test
+    void anAddressIsWrittenDownBeforeAnybodyKnowsWhereItIs() {
+        Address written = Address.at("Musterweg 1", "22179", "Hamburg");
+
+        assertThat(written.isLocated()).isFalse();
+        assertThat(written.at(53.5511, 9.9937).isLocated()).isTrue();
+    }
+
+    /** The point belongs to the address, so it survives everything else about it. */
+    @Test
+    void thePositionOutlivesTheOtherChanges() {
+        Address placed = Address.at("Musterweg 1", "22179", "Hamburg").at(53.5511, 9.9937);
+
+        assertThat(placed.withCapacity(60).latitude()).isEqualTo(53.5511);
+        assertThat(placed.deactivated().longitude()).isEqualTo(9.9937);
+        assertThat(placed.deactivated().activated().isLocated()).isTrue();
     }
 }

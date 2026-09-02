@@ -118,6 +118,16 @@ Copied, not referenced:
 - a `Location` keeps every address it ever had; only the active flag moves. `capacity` sits
   on the `Address`, because the seat count of an old address is part of what that evening
   was
+- the position sits on the `Address`, for the reason the seat count does: an old address
+  points at where that evening was. It is looked up once from the written address and kept;
+  where nobody can place it there is none, and the page shows no map. Not being found is a
+  property of a thin address, never a reason to refuse writing it down
+- `Location.inUse` is not `Address.active`. The address flag says where they are now, this
+  one whether we still go there at all. A place we gave up keeps its evenings, its
+  addresses and its contacts; it is only no longer offered when an evening looks for a
+  venue — unless that evening already sits there. It reads as "Aktiv" on the page: the
+  German word for the address flag would be the same one, which is why the field is not
+  called `active`
 
 The order of asking:
 

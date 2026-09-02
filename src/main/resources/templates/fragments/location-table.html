@@ -13,8 +13,13 @@
         </tr>
         </thead>
         <tbody>
-        <tr th:each="location : ${locations}">
-            <td><a th:href="@{/location/{id}(id=${location.id})}" th:text="${location.name}">Musterfirma GmbH</a></td>
+        <!-- An inactive place reads as one, without leaving the list. -->
+        <tr th:each="location : ${locations}" th:classappend="${!location.inUse} ? 'closed'">
+            <td>
+                <a th:href="@{/location/{id}(id=${location.id})}"
+                   th:text="${location.name}">Musterfirma GmbH</a>
+                <span class="badge quiet" th:unless="${location.inUse}">Inaktiv</span>
+            </td>
             <td th:text="${#strings.isEmpty(location.addressLine())} ? '—' : ${location.addressLine()}">—</td>
             <td class="data" th:text="${location.currentCapacity()} ?: '—'">—</td>
             <td>

@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.adapter.in.web;
 
+import de.ostfale.greenroom.FakeGeocoder;
 import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.WebTest;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
@@ -40,11 +41,15 @@ class LocationControllerTest {
     private LocationRepository repository;
 
     @Autowired
+    private FakeGeocoder geocoder;
+
+    @Autowired
     private TestDatabase database;
 
     @BeforeEach
     void emptyTheTable() {
         database.empty();
+        geocoder.forgetEverything();
     }
 
     @Test
@@ -512,5 +517,251 @@ class LocationControllerTest {
         Location stored = locations.byId(id).orElseThrow();
         assertThat(stored.addressLine()).contains("Musterweg 1");
         assertThat(stored.contacts()).extracting(ContactPerson::name).containsExactly("Max Muster");
+    }
+
+    // Active or not: an ordinary field of the place, and a filter over the list.
+
+    @Test
+    void theFormCarriesTheFlagAndTurnsItOff() throws Exception {
+        Long id = locations.add(aLocation()).id();
+
+        String fragment = mvc.perform(post("/location/" + id)
+                        .param("name", "Musterfirma GmbH")
+                        .param("notes", ""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        // An unticked box sends nothing at all, and that is what turns the place off.
+        assertThat(locations.byId(id).orElseThrow().inUse()).isFalse();
+        assertThat(Jsoup.parseBodyFragment(fragment)
+                .selectFirst("input[name=inUse]").hasAttr("checked")).isFalse();
+    }
+
+    @Test
+    void theFormTurnsItBackOn() throws Exception {
+        Long id = locations.add(aLocation()).id();
+        locations.change(locations.byId(id).orElseThrow().withInUse(false));
+
+        mvc.perform(post("/location/" + id)
+                        .param("name", "Musterfirma GmbH")
+                        .param("notes", "")
+                        .param("inUse", "true"))
+                .andExpect(status().isOk());
+
+        assertThat(locations.byId(id).orElseThrow().inUse()).isTrue();
+    }
+
+    /** Only the choice changes. The address and everybody to ask stay where they were. */
+    @Test
+    void turningAPlaceOffChangesNothingElseAboutIt() throws Exception {
+        Long id = locations.add(aLocation().withAddress("Musterweg 1", "22179", "Hamburg")).id();
+
+        mvc.perform(post("/location/" + id).param("name", "Musterfirma GmbH").param("notes", ""))
+                .andExpect(status().isOk());
+
+        assertThat(locations.byId(id).orElseThrow()).satisfies(off -> {
+            assertThat(off.addressLine()).contains("Musterweg 1");
+            assertThat(off.activeAddresses()).hasSize(1);
+            assertThat(off.contacts()).hasSize(1);
+        });
+    }
+
+    @Test
+    void theListShowsEverythingUntilTheFilterIsAsked() throws Exception {
+        Long id = locations.add(aLocation()).id();
+        locations.add(Location.of("Weiter aktiv", aContact()));
+        locations.change(locations.byId(id).orElseThrow().withInUse(false));
+
+        Document all = Jsoup.parse(mvc.perform(get("/location"))
+                .andReturn().getResponse().getContentAsString());
+        assertThat(all.select("#location-table tbody tr")).hasSize(2);
+        assertThat(all.select("#location-table tbody tr .badge").eachText())
+                .containsExactly("Inaktiv");
+
+        Document active = Jsoup.parse(mvc.perform(get("/location").param("onlyActive", "true"))
+                .andReturn().getResponse().getContentAsString());
+        assertThat(active.select("#location-table tbody tr td:first-child").eachText())
+                .containsExactly("Weiter aktiv");
+    }
+
+    /** Search and filter go out together, so one does not undo the other. */
+    @Test
+    void theFilterAndTheSearchNarrowTogether() throws Exception {
+        Long id = locations.add(aLocation()).id();
+        locations.add(Location.of("Musterhalle", aContact()));
+        locations.change(locations.byId(id).orElseThrow().withInUse(false));
+
+        Document page = Jsoup.parse(mvc.perform(get("/location")
+                        .param("search", "Muster").param("onlyActive", "true"))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#location-table tbody tr td:first-child").eachText())
+                .containsExactly("Musterhalle");
+        assertThat(page.selectFirst("input[name=onlyActive]").hasAttr("checked")).isTrue();
+        assertThat(page.selectFirst("input[name=search]").val()).isEqualTo("Muster");
+    }
+
+    // The little map: a point looked up once, kept with the address, embedded on the page.
+
+    @Test
+    void anAddressIsLookedUpWhenItIsWrittenDown() throws Exception {
+        Long id = locations.add(aLocation()).id();
+
+        mvc.perform(post("/location/" + id + "/address")
+                        .param("street", "Musterweg 1")
+                        .param("postalCode", "22179")
+                        .param("city", "Hamburg"))
+                .andExpect(status().isOk());
+
+        assertThat(locations.byId(id).orElseThrow().currentAddress()).satisfies(placed -> {
+            assertThat(placed.isLocated()).isTrue();
+            assertThat(placed.latitude()).isEqualTo(FakeGeocoder.HAMBURG.latitude());
+            assertThat(placed.longitude()).isEqualTo(FakeGeocoder.HAMBURG.longitude());
+        });
+    }
+
+    @Test
+    void thePageShowsTheMapForAnAddressThatWasFound() throws Exception {
+        Long id = locations.add(aLocation()).id();
+        mvc.perform(post("/location/" + id + "/address")
+                .param("street", "Musterweg 1").param("city", "Hamburg")).andExpect(status().isOk());
+
+        Document page = Jsoup.parse(mvc.perform(get("/location/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.selectFirst("#location-map iframe.map").attr("src"))
+                .startsWith("https://www.openstreetmap.org/export/embed.html")
+                .contains("marker=53.551100%2C9.993700");
+    }
+
+    /**
+     * Not being found is a property of a thin address, never a reason to refuse writing it
+     * down. The page then says so instead of showing the middle of the ocean.
+     */
+    @Test
+    void anAddressNobodyFindsIsStillWrittenDown() throws Exception {
+        geocoder.knowsNothing();
+        Long id = locations.add(aLocation()).id();
+
+        mvc.perform(post("/location/" + id + "/address").param("city", "Hamburg"))
+                .andExpect(status().isOk());
+
+        assertThat(locations.byId(id).orElseThrow().currentAddress()).satisfies(written -> {
+            assertThat(written.isLocated()).isFalse();
+            assertThat(written.line()).isEqualTo("Hamburg");
+        });
+        Document page = Jsoup.parse(mvc.perform(get("/location/" + id))
+                .andReturn().getResponse().getContentAsString());
+        assertThat(page.select("#location-map iframe")).isEmpty();
+        assertThat(page.selectFirst("#location-map p.hint").text()).contains("kein Punkt bekannt");
+    }
+
+    /** For the addresses that were written down before anybody looked — the imported ones. */
+    @Test
+    void anAddressCanBeLookedUpAfterwards() throws Exception {
+        geocoder.knowsNothing();
+        Long id = locations.add(aLocation()).id();
+        mvc.perform(post("/location/" + id + "/address").param("city", "Hamburg"))
+                .andExpect(status().isOk());
+        geocoder.forgetEverything();
+
+        String fragment = mvc.perform(post("/location/" + id + "/address/0/locate"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(locations.byId(id).orElseThrow().currentAddress().isLocated()).isTrue();
+        Document tile = Jsoup.parseBodyFragment(fragment);
+        // The button is gone once there is a point, and the map came back with the list.
+        assertThat(tile.select("#address-list button").eachText()).doesNotContain("Auf der Karte suchen");
+        assertThat(tile.selectFirst("#location-map iframe.map")).isNotNull();
+    }
+
+    @Test
+    void theButtonIsOnlyThereWhileThePointIsMissing() throws Exception {
+        geocoder.knowsNothing();
+        Long id = locations.add(aLocation()).id();
+        mvc.perform(post("/location/" + id + "/address").param("city", "Hamburg"))
+                .andExpect(status().isOk());
+
+        Document page = Jsoup.parse(mvc.perform(get("/location/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#address-list button").eachText()).contains("Auf der Karte suchen");
+    }
+
+    @Test
+    void lookingUpAnAddressThatIsGoneSaysSo() throws Exception {
+        Long id = locations.add(aLocation()).id();
+
+        String fragment = mvc.perform(post("/location/" + id + "/address/7/locate"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("gibt es nicht mehr");
+    }
+
+    /**
+     * Switched off and asked-but-not-found are the same empty answer to the model. They
+     * must not be the same sentence on the page — a button that silently does nothing is
+     * worse than no button.
+     */
+    @Test
+    void aSwitchedOffLookupSaysSoAndOffersNoButton() throws Exception {
+        geocoder.isSwitchedOff();
+        Long id = locations.add(aLocation()).id();
+        mvc.perform(post("/location/" + id + "/address")
+                .param("street", "Musterweg 1").param("city", "Hamburg")).andExpect(status().isOk());
+
+        Document page = Jsoup.parse(mvc.perform(get("/location/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.selectFirst("#location-map p.hint").text()).contains("nicht eingeschaltet");
+        assertThat(page.select("#address-list button").eachText()).doesNotContain("Auf der Karte suchen");
+    }
+
+    @Test
+    void aLookupThatFoundNothingSaysThatInstead() throws Exception {
+        // Unlocated from the start: a second try that fails does not take away the point
+        // an address already has, so there would be nothing to complain about.
+        geocoder.knowsNothing();
+        Long id = locations.add(aLocation()).id();
+        mvc.perform(post("/location/" + id + "/address")
+                .param("street", "Musterweg 1").param("city", "Hamburg")).andExpect(status().isOk());
+
+        String fragment = mvc.perform(post("/location/" + id + "/address/0/locate"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("keinen Punkt geliefert");
+    }
+
+    @Test
+    void aLookupThatWorkedSaysNothingAtAll() throws Exception {
+        geocoder.knowsNothing();
+        Long id = locations.add(aLocation()).id();
+        mvc.perform(post("/location/" + id + "/address")
+                .param("street", "Musterweg 1").param("city", "Hamburg")).andExpect(status().isOk());
+        geocoder.forgetEverything();
+
+        String fragment = mvc.perform(post("/location/" + id + "/address/0/locate"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).select("p.error")).isEmpty();
+    }
+
+    /** A failed second try leaves the point that is already there. */
+    @Test
+    void aFailedSecondTryDoesNotTakeAwayWhatWasFound() throws Exception {
+        Long id = locations.add(aLocation()).id();
+        mvc.perform(post("/location/" + id + "/address")
+                .param("street", "Musterweg 1").param("city", "Hamburg")).andExpect(status().isOk());
+        geocoder.knowsNothing();
+
+        mvc.perform(post("/location/" + id + "/address/0/locate")).andExpect(status().isOk());
+
+        assertThat(locations.byId(id).orElseThrow().currentAddress().isLocated()).isTrue();
     }
 }

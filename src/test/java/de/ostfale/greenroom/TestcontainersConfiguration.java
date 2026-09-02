@@ -34,6 +34,13 @@ public class TestcontainersConfiguration {
         return new FakeMailer();
     }
 
+    /** In front of the real one: no test asks a public service where a street is. */
+    @Bean
+    @Primary
+    public FakeGeocoder fakeGeocoder() {
+        return new FakeGeocoder();
+    }
+
     /** Available wherever this configuration is imported, which is every test with a database. */
     @Bean
     public TestDatabase testDatabase(EventRepository events, SpeakerRepository speakers,

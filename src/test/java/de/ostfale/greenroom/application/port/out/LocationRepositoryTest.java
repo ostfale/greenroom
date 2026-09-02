@@ -140,4 +140,18 @@ class LocationRepositoryTest {
         assertThat(locations.search("LÜNEBURG")).extracting(Location::name).containsExactly("Adobe");
         assertThat(locations.search("burg")).hasSize(2);
     }
+
+    /** The flag survives the round trip, and a stored location defaults to being used. */
+    @Test
+    void whetherAPlaceIsStillUsedIsStored() {
+        Long id = locations.save(aLocation()).id();
+        assertThat(locations.findById(id).orElseThrow().inUse()).isTrue();
+
+        locations.save(locations.findById(id).orElseThrow().withInUse(false));
+
+        assertThat(locations.findById(id).orElseThrow()).satisfies(read -> {
+            assertThat(read.inUse()).isFalse();
+            assertThat(read.contacts()).hasSize(1);
+        });
+    }
 }

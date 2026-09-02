@@ -10,12 +10,26 @@
         <a class="button" th:href="@{/location/new}">Neuer Ort</a>
     </div>
 
-    <input type="search" name="search" placeholder="Ort oder Stadt" aria-label="Orte durchsuchen"
-           th:value="${search}"
-           th:hx-get="@{/location}"
-           hx-target="#location-table"
-           hx-swap="outerHTML"
-           hx-trigger="input changed delay:300ms, search">
+    <!--
+      Search and filter go out together, so one does not undo the other. Only the table is
+      swapped, which is why the field and the box keep what was typed and ticked.
+    -->
+    <form class="filters" method="get" th:action="@{/location}"
+          th:hx-get="@{/location}"
+          hx-target="#location-table"
+          hx-swap="outerHTML"
+          hx-trigger="input changed delay:300ms from:input[type=search], change">
+        <label>Suche
+            <input type="search" name="search" placeholder="Ort oder Stadt" th:value="${search}">
+        </label>
+
+        <div class="tail">
+            <label class="toggle">
+                <input type="checkbox" name="onlyActive" value="true" th:checked="${onlyActive}">
+                Nur aktive Orte
+            </label>
+        </div>
+    </form>
 
     <div th:replace="~{fragments/location-table :: location-table}"></div>
 </main>

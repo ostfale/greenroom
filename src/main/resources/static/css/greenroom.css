@@ -781,6 +781,19 @@ ul.tags .toggle {
     margin-bottom: 0;
 }
 
+/* --- the map ---------------------------------------------------------------------- */
+
+/* Wide as the tile, tall enough to recognise the street. No border of its own: the tile
+   already has one, and two would read as a picture in a frame in a frame. */
+.map {
+    display: block;
+    width: 100%;
+    height: 12rem;
+    margin-top: .875rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+}
+
 /* --- the portrait ----------------------------------------------------------------- */
 
 .portrait {

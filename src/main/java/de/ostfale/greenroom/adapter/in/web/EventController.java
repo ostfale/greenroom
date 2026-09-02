@@ -604,7 +604,11 @@ public class EventController {
         List<Location> places = locations.all();
         model.addAttribute("event", event);
         model.addAttribute("transitions", event.status().allowedTargets());
-        model.addAttribute("locations", places);
+        // Only what may still be chosen — plus the place this evening already sits at, so
+        // an evening at a venue we gave up still shows it rather than losing it silently.
+        model.addAttribute("locations", places.stream()
+                .filter(place -> place.inUse() || place.id().equals(event.locationId()))
+                .toList());
         model.addAttribute("clashes", events.clashesWith(event));
         model.addAttribute("tagChoices", tagChoices(event));
         List<Speaker> known = speakers.all();

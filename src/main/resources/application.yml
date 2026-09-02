@@ -36,6 +36,11 @@ management:
       show-details: always
 
 greenroom:
+  geo:
+    # Off unless asked for. OpenStreetMap's search needs no key but does ask for an
+    # identifying user agent, so without one nothing is looked up and no map is shown.
+    enabled: ${GREENROOM_GEO_ENABLED:false}
+    user-agent: ${GREENROOM_GEO_USER_AGENT:}
   mail:
     # The address every inquiry is sent from, replied to and blind-copied to. Empty here:
     # without it the application does not send.

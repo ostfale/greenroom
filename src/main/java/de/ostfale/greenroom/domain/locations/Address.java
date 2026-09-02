@@ -9,8 +9,14 @@ import static de.ostfale.greenroom.domain.Texts.optional;
  * seats, not at today's.
  *
  * <p>Which of them counts now is what {@code active} says.
+ *
+ * <p>The position is looked up once from the written address and kept with it. It belongs
+ * here rather than on the location for the same reason the seat count does: an old address
+ * points at where that evening was, not at where the host sits today. Where the address is
+ * too thin to find, there is none, and the page simply shows no map.
  */
-public record Address(String street, String postalCode, String city, Integer capacity, boolean active) {
+public record Address(String street, String postalCode, String city, Integer capacity,
+                      boolean active, Double latitude, Double longitude) {
 
     public Address {
         street = optional(street);
@@ -22,23 +28,39 @@ public record Address(String street, String postalCode, String city, Integer cap
         if (capacity != null && capacity <= 0) {
             throw new IllegalArgumentException("Address :: a capacity is a number of seats, not " + capacity);
         }
+        if ((latitude == null) != (longitude == null)) {
+            throw new IllegalArgumentException("Address :: half a position is no position");
+        }
+        if (latitude != null && (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180)) {
+            throw new IllegalArgumentException("Address :: that is not a point on this planet");
+        }
     }
 
     /** A newly agreed address — the one that counts from now on. */
     public static Address at(String street, String postalCode, String city) {
-        return new Address(street, postalCode, city, null, true);
+        return new Address(street, postalCode, city, null, true, null, null);
     }
 
     public Address withCapacity(Integer newCapacity) {
-        return new Address(street, postalCode, city, newCapacity, active);
+        return new Address(street, postalCode, city, newCapacity, active, latitude, longitude);
     }
 
     public Address activated() {
-        return new Address(street, postalCode, city, capacity, true);
+        return new Address(street, postalCode, city, capacity, true, latitude, longitude);
     }
 
     public Address deactivated() {
-        return new Address(street, postalCode, city, capacity, false);
+        return new Address(street, postalCode, city, capacity, false, latitude, longitude);
+    }
+
+    /** Where this address turned out to be. Null takes the position away again. */
+    public Address at(Double newLatitude, Double newLongitude) {
+        return new Address(street, postalCode, city, capacity, active, newLatitude, newLongitude);
+    }
+
+    /** Whether there is a point to put on a map. */
+    public boolean isLocated() {
+        return latitude != null;
     }
 
     /** Street, postal code and town on one line — what a list or an invitation shows. */

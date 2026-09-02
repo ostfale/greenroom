@@ -28,15 +28,19 @@ public class LocationController {
     }
 
     @GetMapping
-    public String list(@RequestParam(defaultValue = "") String search, Model model) {
-        fill(model, search);
+    public String list(@RequestParam(defaultValue = "") String search,
+                       @RequestParam(defaultValue = "false") boolean onlyActive,
+                       Model model) {
+        fill(model, search, onlyActive);
         return "location/list";
     }
 
     /** The same route for htmx: only the table comes back. */
     @GetMapping(headers = "HX-Request")
-    public String listFragment(@RequestParam(defaultValue = "") String search, Model model) {
-        fill(model, search);
+    public String listFragment(@RequestParam(defaultValue = "") String search,
+                               @RequestParam(defaultValue = "false") boolean onlyActive,
+                               Model model) {
+        fill(model, search, onlyActive);
         return "fragments/location-table :: location-table";
     }
 
@@ -59,7 +63,7 @@ public class LocationController {
                       Model model) {
         try {
             ContactPerson contact = new ContactPerson(contactName, contactEmail, contactPhone);
-            Location location = new Location(null, name, notes, List.of(), List.of(contact));
+            Location location = new Location(null, name, notes, true, List.of(), List.of(contact));
             if (!street.isBlank() || !postalCode.isBlank() || !city.isBlank()) {
                 location = location.movedTo(
                         Address.at(street, postalCode, city).withCapacity(seats(capacity)));
@@ -105,10 +109,31 @@ public class LocationController {
     public String detail(@PathVariable Long id, Model model) {
         return locations.byId(id)
                 .map(location -> {
-                    model.addAttribute("location", location);
+                    show(model, location);
                     return "location/detail";
                 })
                 .orElse("redirect:/location");
+    }
+
+    /**
+     * Asks where that address is and keeps the answer. For the addresses that were written
+     * down before anybody looked, and for a second try when the lookup was unreachable.
+     */
+    @PostMapping("/{id}/address/{position}/locate")
+    public String locate(@PathVariable Long id, @PathVariable int position, Model model) {
+        try {
+            Location asked = locations.locate(id, position);
+            // Asked and not told is worth saying, or the button looks broken.
+            if (!asked.addresses().get(position).isLocated()) {
+                model.addAttribute("error",
+                        "Zu dieser Adresse hat OpenStreetMap keinen Punkt geliefert. "
+                                + "Meist fehlt die Hausnummer oder die Stadt.");
+            }
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("error", "Diese Adresse gibt es nicht mehr — bitte die Seite neu laden.");
+        }
+        locations.byId(id).ifPresent(location -> show(model, location));
+        return "fragments/address-list :: address-list-and-summary";
     }
 
     /** Name and notes. The addresses and the contact people have their own forms. */
@@ -116,15 +141,17 @@ public class LocationController {
     public String change(@PathVariable Long id,
                          @RequestParam(defaultValue = "") String name,
                          @RequestParam(defaultValue = "") String notes,
+                         @RequestParam(defaultValue = "false") boolean inUse,
                          Model model) {
         try {
             Location known = locations.byId(id).orElseThrow(() ->
                     new IllegalArgumentException("LocationController :: unknown location"));
-            locations.change(new Location(id, name, notes, known.addresses(), known.contacts()));
+            locations.change(new Location(id, name, notes, inUse,
+                    known.addresses(), known.contacts()));
         } catch (IllegalArgumentException e) {
             model.addAttribute("error", "Der Name des Ortes ist ein Pflichtfeld.");
         }
-        locations.byId(id).ifPresent(location -> model.addAttribute("location", location));
+        locations.byId(id).ifPresent(location -> show(model, location));
         return "fragments/location-fields :: location-fields";
     }
 
@@ -141,13 +168,13 @@ public class LocationController {
                              @RequestParam(defaultValue = "false") boolean moved,
                              Model model) {
         try {
-            model.addAttribute("location", locations.addAddress(id,
+            show(model, locations.addAddress(id,
                     Address.at(street, postalCode, city).withCapacity(seats(capacity)), moved));
         } catch (IllegalArgumentException e) {
             model.addAttribute("error", e.getMessage() != null && e.getMessage().contains("capacity")
                     ? "Die Plätze müssen eine Zahl größer als null sein."
                     : "Eine Adresse braucht mindestens Straße oder Stadt.");
-            locations.byId(id).ifPresent(location -> model.addAttribute("location", location));
+            locations.byId(id).ifPresent(location -> show(model, location));
         }
         return "fragments/address-list :: address-list-and-summary";
     }
@@ -157,7 +184,7 @@ public class LocationController {
                                    @PathVariable int position,
                                    @RequestParam boolean active,
                                    Model model) {
-        model.addAttribute("location", locations.setAddressActive(id, position, active));
+        show(model, locations.setAddressActive(id, position, active));
         return "fragments/address-list :: address-list-and-summary";
     }
 
@@ -193,10 +220,10 @@ public class LocationController {
      */
     private String contactFragment(Long id, Model model, Supplier<Location> change) {
         try {
-            model.addAttribute("location", change.get());
+            show(model, change.get());
         } catch (IllegalArgumentException e) {
             model.addAttribute("error", contactMessage(e));
-            locations.byId(id).ifPresent(location -> model.addAttribute("location", location));
+            locations.byId(id).ifPresent(location -> show(model, location));
         }
         return "fragments/contact-list :: contact-list";
     }
@@ -212,9 +239,18 @@ public class LocationController {
         return "Ein Ansprechpartner braucht einen Namen.";
     }
 
-    private void fill(Model model, String search) {
-        model.addAttribute("locations", locations.matching(search));
+    private void show(Model model, Location location) {
+        model.addAttribute("location", location);
+        model.addAttribute("mapUrl", MapExcerpt.of(location.currentAddress()));
+        model.addAttribute("canLocate", locations.canLocateAddresses());
+    }
+
+    private void fill(Model model, String search, boolean onlyActive) {
+        model.addAttribute("locations", locations.matching(search).stream()
+                .filter(place -> !onlyActive || place.inUse())
+                .toList());
         model.addAttribute("search", search);
+        model.addAttribute("onlyActive", onlyActive);
     }
 
     private static Map<String, String> submitted(String name, String street, String postalCode,

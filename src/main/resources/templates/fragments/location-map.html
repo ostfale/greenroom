@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  OpenStreetMap's own embed. No key, no account, no library — the tiles come from the
+  foundation. Shown only where the address was actually found: half a map is worse than
+  none, and an address that says "Hamburg" cannot be placed.
+-->
+<div id="location-map" hx-swap-oob="true" th:fragment="location-map">
+    <iframe th:if="${mapUrl}" th:src="${mapUrl}" class="map"
+            loading="lazy" referrerpolicy="no-referrer"
+            title="Karte mit dem Ort"></iframe>
+    <!-- Switched off and asked-but-not-found look the same to the model, so say which. -->
+    <p class="hint" th:if="${mapUrl} == null and ${canLocate}">
+        Für diese Adresse ist kein Punkt bekannt. Über „Auf der Karte suchen“ bei der
+        Adresse lässt er sich nachschlagen.
+    </p>
+    <p class="hint" th:if="${mapUrl} == null and !${canLocate}">
+        Die Adresssuche ist nicht eingeschaltet, deshalb gibt es hier keine Karte.
+        Sie braucht <code>GREENROOM_GEO_ENABLED</code> und
+        <code>GREENROOM_GEO_USER_AGENT</code>.
+    </p>
+</div>
+</body>
+</html>

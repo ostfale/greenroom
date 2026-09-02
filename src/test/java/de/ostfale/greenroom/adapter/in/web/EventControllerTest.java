@@ -1928,4 +1928,51 @@ class EventControllerTest {
         assertThat(mailer.sent()).isEmpty();
         assertThat(venueInquiries.forEvent(id)).isEmpty();
     }
+
+    /** A place we gave up is not offered when an evening looks for a venue. */
+    @Test
+    void thePickerOffersOnlyThePlacesStillInUse() throws Exception {
+        locations.add(aLocation());
+        Long given = locations.add(Location.of("Aufgegeben", aContact())).id();
+        locations.change(locations.byId(given).orElseThrow().withInUse(false));
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-venue select[name=locationId] option").eachText())
+                .containsExactly("Noch offen", "Musterfirma GmbH");
+    }
+
+    /**
+     * Unless the evening already sits there. A venue we stopped using does not vanish from
+     * the evening it hosted — that would lose what is stored without saying so.
+     */
+    @Test
+    void aPlaceTheEveningAlreadySitsAtIsStillOffered() throws Exception {
+        Long given = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withLocation(given)).id();
+        locations.change(locations.byId(given).orElseThrow().withInUse(false));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-venue select[name=locationId] option").eachText())
+                .containsExactly("Noch offen", "Musterfirma GmbH");
+        assertThat(page.selectFirst("#event-venue option[selected]").text())
+                .isEqualTo("Musterfirma GmbH");
+    }
+
+    /** The filter over the list keeps every place: you look for what happened, not for what may. */
+    @Test
+    void theFilterStillOffersAPlaceWeGaveUp() throws Exception {
+        Long given = locations.add(aLocation()).id();
+        locations.change(locations.byId(given).orElseThrow().withInUse(false));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event"))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("form.filters select[name=locationId] option").eachText())
+                .contains("Musterfirma GmbH");
+    }
 }

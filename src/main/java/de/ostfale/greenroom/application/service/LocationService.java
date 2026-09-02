@@ -2,6 +2,7 @@ package de.ostfale.greenroom.application.service;
 
 import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.out.LocationRepository;
+import de.ostfale.greenroom.application.port.out.LookUpAddress;
 import de.ostfale.greenroom.domain.locations.Address;
 import de.ostfale.greenroom.domain.locations.ContactPerson;
 import de.ostfale.greenroom.domain.locations.Location;
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,10 +22,12 @@ public class LocationService implements ManageLocations {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final LocationRepository locationRepository;
+    private final LookUpAddress lookup;
 
-    public LocationService(LocationRepository locationRepository) {
+    public LocationService(LocationRepository locationRepository, LookUpAddress lookup) {
         log.debug("LocationService :: init");
         this.locationRepository = locationRepository;
+        this.lookup = lookup;
     }
 
     @Override
@@ -58,9 +62,36 @@ public class LocationService implements ManageLocations {
     @Override
     public Location addAddress(Long locationId, Address address, boolean replacesTheOthers) {
         Location location = known(locationId);
+        Address placed = located(address);
         return locationRepository.save(replacesTheOthers
-                ? location.movedTo(address)
-                : location.withAdditionalAddress(address));
+                ? location.movedTo(placed)
+                : location.withAdditionalAddress(placed));
+    }
+
+    @Override
+    public Location locate(Long locationId, int position) {
+        Location known = known(locationId);
+        if (position < 0 || position >= known.addresses().size()) {
+            throw new IllegalArgumentException("Location :: there is no address at position " + position);
+        }
+        List<Address> addresses = new ArrayList<>(known.addresses());
+        addresses.set(position, located(addresses.get(position)));
+        return locationRepository.save(known.withAddresses(addresses));
+    }
+
+    @Override
+    public boolean canLocateAddresses() {
+        return lookup.isAvailable();
+    }
+
+    /**
+     * Asks where the address is, and shrugs when nobody knows. Not being placed is a
+     * property of a thin address, never a reason to refuse writing it down.
+     */
+    private Address located(Address address) {
+        return lookup.find(address)
+                .map(where -> address.at(where.latitude(), where.longitude()))
+                .orElse(address);
     }
 
     @Override
