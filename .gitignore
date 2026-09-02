@@ -1,5 +1,10 @@
 HELP.md
 target/
+
+### Secrets — the mail password lives here on the Pi, never in the repository
+.env
+*.env
+!.env.example
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
