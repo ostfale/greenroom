@@ -15,7 +15,7 @@
             <label>
                 <span class="captioned">E-Mail
                     <a th:if="${speaker.email}" th:href="'mailto:' + ${speaker.email}"
-                       title="Mail an diese Adresse schreiben">&#9993;</a>
+                       title="Mail an diese Adresse schreiben">Schreiben</a>
                 </span>
                 <input type="email" name="email" required th:value="${speaker.email}">
             </label>

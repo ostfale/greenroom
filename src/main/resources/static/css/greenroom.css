@@ -392,9 +392,10 @@ form {
     gap: .5rem;
 }
 
+/* A word, not a symbol: nothing else in this application is an icon, and a lone envelope
+   is something nobody finds. It carries the caption's own size and case. */
 .captioned a {
-    font-size: .875rem;
-    text-decoration: none;
+    color: var(--green);
 }
 
 label {
@@ -665,13 +666,16 @@ ul.plain {
 
 /* The counts, in one row that wraps. Numbers read as numbers, the words stay quiet: what
    the overview is for stands above this, and this only rides along. */
+/* Columns of equal share rather than a row packed to the left: the tile is the width of
+   the page, and seven numbers huddled in its first half read as an afterthought. Auto-fit
+   drops to fewer columns where the width is not there. */
 ul.tally {
     margin: 0;
     padding: 0;
     list-style: none;
-    display: flex;
-    flex-wrap: wrap;
-    gap: .5rem 1.75rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: .75rem 1.5rem;
     color: var(--muted);
     font-size: .8125rem;
 }

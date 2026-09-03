@@ -27,7 +27,7 @@
                 th:hx-post="@{/event/{id}/status(id=${event.id},target=${target})}"
                 hx-target="#event-status"
                 hx-swap="outerHTML"
-                th:text="#{'event.status.' + ${target}}">Termin steht</button>
+                th:text="#{'event.status.' + ${target}}">Termin bestätigt</button>
     </div>
 </div>
 </body>

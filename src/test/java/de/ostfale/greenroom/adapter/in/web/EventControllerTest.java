@@ -192,7 +192,7 @@ class EventControllerTest {
 
         Document page = Jsoup.parse(html);
         assertThat(page.select("#event-table tbody tr td").eachText())
-                .containsExactly("24.09.2026", "Java-Herbst", "Ort steht", "Musterfirma GmbH", "1");
+                .containsExactly("24.09.2026", "Java-Herbst", "Ort bestätigt", "Musterfirma GmbH", "1");
     }
 
     @Test
@@ -356,7 +356,7 @@ class EventControllerTest {
         String html = mvc.perform(get("/event/" + id)).andReturn().getResponse().getContentAsString();
 
         assertThat(Jsoup.parse(html).select("#event-status .actions button").eachText())
-                .containsExactly("Ort steht", "Verschoben", "Abgesagt");
+                .containsExactly("Ort bestätigt", "Verschoben", "Abgesagt");
     }
 
     @Test
@@ -381,7 +381,7 @@ class EventControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("#event-status .label").text())
-                .isEqualTo("Termin steht");
+                .isEqualTo("Termin bestätigt");
         assertThat(events.byId(id).orElseThrow().status()).isEqualTo(EventStatus.DATE_CONFIRMED);
     }
 

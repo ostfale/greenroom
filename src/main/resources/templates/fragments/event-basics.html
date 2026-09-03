@@ -21,7 +21,7 @@
             <label>Datum
                 <input type="date" name="date" th:value="${event.date}">
                 <span class="hint" th:if="${event.startsAt()}"
-                      th:text="|ab ${#temporals.format(event.startsAt(), 'HH:mm')} Uhr — steht am Vortrag|">ab 19:00 Uhr</span>
+                      th:text="|(${#temporals.format(event.startsAt(), 'HH:mm')} Uhr)|">(19:00 Uhr)</span>
             </label>
             <label>Form
                 <select name="mode">
