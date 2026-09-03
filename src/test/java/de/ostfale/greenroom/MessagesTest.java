@@ -1,9 +1,7 @@
 package de.ostfale.greenroom;
 
 import de.ostfale.greenroom.domain.Rule;
-import de.ostfale.greenroom.domain.activities.ActivityDirection;
-import de.ostfale.greenroom.domain.activities.ContactChannel;
-import de.ostfale.greenroom.domain.activities.InquiryOutcome;
+import de.ostfale.greenroom.domain.activities.ActivityKind;
 import de.ostfale.greenroom.domain.events.EventMode;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import org.junit.jupiter.api.Test;
@@ -43,12 +41,8 @@ class MessagesTest {
                 assertThat(TEXTS).containsKey("event.status." + status));
         assertThat(EventMode.values()).allSatisfy(mode ->
                 assertThat(TEXTS).containsKey("event.mode." + mode));
-        assertThat(ContactChannel.values()).allSatisfy(channel ->
-                assertThat(TEXTS).containsKey("inquiry.channel." + channel));
-        assertThat(InquiryOutcome.values()).allSatisfy(outcome ->
-                assertThat(TEXTS).containsKey("inquiry.outcome." + outcome));
-        assertThat(ActivityDirection.values()).allSatisfy(direction ->
-                assertThat(TEXTS).containsKey("activity.direction." + direction));
+        assertThat(ActivityKind.values()).allSatisfy(kind ->
+                assertThat(TEXTS).containsKey("activity.kind." + kind));
     }
 
     /** The other way round: a key nobody asks for any more is dead weight. */

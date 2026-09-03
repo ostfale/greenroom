@@ -8,7 +8,7 @@ import java.time.LocalDate;
 import static de.ostfale.greenroom.Violations.ruleBrokenBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Plain Java, no Spring: what an entry is, and what a direction commits it to. */
+/** Plain Java, no Spring: what a line of history is, and what it insists on. */
 class ActivityTest {
 
     private static final Long EVENT = 1L;
@@ -16,36 +16,25 @@ class ActivityTest {
 
     @Test
     void anEntryBelongsToAnEveningAndIsDated() {
-        assertThat(ruleBrokenBy(() -> Activity.noted(null, DAY, "Beamer defekt")))
+        assertThat(ruleBrokenBy(() -> Activity.of(null, DAY, ActivityKind.MAIL_SENT, "Termin angefragt")))
                 .isEqualTo(Rule.ACTIVITY_BELONGS_TO_AN_EVENT);
-        assertThat(ruleBrokenBy(() -> Activity.noted(EVENT, null, "Beamer defekt")))
+        assertThat(ruleBrokenBy(() -> Activity.of(EVENT, null, ActivityKind.MAIL_SENT, "Termin angefragt")))
                 .isEqualTo(Rule.ACTIVITY_IS_DATED);
     }
 
     @Test
+    void anEntrySaysWhetherTheMailWentOrCame() {
+        assertThat(Activity.of(EVENT, DAY, ActivityKind.MAIL_RECEIVED, "Max sagt zu").kind())
+                .isEqualTo(ActivityKind.MAIL_RECEIVED);
+
+        assertThat(ruleBrokenBy(() -> Activity.of(EVENT, DAY, null, "Max sagt zu")))
+                .isEqualTo(Rule.ACTIVITY_NEEDS_A_KIND);
+    }
+
+    @Test
     void anEntrySaysWhatHappened() {
-        assertThat(ruleBrokenBy(() -> Activity.noted(EVENT, DAY, "   ")))
+        assertThat(ruleBrokenBy(() -> Activity.of(EVENT, DAY, ActivityKind.MAIL_SENT, "   ")))
                 .isEqualTo(Rule.ACTIVITY_NEEDS_A_TEXT);
-    }
-
-    /** The direction is what separates something we did from something we wrote down. */
-    @Test
-    void aNoteWentNowhereSoItHasNoChannel() {
-        assertThat(Activity.noted(EVENT, DAY, "Beamer defekt").channel()).isNull();
-
-        assertThat(ruleBrokenBy(() -> new Activity(null, EVENT, DAY, ActivityDirection.NOTE,
-                ContactChannel.EMAIL, "Beamer defekt")))
-                .isEqualTo(Rule.NOTE_HAS_NO_CHANNEL);
-    }
-
-    @Test
-    void somethingThatWentOutOrCameInSaysHow() {
-        assertThat(Activity.over(EVENT, DAY, ActivityDirection.OUTGOING, ContactChannel.EMAIL,
-                "Sponsor angeschrieben").channel()).isEqualTo(ContactChannel.EMAIL);
-
-        assertThat(ruleBrokenBy(() -> new Activity(null, EVENT, DAY, ActivityDirection.INCOMING,
-                null, "Sponsor sagt zu")))
-                .isEqualTo(Rule.ACTIVITY_NEEDS_A_CHANNEL);
     }
 
     /**
@@ -60,6 +49,6 @@ class ActivityTest {
 
     @Test
     void anEntryThatIsNotStoredYetHasNoId() {
-        assertThat(Activity.noted(EVENT, DAY, "Beamer defekt").id()).isNull();
+        assertThat(Activity.of(EVENT, DAY, ActivityKind.MAIL_SENT, "Termin angefragt").id()).isNull();
     }
 }

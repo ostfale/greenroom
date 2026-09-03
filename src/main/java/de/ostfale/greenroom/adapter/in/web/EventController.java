@@ -4,26 +4,17 @@ import de.ostfale.greenroom.application.port.in.EventFilter;
 import de.ostfale.greenroom.application.port.in.ManageActivities;
 import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
-import de.ostfale.greenroom.application.port.in.ManageSpeakerInquiries;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.in.ManageTags;
-import de.ostfale.greenroom.application.port.in.ManageVenueInquiries;
-import de.ostfale.greenroom.application.port.out.MailMessage;
-import de.ostfale.greenroom.application.port.out.SendMail;
 import de.ostfale.greenroom.domain.Rule;
 import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.activities.Activity;
-import de.ostfale.greenroom.domain.activities.ActivityDirection;
-import de.ostfale.greenroom.domain.activities.ContactChannel;
-import de.ostfale.greenroom.domain.activities.InquiryOutcome;
-import de.ostfale.greenroom.domain.activities.SpeakerInquiry;
-import de.ostfale.greenroom.domain.activities.VenueInquiry;
+import de.ostfale.greenroom.domain.activities.ActivityKind;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventMode;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
 import de.ostfale.greenroom.domain.events.TalkSpeaker;
-import de.ostfale.greenroom.domain.locations.ContactPerson;
 import de.ostfale.greenroom.domain.locations.Location;
 import de.ostfale.greenroom.domain.speakers.Speaker;
 import de.ostfale.greenroom.domain.tags.Tag;
@@ -57,21 +48,15 @@ public class EventController {
     private final ManageSpeakers speakers;
     private final ManageLocations locations;
     private final ManageTags tags;
-    private final ManageSpeakerInquiries inquiries;
-    private final ManageVenueInquiries venueInquiries;
     private final ManageActivities activities;
     private final ErrorMessages errors;
 
     public EventController(ManageEvents events, ManageSpeakers speakers, ManageLocations locations,
-                           ManageTags tags, ManageSpeakerInquiries inquiries,
-                           ManageVenueInquiries venueInquiries, ManageActivities activities,
-                           ErrorMessages errors) {
+                           ManageTags tags, ManageActivities activities, ErrorMessages errors) {
         this.events = events;
         this.speakers = speakers;
         this.locations = locations;
         this.tags = tags;
-        this.inquiries = inquiries;
-        this.venueInquiries = venueInquiries;
         this.activities = activities;
         this.errors = errors;
     }
@@ -380,212 +365,39 @@ public class EventController {
         return tile(id, model, "fragments/event-talks :: event-talks");
     }
 
-    /** An inquiry that has gone out: to whom, when, and how it was sent. */
-    @PostMapping("/{id}/inquiry")
-    public String sendInquiry(@PathVariable Long id,
-                              @RequestParam(defaultValue = "") String speakerId,
-                              @RequestParam(defaultValue = "") String channel,
-                              @RequestParam(defaultValue = "") String sentAt,
-                              @RequestParam(defaultValue = "") String note,
-                              Model model) {
-        try {
-            Event known = events.byId(id).orElseThrow(() ->
-                    new RuleViolated(Rule.NOT_FOUND));
-            inquiries.send(SpeakerInquiry
-                    .sent(id, speaker(speakerId), known.date(), day(sentAt), how(channel))
-                    .withNote(note));
-        } catch (RuleViolated e) {
-            model.addAttribute("error", errors.german(e));
-        }
-        return tile(id, model, "fragments/event-inquiries :: event-inquiries");
-    }
-
-    /** What came back. A refusal is not a correction of the inquiry — it is its answer. */
-    @PostMapping("/{id}/inquiry/{inquiryId}")
-    public String answerInquiry(@PathVariable Long id,
-                                @PathVariable Long inquiryId,
-                                @RequestParam InquiryOutcome outcome,
-                                Model model) {
-        try {
-            inquiries.answer(inquiryId, outcome);
-        } catch (RuleViolated e) {
-            model.addAttribute("error", errors.german(e));
-        }
-        return tile(id, model, "fragments/event-inquiries :: event-inquiries");
-    }
-
     /**
-     * An inquiry that went out to a place. The date is not asked for: the evening already
-     * has one, and it is copied onto the inquiry as it stands right now.
-     */
-    @PostMapping("/{id}/venue-inquiry")
-    public String sendVenueInquiry(@PathVariable Long id,
-                                   @RequestParam(defaultValue = "") String locationId,
-                                   @RequestParam(defaultValue = "") String contactName,
-                                   @RequestParam(defaultValue = "") String channel,
-                                   @RequestParam(defaultValue = "") String sentAt,
-                                   @RequestParam(defaultValue = "") String note,
-                                   Model model) {
-        try {
-            Event known = events.byId(id).orElseThrow(() ->
-                    new RuleViolated(Rule.NOT_FOUND));
-            venueInquiries.send(VenueInquiry
-                    .sent(id, askedPlace(locationId), contactName, known.date(), day(sentAt), how(channel))
-                    .withNote(note));
-        } catch (RuleViolated e) {
-            model.addAttribute("error", errors.german(e));
-        }
-        return tile(id, model, "fragments/event-venue-inquiries :: event-venue-inquiries");
-    }
-
-    /** What the place answered. Asking the next one is a new inquiry, and both stay. */
-    @PostMapping("/{id}/venue-inquiry/{inquiryId}")
-    public String answerVenueInquiry(@PathVariable Long id,
-                                     @PathVariable Long inquiryId,
-                                     @RequestParam InquiryOutcome outcome,
-                                     Model model) {
-        try {
-            venueInquiries.answer(inquiryId, outcome);
-        } catch (RuleViolated e) {
-            model.addAttribute("error", errors.german(e));
-        }
-        return tile(id, model, "fragments/event-venue-inquiries :: event-venue-inquiries");
-    }
-
-    /**
-     * The mail goes out and the inquiry is written down with it. What is sent is what
-     * stands in the form — the draft was rendered from the message bundle and could be
-     * edited before it went.
-     */
-    @PostMapping("/{id}/inquiry/mail")
-    public String mailInquiry(@PathVariable Long id,
-                              @RequestParam(defaultValue = "") String speakerId,
-                              @RequestParam(defaultValue = "") String subject,
-                              @RequestParam(defaultValue = "") String body,
-                              @RequestParam(defaultValue = "") String sentAt,
-                              @RequestParam(defaultValue = "") String note,
-                              Model model) {
-        try {
-            Event known = events.byId(id).orElseThrow(() ->
-                    new RuleViolated(Rule.NOT_FOUND));
-            Speaker person = speakers.byId(speaker(speakerId)).orElseThrow(() ->
-                    new RuleViolated(Rule.NO_SPEAKER_CHOSEN));
-            inquiries.sendByMail(
-                    SpeakerInquiry.sent(id, person.id(), known.date(), day(sentAt), ContactChannel.EMAIL)
-                            .withNote(note),
-                    new MailMessage(person.email(), subject, body));
-        } catch (RuleViolated | SendMail.MailNotSent e) {
-            model.addAttribute("error", errors.german(e));
-        }
-        return tile(id, model, "fragments/event-inquiries :: event-inquiries");
-    }
-
-    /** The same for a place, addressed to the contact that was picked. */
-    @PostMapping("/{id}/venue-inquiry/mail")
-    public String mailVenueInquiry(@PathVariable Long id,
-                                   @RequestParam(defaultValue = "") String locationId,
-                                   @RequestParam(defaultValue = "") String contactName,
-                                   @RequestParam(defaultValue = "") String subject,
-                                   @RequestParam(defaultValue = "") String body,
-                                   @RequestParam(defaultValue = "") String sentAt,
-                                   @RequestParam(defaultValue = "") String note,
-                                   Model model) {
-        try {
-            Event known = events.byId(id).orElseThrow(() ->
-                    new RuleViolated(Rule.NOT_FOUND));
-            Long place = askedPlace(locationId);
-            venueInquiries.sendByMail(
-                    VenueInquiry.sent(id, place, contactName, known.date(), day(sentAt),
-                            ContactChannel.EMAIL).withNote(note),
-                    new MailMessage(addressOf(place, contactName), subject, body));
-        } catch (RuleViolated | SendMail.MailNotSent e) {
-            model.addAttribute("error", errors.german(e));
-        }
-        return tile(id, model, "fragments/event-venue-inquiries :: event-venue-inquiries");
-    }
-
-    /**
-     * The address of the contact that was picked. Looked up rather than posted along: what
-     * the form sends is a name, and a name is not something to write a mail to.
-     */
-    private String addressOf(Long locationId, String contactName) {
-        return contactsAt(locationId).stream()
-                .filter(person -> person.name().equals(contactName))
-                .findFirst()
-                .map(ContactPerson::email)
-                .orElseThrow(() -> new RuleViolated(Rule.NO_CONTACT_CHOSEN));
-    }
-
-    /**
-     * The people to write to at the place that was just picked. Its own little route
-     * because the second select depends on the first, and htmx swaps it rather than the
-     * whole tile — swapping the tile would fold the form away mid-entry.
-     */
-    @GetMapping("/{id}/venue-inquiry/contacts")
-    public String venueContacts(@PathVariable Long id,
-                                @RequestParam(defaultValue = "") String locationId,
-                                Model model) {
-        model.addAttribute("venueContacts", contactsAt(venue(locationId)));
-        return "fragments/event-venue-inquiries :: venue-contacts";
-    }
-
-    /** Unlike assigning a venue, asking one needs a place: there is nobody to write to else. */
-    private static Long askedPlace(String locationId) {
-        Long place = venue(locationId);
-        if (place == null) {
-            throw new RuleViolated(Rule.NO_LOCATION_CHOSEN);
-        }
-        return place;
-    }
-
-    private List<ContactPerson> contactsAt(Long locationId) {
-        return locations.byId(locationId).map(Location::contacts).orElse(List.of());
-    }
-
-    /**
-     * One more line in the history. Append-only, so there is no counterpart that changes
-     * or drops one — a line that was wrong is answered by the next line.
+     * One more line in the history, and the only way one comes into being: nothing in the
+     * application writes a line by itself. Append-only, so there is no counterpart that
+     * changes or drops one — a line that was wrong is answered by the next line.
      */
     @PostMapping("/{id}/activity")
     public String appendActivity(@PathVariable Long id,
                                  @RequestParam(defaultValue = "") String happenedOn,
-                                 @RequestParam(defaultValue = "") String direction,
-                                 @RequestParam(defaultValue = "") String channel,
+                                 @RequestParam(defaultValue = "") String kind,
                                  @RequestParam(defaultValue = "") String what,
                                  Model model) {
         try {
-            ActivityDirection kind = kind(direction);
-            // A note went nowhere, so whatever the channel select was left on is dropped.
-            ContactChannel way = kind == ActivityDirection.NOTE ? null : how(channel);
-            activities.append(new Activity(null, id, day(happenedOn), kind, way, what));
+            activities.append(Activity.of(id, day(happenedOn), asKind(kind), what));
         } catch (RuleViolated e) {
             model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-history :: event-history");
     }
 
-    private static ActivityDirection kind(String direction) {
+    private static ActivityKind asKind(String kind) {
         try {
-            return ActivityDirection.valueOf(direction.strip());
+            return ActivityKind.valueOf(kind.strip());
         } catch (RuntimeException e) {
-            throw new RuleViolated(Rule.ACTIVITY_NEEDS_A_DIRECTION);
+            throw new RuleViolated(Rule.ACTIVITY_NEEDS_A_KIND);
         }
     }
 
-    /** Empty means today: an inquiry is written down right after it went out. */
+    /** Empty means today: a line is written down right after the mail went or came. */
     private static LocalDate day(String date) {
         if (date == null || date.isBlank()) {
             return LocalDate.now();
         }
         return evening(date);
-    }
-
-    private static ContactChannel how(String channel) {
-        try {
-            return ContactChannel.valueOf(channel.strip());
-        } catch (RuntimeException e) {
-            throw new RuleViolated(Rule.INQUIRY_NEEDS_A_CHANNEL);
-        }
     }
 
     /** The people who speak at this evening — those are the ones there is anything to ask. */
@@ -597,16 +409,6 @@ public class EventController {
             }
         }));
         return asked;
-    }
-
-    /**
-     * Whether everybody who speaks has said yes to a date. A hint on the page, not a rule:
-     * the step to DATE_CONFIRMED stays something somebody decides.
-     */
-    private static boolean allAccepted(List<Long> asked, List<SpeakerInquiry> answers) {
-        return !asked.isEmpty() && asked.stream().allMatch(speakerId ->
-                answers.stream().anyMatch(inquiry ->
-                        inquiry.speakerId().equals(speakerId) && inquiry.isAccepted()));
     }
 
     /** Every change answers with the tile it was made in, showing what is stored now. */
@@ -628,27 +430,15 @@ public class EventController {
         model.addAttribute("clashes", events.clashesWith(event));
         model.addAttribute("tagChoices", tagChoices(event));
         List<Speaker> known = speakers.all();
-        List<SpeakerInquiry> answers = inquiries.forEvent(event.id());
-        List<Long> asked = speakersOf(event);
-        model.addAttribute("inquiries", answers);
-        model.addAttribute("venueInquiries", venueInquiries.forEvent(event.id()));
-        // The place the evening is waiting on. Shown before the next inquiry goes out, and
-        // shown only — asking two places at once stays the planner's call.
-        model.addAttribute("waitingOn", venueInquiries.waitingOn(event.id()).orElse(null));
-        model.addAttribute("locationNames", places.stream()
-                .collect(Collectors.toMap(Location::id, Location::name)));
-        // Filled by its own route once a place is picked; the form opens with none.
-        model.addAttribute("venueContacts", List.<ContactPerson>of());
         // In the order of the talks, not alphabetically: the evening reads that way.
-        model.addAttribute("eventSpeakers", asked.stream()
+        model.addAttribute("eventSpeakers", speakersOf(event).stream()
                 .flatMap(speaking -> known.stream().filter(one -> one.id().equals(speaking)))
                 .toList());
-        model.addAttribute("allAccepted", allAccepted(asked, answers));
         model.addAttribute("history", activities.historyOf(event.id()));
-        model.addAttribute("directions", ActivityDirection.values());
+        model.addAttribute("kinds", ActivityKind.values());
         model.addAttribute("today", LocalDate.now());
-        model.addAttribute("channels", ContactChannel.values());
         model.addAttribute("speakers", known);
+        // The talks name their speakers by id, and a page shows people by name.
         model.addAttribute("speakerNames", known.stream()
                 .collect(Collectors.toMap(Speaker::id, Speaker::name)));
         locations.byId(event.locationId())

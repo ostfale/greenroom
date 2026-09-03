@@ -9,6 +9,14 @@
               th:text="${location.name}">Musterfirma GmbH</a></p>
         <p class="hint"
            th:text="${#strings.isEmpty(location.addressLine())} ? '—' : ${location.addressLine()}">—</p>
+
+        <!-- The address opens the mail client; what is written in it is nobody's business here. -->
+        <ul class="plain" th:unless="${#lists.isEmpty(location.contacts())}">
+            <li th:each="person : ${location.contacts()}">
+                <a th:href="'mailto:' + ${person.email}" th:text="${person.name}">Max Muster</a>
+                <span class="hint" th:if="${person.phone}" th:text="${person.phone}">040 123456</span>
+            </li>
+        </ul>
     </div>
     <p class="hint" th:unless="${location}">Noch kein Ort zugeordnet.</p>
 

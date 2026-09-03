@@ -35,7 +35,7 @@ public record Speaker(
         links = links == null ? List.of() : List.copyOf(links);
     }
 
-    /** A new speaker, not yet stored. An inquiry needs a way out, so the address is not optional. */
+    /** A new speaker, not yet stored. There is no writing to somebody without an address. */
     public static Speaker of(String name, String email) {
         return new Speaker(null, name, null, email, null, null, null, List.of());
     }

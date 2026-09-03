@@ -38,7 +38,7 @@ public class ArchitectureTest {
             .whereLayer("Domain").mayOnlyBeAccessedByLayers("Application", "Adapter", "Config");
 
     /**
-     * The web adapter must not reach into the mailer, the mailer not into the geocoder.
+     * The web adapter must not reach into the geocoder, the geocoder not into the scaler.
      * Written as slices, so that "each other" means other adapters: two classes inside the
      * same adapter are free to work together.
      */

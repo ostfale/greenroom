@@ -17,9 +17,6 @@ public interface ManageActivities {
      */
     Activity append(Activity activity);
 
-    /**
-     * The whole evening in one order, oldest first: the inquiries to the speakers and to
-     * the places, and the entries written by hand, mixed the moment they are asked for.
-     */
-    List<HistoryEntry> historyOf(Long eventId);
+    /** The whole evening in one order, oldest first. */
+    List<Activity> historyOf(Long eventId);
 }

@@ -9,24 +9,19 @@ import java.time.LocalDate;
 import static de.ostfale.greenroom.domain.Texts.required;
 
 /**
- * Something that happened while an evening was planned and has no field of its own: a
- * phone call, a mail to a sponsor, a thing to remember. What the inquiries already record
- * is not written here a second time — the history mixes the two when it is shown.
+ * One line of what happened while an evening was planned: a mail that went out, or one
+ * that came back, on the day it did, in whatever words describe it. Written by hand and
+ * only by hand — nothing in the application adds a line on its own.
  *
  * <p>Append-only. There is no {@code with…} method and no way to change or drop an entry,
  * because a log that can be corrected afterwards is a note, not a history. A line that
  * turned out wrong is answered by the next line.
- *
- * <p>The direction says what kind of line it is. {@code OUTGOING} and {@code INCOMING} went
- * over a channel and carry it; a {@code NOTE} went nowhere, so it has none — that is what
- * separates something we did from something we wrote down.
  */
 public record Activity(
         @Id Long id,
         Long eventId,
         LocalDate happenedOn,
-        ActivityDirection direction,
-        ContactChannel channel,
+        ActivityKind kind,
         String what) {
 
     public Activity {
@@ -36,26 +31,14 @@ public record Activity(
         if (happenedOn == null) {
             throw new RuleViolated(Rule.ACTIVITY_IS_DATED);
         }
-        if (direction == null) {
-            throw new RuleViolated(Rule.ACTIVITY_NEEDS_A_DIRECTION);
-        }
-        if (direction == ActivityDirection.NOTE && channel != null) {
-            throw new RuleViolated(Rule.NOTE_HAS_NO_CHANNEL);
-        }
-        if (direction != ActivityDirection.NOTE && channel == null) {
-            throw new RuleViolated(Rule.ACTIVITY_NEEDS_A_CHANNEL);
+        if (kind == null) {
+            throw new RuleViolated(Rule.ACTIVITY_NEEDS_A_KIND);
         }
         what = required(what, Rule.ACTIVITY_NEEDS_A_TEXT);
     }
 
-    /** Something we did or that reached us, over a channel. */
-    public static Activity over(Long eventId, LocalDate happenedOn, ActivityDirection direction,
-                                ContactChannel channel, String what) {
-        return new Activity(null, eventId, happenedOn, direction, channel, what);
-    }
-
-    /** Something worth writing down that went nowhere. */
-    public static Activity noted(Long eventId, LocalDate happenedOn, String what) {
-        return new Activity(null, eventId, happenedOn, ActivityDirection.NOTE, null, what);
+    /** A line that has not been written yet. */
+    public static Activity of(Long eventId, LocalDate happenedOn, ActivityKind kind, String what) {
+        return new Activity(null, eventId, happenedOn, kind, what);
     }
 }

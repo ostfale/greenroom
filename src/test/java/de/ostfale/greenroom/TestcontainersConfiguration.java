@@ -24,16 +24,6 @@ public class TestcontainersConfiguration {
         return new PostgreSQLContainer<>(DockerImageName.parse("postgres:17-alpine"));
     }
 
-    /**
-     * In front of whatever MailConfiguration built: no test may reach a real mail server,
-     * and the tests want to read what would have gone out.
-     */
-    @Bean
-    @Primary
-    public FakeMailer fakeMailer() {
-        return new FakeMailer();
-    }
-
     /** In front of the real one: no test asks a public service where a street is. */
     @Bean
     @Primary

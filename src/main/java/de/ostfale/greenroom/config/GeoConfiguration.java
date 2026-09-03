@@ -8,9 +8,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Whether addresses are looked up at all. One bean and one decision, the same shape as the
- * mailer: a condition on each of the two classes would depend on the order they happen to
- * be found in.
+ * Whether addresses are looked up at all. One bean and one decision rather than a
+ * condition on each of the two classes, which would depend on the order they happen to be
+ * found in.
  *
  * <p>Turned off means no map, nothing more. Nominatim asks for an identifying user agent,
  * so an install without one does not ask at all.

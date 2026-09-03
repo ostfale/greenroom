@@ -37,26 +37,11 @@ public enum Rule {
     SPEAKER_TWICE_ON_TALK,
     SPEAKER_NOT_STORED,
 
-    /** What was asked, and what came back. */
-    INQUIRY_BELONGS_TO_AN_EVENT,
-    INQUIRY_NEEDS_A_SPEAKER,
-    INQUIRY_NEEDS_A_LOCATION,
-    INQUIRY_NEEDS_A_SENT_DATE,
-    INQUIRY_NEEDS_A_CHANNEL,
-    INQUIRY_NEEDS_AN_OUTCOME,
-    INQUIRY_ANSWER_IS_DATED,
-    INQUIRY_ALREADY_ANSWERED,
-    PENDING_IS_NOT_AN_ANSWER,
-    VENUE_INQUIRY_NEEDS_A_DATE,
-    NO_SUCH_INQUIRY,
-
     /** A line in the history. */
     ACTIVITY_BELONGS_TO_AN_EVENT,
     ACTIVITY_IS_DATED,
-    ACTIVITY_NEEDS_A_DIRECTION,
-    ACTIVITY_NEEDS_A_CHANNEL,
+    ACTIVITY_NEEDS_A_KIND,
     ACTIVITY_NEEDS_A_TEXT,
-    NOTE_HAS_NO_CHANNEL,
 
     /** A place, its addresses and the people to write to there. */
     LOCATION_NEEDS_A_NAME,
@@ -76,7 +61,6 @@ public enum Rule {
     SPEAKER_NEEDS_AN_EMAIL,
     SPEAKER_LINK_NEEDS_A_URL,
     SPEAKER_IS_ANNOUNCED_ON_A_TALK,
-    SPEAKER_WAS_ASKED_ABOUT_AN_EVENING,
     PHOTO_NEEDS_A_STORED_SPEAKER,
     PHOTO_IS_EMPTY,
     PHOTO_TOO_LARGE,
@@ -90,15 +74,9 @@ public enum Rule {
     TAG_ALREADY_ON_THE_LIST,
     NO_SUCH_TAG,
 
-    /** A mail that is not worth sending. */
-    MAIL_NEEDS_A_RECIPIENT,
-    MAIL_NEEDS_A_SUBJECT,
-    MAIL_NEEDS_A_BODY,
-
     /** What the form left empty, sent unreadably, or pointed at and did not find. */
     NO_SPEAKER_CHOSEN,
     NO_LOCATION_CHOSEN,
-    NO_CONTACT_CHOSEN,
     DATE_UNREADABLE,
     NOT_FOUND;
 

@@ -1,6 +1,5 @@
 package de.ostfale.greenroom.adapter.in.web;
 
-import de.ostfale.greenroom.application.port.out.SendMail;
 import de.ostfale.greenroom.domain.RuleViolated;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -28,7 +27,6 @@ class ErrorMessages {
     String german(Exception e) {
         return switch (e) {
             case RuleViolated violation -> text("rule." + violation.rule(), violation.args());
-            case SendMail.MailNotSent ignored -> text("error.mail.refused");
             default -> text("error.generic");
         };
     }

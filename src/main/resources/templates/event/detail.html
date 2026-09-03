@@ -39,7 +39,8 @@
         <section class="tile half">
             <h2>Ort</h2>
             <p class="hint">
-                Der Abend braucht einen Gastgeber, bevor der Ort bestätigt werden kann.
+                Der Abend braucht einen Gastgeber, bevor der Ort bestätigt werden kann. Der
+                Name des Ansprechpartners öffnet die Mail an ihn.
             </p>
             <div th:replace="~{fragments/event-venue :: event-venue}"></div>
         </section>
@@ -47,6 +48,7 @@
         <!-- Not swapped by anything, so it stays in the page rather than in a fragment. -->
         <section class="tile half">
             <h2>Referenten</h2>
+            <p class="hint">Die Adresse öffnet die Mail an die Person.</p>
             <ul class="plain">
                 <li th:each="person : ${eventSpeakers}">
                     <a th:href="@{/speaker/{id}(id=${person.id})}"
@@ -71,30 +73,10 @@
         </section>
 
         <section class="tile">
-            <h2>Anfragen an Referenten</h2>
-            <p class="hint">
-                Die erste Frage des Abends: Passt der Termin? Eine Absage wird nicht
-                überschrieben — wer nochmal fragt, legt eine neue Anfrage an, und beide
-                bleiben stehen.
-            </p>
-            <div th:replace="~{fragments/event-inquiries :: event-inquiries}"></div>
-        </section>
-
-        <section class="tile">
-            <h2>Anfragen an Orte</h2>
-            <p class="hint">
-                Die zweite Frage, und andersherum: Der Termin steht, gefragt wird der Ort.
-                Ein Ort nach dem anderen — steht noch eine Antwort aus, sagt die Kachel das,
-                verbietet die nächste Anfrage aber nicht.
-            </p>
-            <div th:replace="~{fragments/event-venue-inquiries :: event-venue-inquiries}"></div>
-        </section>
-
-        <section class="tile">
             <h2>Verlauf</h2>
             <p class="hint">
-                Was passiert ist, in einer Reihe: die Anfragen von oben und alles, wofür es
-                kein eigenes Feld gibt. Ein Eintrag bleibt stehen — was falsch war,
+                Was passiert ist, in einer Reihe — von Hand festgehalten, denn nichts wird
+                hier von allein eingetragen. Ein Eintrag bleibt stehen: was falsch war,
                 beantwortet der nächste Eintrag.
             </p>
             <div th:replace="~{fragments/event-history :: event-history}"></div>

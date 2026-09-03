@@ -3,8 +3,7 @@ package de.ostfale.greenroom.application.port.out;
 import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.TestcontainersConfiguration;
 import de.ostfale.greenroom.domain.activities.Activity;
-import de.ostfale.greenroom.domain.activities.ActivityDirection;
-import de.ostfale.greenroom.domain.activities.ContactChannel;
+import de.ostfale.greenroom.domain.activities.ActivityKind;
 import de.ostfale.greenroom.domain.events.Event;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,39 +49,30 @@ class ActivityRepositoryTest {
 
     @Test
     void storesAndReadsBackAnEntry() {
-        Activity saved = activities.save(Activity.over(eventId, LocalDate.of(2026, 9, 2),
-                ActivityDirection.OUTGOING, ContactChannel.PHONE, "Sponsor angerufen"));
+        Activity saved = activities.save(Activity.of(eventId, LocalDate.of(2026, 9, 2),
+                ActivityKind.MAIL_SENT, "Termin angefragt"));
 
         assertThat(saved.id()).isNotNull();
         assertThat(activities.findByEvent(eventId)).singleElement().satisfies(read -> {
-            assertThat(read.what()).isEqualTo("Sponsor angerufen");
-            assertThat(read.direction()).isEqualTo(ActivityDirection.OUTGOING);
-            assertThat(read.channel()).isEqualTo(ContactChannel.PHONE);
+            assertThat(read.what()).isEqualTo("Termin angefragt");
+            assertThat(read.kind()).isEqualTo(ActivityKind.MAIL_SENT);
         });
     }
 
-    /** A history is read forwards, unlike the inquiry tables. */
+    /** A history is read forwards. */
     @Test
     void theLogIsOldestFirst() {
-        activities.save(Activity.noted(eventId, LocalDate.of(2026, 9, 8), "zweite"));
-        activities.save(Activity.noted(eventId, LocalDate.of(2026, 9, 1), "erste"));
+        activities.save(anEntry(LocalDate.of(2026, 9, 8), "zweite"));
+        activities.save(anEntry(LocalDate.of(2026, 9, 1), "erste"));
 
         assertThat(activities.findByEvent(eventId)).extracting(Activity::what)
                 .containsExactly("erste", "zweite");
     }
 
     @Test
-    void aNoteKeepsItsEmptyChannel() {
-        activities.save(Activity.noted(eventId, LocalDate.of(2026, 9, 2), "Beamer defekt"));
-
-        assertThat(activities.findByEvent(eventId)).singleElement()
-                .extracting(Activity::channel).isNull();
-    }
-
-    @Test
     void anEveningSeesOnlyItsOwnEntries() {
         Long other = events.save(Event.draftFor(aReadyTalk(speakers.findAll().getFirst().id()))).id();
-        activities.save(Activity.noted(eventId, LocalDate.of(2026, 9, 2), "Beamer defekt"));
+        activities.save(anEntry(LocalDate.of(2026, 9, 2), "Antwort gekommen"));
 
         assertThat(activities.findByEvent(other)).isEmpty();
         assertThat(activities.findByEvent(eventId)).hasSize(1);
@@ -91,7 +81,7 @@ class ActivityRepositoryTest {
     /** The one deletion there is: the evening goes, its history goes with it. */
     @Test
     void theEntriesGoWhenTheEveningDoes() {
-        activities.save(Activity.noted(eventId, LocalDate.of(2026, 9, 2), "Beamer defekt"));
+        activities.save(anEntry(LocalDate.of(2026, 9, 2), "Antwort gekommen"));
 
         events.deleteById(eventId);
 
@@ -106,5 +96,9 @@ class ActivityRepositoryTest {
     void thePortOffersNoWayToDeleteOrChange() {
         assertThat(Arrays.stream(ActivityRepository.class.getMethods()).map(Method::getName))
                 .containsExactlyInAnyOrder("save", "findByEvent");
+    }
+
+    private Activity anEntry(LocalDate on, String what) {
+        return Activity.of(eventId, on, ActivityKind.MAIL_RECEIVED, what);
     }
 }

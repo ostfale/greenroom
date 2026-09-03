@@ -50,18 +50,10 @@ Timezone is Europe/Berlin, set by the application rather than by the host.
 
 ### Mail
 
-An inquiry can be sent from the application or handed to the local mail client; both write
-the inquiry down. Sending needs a host, and without one nothing goes out — the mail is
-written to the log instead, which is the state in development and in the tests. On the Pi:
-
-    SPRING_MAIL_HOST=smtp.example.org
-    SPRING_MAIL_USERNAME=info@example.org
-    SPRING_MAIL_PASSWORD=...
-    GREENROOM_MAIL_FROM=info@example.org
-
-Port 465 with SSL is the default; 587 with STARTTLS works as a relay. Every mail carries a
-blind copy to the sending address, because a mail sent this way never reaches the sent
-folder of the mailbox.
+The application sends nothing and needs no mail server. Where there is somebody to write
+to — the speakers of an evening, the contact people at its venue — the page carries the
+address as a `mailto:` link, and the local client opens with it. What is written there is
+written there; that a mail went out is one line in the history, typed by hand.
 
 ### Maps
 

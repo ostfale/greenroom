@@ -16,8 +16,7 @@ public interface ManageNotes {
 
     /**
      * Writes a note down and stamps it with the moment. Two texts rather than the
-     * aggregate, because the stamp is not the caller's to make — the same reason answering
-     * an inquiry does not take a date.
+     * aggregate, because the stamp is not the caller's to make.
      *
      * @throws IllegalArgumentException if there is no title
      */

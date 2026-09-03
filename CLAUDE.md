@@ -13,9 +13,13 @@ of an evening easier than a Markdown note would — that is the only benchmark.
 - **DRY.** One field list per concept. No parallel model that exists only to be mapped.
 - **What is copied is not referenced.** Whatever an evening was announced with must stay
   what it was, however the underlying record changes later.
-- **What is a matter of judgement is shown, not refused.** A clash, an inquiry still
-  waiting, an answer that came back — the page says so, somebody decides. Refuse only what
+- **What is a matter of judgement is shown, not refused.** A clash, a step the state
+  machine allows, a venue we gave up — the page says so, somebody decides. Refuse only what
   would be nonsense.
+- **The tool holds what happened, it does not act.** No mail is sent from here and no line
+  is written by itself: the page opens the mail client with an address, and the history is
+  what somebody typed. An automatism that has to be understood before it is trusted costs
+  more than it saves.
 - When a rule here and a simpler solution collide, say so instead of following the rule
   silently.
 
@@ -59,7 +63,7 @@ the source tree. Never activate it there.
     de.ostfale.greenroom
     ├── domain        aggregates, value objects, state transitions
     ├── application   port.in, port.out, service (use cases, @Transactional)
-    ├── adapter       in.web, out.image, out.mail, out.geo
+    ├── adapter       in.web, out.image, out.geo
     └── config
 
 The hexagon is about direction of dependency, not about purity:
@@ -87,11 +91,9 @@ Use these names — they come from the domain, not from the framework:
 - `Event` — one evening. Never call it "Meetup": that word means meetup.com here.
 - `Talk` — one presentation inside an Event (1..n).
 - `motto` — optional name for an evening, used when it carries several talks.
-- `SpeakerInquiry`, `VenueInquiry` — a request that was sent, with an outcome.
-- `Activity` — a line of what happened that has no field of its own.
+- `Activity` — one line of the history: a mail went out, or one came back.
 - `Note` — a slip in the box: an idea with a stamp, belonging to nothing.
 - `Speaker`, `Location`, `ContactPerson`, `Tag`
-- Domain events are named after what happened: `SpeakerConfirmed`, `VenueConfirmed`.
 
 The `Event` has no title. Its display name is the `motto` if one is set, otherwise the
 title of its single talk. With one talk nothing is maintained twice; with several the
@@ -121,7 +123,6 @@ Copied, not referenced:
 - the announced biography is copied onto the `Talk` when the speaker is put on it and is
   edited there; rewriting a `Speaker` bio leaves earlier evenings untouched
 - an `Event` stores the tag words it was given, not a reference to the list in the settings
-- an inquiry copies the date it asked about, and a `VenueInquiry` the contact it went to
 - a `Location` keeps every address it ever had; only the active flag moves. `capacity` sits
   on the `Address`, because the seat count of an old address is part of what that evening
   was
@@ -136,24 +137,24 @@ Copied, not referenced:
   German word for the address flag would be the same one, which is why the field is not
   called `active`
 
-The order of asking:
+Asking:
 
 - the speaker is asked about the date first, and only once everybody has said yes are the
-  venues asked, one after another
-- `SpeakerInquiry` and `VenueInquiry` are separate aggregates for that reason: one asks
-  about a date with the person fixed, the other asks a place with the date fixed. They
-  share only `InquiryOutcome` and `ContactChannel`
-- a `VenueInquiry` without a date is refused. Asking a second venue while one is still open
-  is not — that one is judgement
-- an inquiry is answered once, and the answer carries the day it arrived. Asking again
-  after a refusal is a new inquiry, and both stay
+  venues asked, one after another. That order is how the evening is planned, not something
+  the tool tracks: it knows no inquiry and no outcome
+- writing is done in the mail client. The page carries the address — the speakers of the
+  evening, the contacts at the venue — and a `mailto:` link opens it. What is written
+  there is nobody's business here, and no draft is composed for it
+- what came of it is one line in the history, typed by hand
 
 History:
 
+- an `Activity` is a mail that went out or one that came back, on a day, in whatever words
+  describe it. Nothing else: a state the evening already carries is not written here a
+  second time, and a thought that is not an event of the evening is a `Note`
+- nothing appends a line by itself. The history is exactly what somebody typed
 - an `Activity` is never edited or deleted. The record has no `with…` method and its port
   declares no way to; the only deletion is the cascade when the evening goes
-- `Activity` holds only what has no field of its own. The inquiries are merged in when the
-  history is read, so no fact is kept in two tables
 - a `Note` is the opposite and points at nothing: it records what was thought, not what
   happened, so it may be changed and thrown away. Its stamp says when it was written and
   does not move when it is put right

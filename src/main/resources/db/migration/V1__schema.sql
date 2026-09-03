@@ -159,71 +159,21 @@ create table speaker_photo
 comment on table speaker_photo is
     'Apart from the speaker on purpose: the list of speakers must not carry the bytes along.';
 
--- The first question of an evening: the person is on the talk, the date is what is asked.
--- asked_about is a copy of the proposed date, so a refusal keeps what was proposed.
-create table speaker_inquiry
-(
-    id          bigserial primary key,
-    event_id    bigint not null references event (id) on delete cascade,
-    speaker_id  bigint not null references speaker (id),
-    asked_about date,
-    sent_at     date   not null,
-    channel     text   not null,
-    outcome     text   not null,
-    answered_on date,
-    note        text
-);
-
-create index speaker_inquiry_event on speaker_inquiry (event_id);
-
-comment on column speaker_inquiry.answered_on is
-    'Set with the answer and only with it: PENDING is null, an answer is dated.';
-
--- The second question of an evening: the speakers have said yes, so the day is set, and
--- what is asked is a place. The mirror image of speaker_inquiry, and a table of its own for
--- the same reason it is an aggregate of its own.
-create table venue_inquiry
-(
-    id           bigserial primary key,
-    event_id     bigint not null references event (id) on delete cascade,
-    location_id  bigint not null references location (id),
-    contact_name text,
-    for_date     date   not null,
-    sent_at      date   not null,
-    channel      text   not null,
-    outcome      text   not null,
-    answered_on  date,
-    note         text
-);
-
-create index venue_inquiry_event on venue_inquiry (event_id);
-
-comment on column venue_inquiry.for_date is
-    'Not null, unlike speaker_inquiry.asked_about: a place is asked about a day that is set.';
-
-comment on column venue_inquiry.contact_name is
-    'Whom we wrote to, copied. A contact person who leaves must not rewrite who was asked.';
-
-comment on column venue_inquiry.location_id is
-    'No cascade on purpose: a place that was once asked is kept.';
-
--- What happened and has no field of its own. Append-only: there is no update and no delete
--- on this table, only the cascade when the evening goes. What the inquiries already record
--- is not copied here — the history mixes the two when it is shown.
+-- What happened to an evening, written by hand and only by hand: a mail went out, or one
+-- came back. Nothing in the application appends a line by itself.
 create table activity
 (
     id          bigserial primary key,
     event_id    bigint not null references event (id) on delete cascade,
     happened_on date   not null,
-    direction   text   not null,
-    channel     text,
+    kind        text   not null,
     what        text   not null
 );
 
 create index activity_event on activity (event_id);
 
-comment on column activity.channel is
-    'Null exactly for a NOTE: a note went nowhere, so there is no way it went.';
+comment on table activity is
+    'Append-only. A line that turned out wrong is answered by the next line, never edited.';
 
 -- The slip box. Points at nothing and nothing points at it: an idea is written down before
 -- there is an evening to file it under.
