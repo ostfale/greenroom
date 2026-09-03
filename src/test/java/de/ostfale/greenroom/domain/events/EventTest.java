@@ -15,14 +15,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** Plain Java, no Spring: the evening carries its own rules. */
 class EventTest {
 
-    /** Any stored speaker will do here — the evening is what is under test. */
+    /** Any stored speaker and any stored place will do — the evening is under test. */
     private static final Long SPEAKER = 1L;
+    private static final Long VENUE = 7L;
 
     private static Event published() {
         return Event.draftFor(aReadyTalk(SPEAKER))
                 .withDate(EVENING)
                 .moveTo(EventStatus.DATE_CONFIRMED)
-                .withLocation(7L)
+                .withLocation(VENUE)
                 .moveTo(EventStatus.VENUE_CONFIRMED)
                 .moveTo(EventStatus.PUBLISHED);
     }
@@ -82,7 +83,7 @@ class EventTest {
         Event hosted = Event.draftFor(aReadyTalk(SPEAKER))
                 .withDate(EVENING)
                 .moveTo(EventStatus.DATE_CONFIRMED)
-                .withLocation(7L)
+                .withLocation(VENUE)
                 .moveTo(EventStatus.VENUE_CONFIRMED)
                 .withAdditionalTalk(aTalk(2L).withTitle("Ohne Abstract"));
 
@@ -116,6 +117,42 @@ class EventTest {
 
         assertThat(dropped.status()).isEqualTo(EventStatus.CANCELLED);
         assertThat(dropped.date()).isNull();
+    }
+
+    // --- what an evening is waiting for -----------------------------------------------
+
+    @Test
+    void aTopicWaitsForADateAndThenForAVenue() {
+        Event topic = Event.draftFor(aReadyTalk(SPEAKER));
+
+        assertThat(topic.nextStep(EVENING)).isEqualTo(NextStep.FIND_A_DATE);
+        assertThat(topic.withDate(EVENING).nextStep(EVENING)).isEqualTo(NextStep.FIND_A_VENUE);
+    }
+
+    @Test
+    void anEveningWithAVenueWaitsForWhatTheTalksStillOwe() {
+        Event hosted = Event.draftFor(aTalk(SPEAKER)).withDate(EVENING).withLocation(VENUE);
+
+        assertThat(hosted.nextStep(EVENING)).isEqualTo(NextStep.WRITE_THE_ABSTRACT);
+        assertThat(hosted.withTalks(List.of(aReadyTalk(SPEAKER))).nextStep(EVENING))
+                .isEqualTo(NextStep.ANNOUNCE_IT);
+    }
+
+    /** Announced and the day is gone: somebody has to say that it happened. */
+    @Test
+    void anAnnouncedEveningWaitsForItsDayAndThenToBeClosed() {
+        Event announced = published();
+
+        assertThat(announced.nextStep(EVENING.minusDays(1))).isEqualTo(NextStep.NOTHING);
+        assertThat(announced.nextStep(EVENING.plusDays(1))).isEqualTo(NextStep.CLOSE_IT);
+    }
+
+    @Test
+    void aClosedEveningWaitsForNothingAndAPostponedOneForANewDate() {
+        assertThat(published().moveTo(EventStatus.DONE).nextStep(EVENING))
+                .isEqualTo(NextStep.NOTHING);
+        assertThat(published().moveTo(EventStatus.POSTPONED).nextStep(EVENING))
+                .isEqualTo(NextStep.FIND_A_DATE);
     }
 
     // --- the name of the evening ----------------------------------------------------

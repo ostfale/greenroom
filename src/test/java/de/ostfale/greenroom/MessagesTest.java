@@ -4,6 +4,7 @@ import de.ostfale.greenroom.domain.Rule;
 import de.ostfale.greenroom.domain.activities.ActivityKind;
 import de.ostfale.greenroom.domain.events.EventMode;
 import de.ostfale.greenroom.domain.events.EventStatus;
+import de.ostfale.greenroom.domain.events.NextStep;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -41,6 +42,8 @@ class MessagesTest {
                 assertThat(TEXTS).containsKey("event.status." + status));
         assertThat(EventMode.values()).allSatisfy(mode ->
                 assertThat(TEXTS).containsKey("event.mode." + mode));
+        assertThat(NextStep.values()).allSatisfy(step ->
+                assertThat(TEXTS).containsKey("event.step." + step));
         assertThat(ActivityKind.values()).allSatisfy(kind ->
                 assertThat(TEXTS).containsKey("activity.kind." + kind));
     }

@@ -240,13 +240,6 @@ class EventControllerTest {
     }
 
     @Test
-    void theFrontPageIsTheListOfEvenings() throws Exception {
-        mvc.perform(get("/"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/event"));
-    }
-
-    @Test
     void theListIsNewestFirstWithTheUndatedTopicsLast() throws Exception {
         events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Ohne Termin"));
         events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Alt").withDate(EVENING.minusMonths(1)));

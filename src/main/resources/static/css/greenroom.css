@@ -640,6 +640,24 @@ ul.plain {
     gap: .3125rem;
 }
 
+/* The counts, in one row that wraps. Numbers read as numbers, the words stay quiet: what
+   the overview is for stands above this, and this only rides along. */
+ul.tally {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1.75rem;
+    color: var(--muted);
+    font-size: .8125rem;
+}
+
+ul.tally .data {
+    color: var(--ink);
+    font-size: 1.125rem;
+}
+
 ul.tags {
     display: flex;
     flex-wrap: wrap;

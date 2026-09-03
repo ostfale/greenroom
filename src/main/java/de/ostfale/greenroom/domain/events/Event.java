@@ -195,6 +195,34 @@ public record Event(
         return talks.getFirst().title();
     }
 
+    /**
+     * The one thing this evening is waiting for, read off what it has and what its status
+     * promises. A closed evening waits for nothing; a postponed one waits for a new date,
+     * whatever date still stands on it.
+     *
+     * <p>Today is handed in rather than taken: whether an evening is over is a question
+     * about a day, and the record does not decide which day that is.
+     */
+    public NextStep nextStep(LocalDate today) {
+        if (status.isClosed()) {
+            return NextStep.NOTHING;
+        }
+        if (status == EventStatus.POSTPONED || date == null) {
+            return NextStep.FIND_A_DATE;
+        }
+        if (locationId == null) {
+            return NextStep.FIND_A_VENUE;
+        }
+        if (!allTalksAreReadyToPublish()) {
+            return NextStep.WRITE_THE_ABSTRACT;
+        }
+        if (status != EventStatus.PUBLISHED) {
+            return NextStep.ANNOUNCE_IT;
+        }
+        // Announced and the day is gone: somebody has to say that it happened.
+        return date.isBefore(today) ? NextStep.CLOSE_IT : NextStep.NOTHING;
+    }
+
     /** Whether the announcement could go out: every talk carries a title and an abstract. */
     public boolean allTalksAreReadyToPublish() {
         return talks.stream().allMatch(Talk::isReadyToPublish);

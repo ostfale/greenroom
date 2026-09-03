@@ -12,8 +12,9 @@
 </head>
 <body>
 <header class="topbar" th:fragment="topbar(here)">
-    <a class="wordmark" th:href="@{/event}">greenroom</a>
+    <a class="wordmark" th:href="@{/}">greenroom</a>
     <nav>
+        <a th:href="@{/}" th:classappend="${here} == 'home' ? 'here'">Übersicht</a>
         <a th:href="@{/event}" th:classappend="${here} == 'event' ? 'here'">Events</a>
         <a th:href="@{/speaker}" th:classappend="${here} == 'speaker' ? 'here'">Referenten</a>
         <a th:href="@{/location}" th:classappend="${here} == 'location' ? 'here'">Orte</a>

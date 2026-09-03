@@ -95,6 +95,9 @@ Use these names — they come from the domain, not from the framework:
 - `motto` — optional name for an evening, used when it carries several talks.
 - `Activity` — one line of the history: a mail went out, or one came back.
 - `Note` — a slip in the box: an idea with a stamp, belonging to nothing.
+- `NextStep` — the one thing an evening is waiting for. Read off the record, not stored,
+  and asked for by the overview alone. Not a second state machine beside `EventStatus`:
+  that one says how far the planning has come, this one what the next hand has to do.
 - `Speaker`, `Location`, `ContactPerson`, `Tag`
 
 The `Event` has no title. Its display name is the `motto` if one is set, otherwise the

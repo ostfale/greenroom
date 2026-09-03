@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Übersicht')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar('home')}"></header>
+
+<main>
+    <div class="headline">
+        <h1>Übersicht</h1>
+        <a class="button" th:href="@{/event/new}">Neues Thema</a>
+    </div>
+
+    <div class="bento">
+        <section class="tile half">
+            <h2>Der nächste Abend</h2>
+
+            <p class="hint" th:if="${dashboard.next == null}">
+                Kein Abend mit Termin in Planung.
+            </p>
+
+            <div th:if="${dashboard.next != null}" th:with="next=${dashboard.next}">
+                <p class="data">
+                    <span th:text="${#temporals.format(next.evening.date, 'dd.MM.yyyy')}">14.11.2026</span>
+                    ·
+                    <span th:if="${next.daysAway > 1}" th:text="|in ${next.daysAway} Tagen|">in 12 Tagen</span>
+                    <span th:if="${next.daysAway == 1}">morgen</span>
+                    <span th:if="${next.daysAway == 0}">heute</span>
+                    <span th:if="${next.daysAway < 0}"
+                          th:text="|vor ${-next.daysAway} Tagen|">vor 3 Tagen</span>
+                </p>
+                <p>
+                    <a th:href="@{/event/{id}(id=${next.evening.id})}"
+                       th:text="${next.evening.displayName()} ?: 'Ohne Titel'">Ohne Titel</a>
+                </p>
+                <p class="hint">
+                    <span class="label" th:text="#{'event.status.' + ${next.evening.status}}">Ort steht</span>
+                    <span th:text="#{'event.step.' + ${next.step}}">Abstract fehlt</span>
+                </p>
+            </div>
+        </section>
+
+        <section class="tile half">
+            <h2>Was noch fehlt</h2>
+
+            <p class="hint" th:if="${#lists.isEmpty(dashboard.open)}">
+                Dahinter steht nichts weiter an.
+            </p>
+
+            <table th:unless="${#lists.isEmpty(dashboard.open)}">
+                <tbody>
+                <tr th:each="row : ${dashboard.open}">
+                    <td class="data" th:text="${#temporals.format(row.evening.date, 'dd.MM.yyyy')}">12.02.2027</td>
+                    <td>
+                        <a th:href="@{/event/{id}(id=${row.evening.id})}"
+                           th:text="${row.evening.displayName()} ?: 'Ohne Titel'">Ohne Titel</a>
+                    </td>
+                    <td class="hint" th:text="#{'event.step.' + ${row.step}}">Ort fehlt</td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="tile half">
+            <h2>Themen ohne Termin</h2>
+
+            <p class="hint" th:if="${#lists.isEmpty(dashboard.topics)}">
+                Kein Thema auf Vorrat — der nächste Abend will gefunden werden.
+            </p>
+
+            <ul class="plain" th:unless="${#lists.isEmpty(dashboard.topics)}">
+                <li th:each="topic : ${dashboard.topics}">
+                    <a th:href="@{/event/{id}(id=${topic.id})}"
+                       th:text="${topic.displayName()} ?: 'Ohne Titel'">Ohne Titel</a>
+                </li>
+            </ul>
+        </section>
+
+        <section class="tile quarter">
+            <h2>Wo wir schon waren</h2>
+
+            <p class="hint" th:if="${#lists.isEmpty(dashboard.venues)}">Noch nirgends.</p>
+
+            <table th:unless="${#lists.isEmpty(dashboard.venues)}">
+                <tbody>
+                <tr th:each="place : ${dashboard.venues}">
+                    <td>
+                        <a th:href="@{/location/{id}(id=${place.id})}"
+                           th:text="${place.name}">Musterfirma GmbH</a>
+                    </td>
+                    <td class="data" th:text="${place.evenings}">6</td>
+                    <td class="data hint"
+                        th:text="${place.last} != null ? ${#temporals.format(place.last, 'yyyy')} : '—'">2024</td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="tile quarter">
+            <h2>Wen wir schon hatten</h2>
+
+            <p class="hint" th:if="${#lists.isEmpty(dashboard.speakers)}">Noch niemanden.</p>
+
+            <table th:unless="${#lists.isEmpty(dashboard.speakers)}">
+                <tbody>
+                <tr th:each="person : ${dashboard.speakers}">
+                    <td>
+                        <a th:href="@{/speaker/{id}(id=${person.id})}"
+                           th:text="${person.name}">Max Muster</a>
+                    </td>
+                    <td class="data" th:text="${person.evenings}">3</td>
+                    <td class="data hint"
+                        th:text="${person.last} != null ? ${#temporals.format(person.last, 'yyyy')} : '—'">2025</td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="tile" th:with="counts=${dashboard.counts}">
+            <h2>Zahlen</h2>
+            <ul class="tally">
+                <li><span class="data" th:text="${counts.events}">129</span> Events</li>
+                <li><span class="data" th:text="${counts.thisYear}">4</span> dieses Jahr</li>
+                <li><span class="data" th:text="${counts.done}">121</span> erledigt</li>
+                <li><span class="data" th:text="${counts.speakers}">47</span> Referenten</li>
+                <li>
+                    <span class="data" th:text="${counts.locationsInUse}">6</span> von
+                    <span class="data" th:text="${counts.locations}">8</span> Orten aktiv
+                </li>
+                <li><span class="data" th:text="${counts.tags}">12</span> Tags</li>
+                <li><span class="data" th:text="${counts.notes}">5</span> Notizen</li>
+            </ul>
+        </section>
+    </div>
+</main>
+</body>
+</html>

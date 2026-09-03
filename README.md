@@ -15,6 +15,13 @@ years before this one can be entered as they were.
 
 `CLAUDE.md` holds the domain language and the decisions behind the design.
 
+## The pages
+
+`/` opens the overview: the evening that is next, what every open evening is still waiting
+for, the topics that have no date yet, where the evenings were held and who gave them — and
+the counts at the bottom. From there the evenings, the speakers, the places, the slip box
+and the settings.
+
 ## Stack
 
 Java 25, Spring Boot 4, Maven. PostgreSQL with Spring Data JDBC and Flyway — no JPA, no
