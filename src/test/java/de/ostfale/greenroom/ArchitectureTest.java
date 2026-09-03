@@ -38,7 +38,7 @@ public class ArchitectureTest {
             .whereLayer("Domain").mayOnlyBeAccessedByLayers("Application", "Adapter", "Config");
 
     /**
-     * The web adapter must not reach into persistence, the importer not into the mailer.
+     * The web adapter must not reach into the mailer, the mailer not into the geocoder.
      * Written as slices, so that "each other" means other adapters: two classes inside the
      * same adapter are free to work together.
      */
@@ -102,8 +102,8 @@ public class ArchitectureTest {
 
     /**
      * Repositories are declared where the use cases ask for them and implemented by
-     * Spring Data; the web, scheduling and importer adapters must not reach past the
-     * application layer to talk to the database.
+     * Spring Data; a driving adapter must not reach past the application layer to talk
+     * to the database.
      */
     @ArchTest
     static final ArchRule repositoriesLiveInPortOutOrPersistence = noClasses()

@@ -59,7 +59,7 @@ the source tree. Never activate it there.
     de.ostfale.greenroom
     ├── domain        aggregates, value objects, state transitions
     ├── application   port.in, port.out, service (use cases, @Transactional)
-    ├── adapter       in.web, in.importer, out.image, out.mail, out.geo
+    ├── adapter       in.web, out.image, out.mail, out.geo
     └── config
 
 The hexagon is about direction of dependency, not about purity:
