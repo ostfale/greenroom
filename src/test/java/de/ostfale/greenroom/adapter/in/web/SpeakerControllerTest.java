@@ -228,6 +228,18 @@ class SpeakerControllerTest {
         });
     }
 
+    /** The list could write to them and their own page could not. Now both can. */
+    @Test
+    void theDetailPageOpensAMailToThePerson() throws Exception {
+        Long id = speakers.add(aSpeaker()).id();
+
+        String html = mvc.perform(get("/speaker/" + id))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parse(html).selectFirst("#speaker-fields a[href^=mailto]").attr("href"))
+                .isEqualTo("mailto:max@example.org");
+    }
+
     @Test
     void aChangeThatBreaksTheRulesSaysSoAndChangesNothing() throws Exception {
         Long id = speakers.add(aSpeaker()).id();

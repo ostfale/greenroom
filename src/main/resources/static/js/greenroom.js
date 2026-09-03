@@ -16,29 +16,29 @@ function closeUnlessRefused(form, listSelector) {
 }
 
 /**
- * Hands the draft to the local mail client. Reads the fields at the moment of the click,
- * because the tile around them is swapped by the request that runs alongside — and a
- * mailto: does not navigate the page away, it only wakes the client.
+ * Puts the text of the element that button points at on the clipboard, and says so for a
+ * moment. Two ways, because the modern one exists only in a secure context: over plain
+ * http — which is how this is reached in a home network — navigator.clipboard is undefined
+ * and the old selection dance is the only one there is.
  */
-function openMailClient(form) {
-    const to = recipientOf(form);
-    if (!to) {
+function copyToClipboard(button) {
+    const text = document.querySelector(button.dataset.copy).textContent;
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => confirmCopy(button));
         return;
     }
-    const subject = form.querySelector("[name=subject]").value;
-    const body = form.querySelector("[name=body]").value;
-    window.location.href = "mailto:" + encodeURIComponent(to)
-        + "?subject=" + encodeURIComponent(subject)
-        + "&body=" + encodeURIComponent(body);
+    const carrier = document.createElement("textarea");
+    carrier.value = text;
+    document.body.appendChild(carrier);
+    carrier.select();
+    document.execCommand("copy");
+    carrier.remove();
+    confirmCopy(button);
 }
 
-/** Whichever select carries an address on the entry that is picked. */
-function recipientOf(form) {
-    for (const select of form.querySelectorAll("select")) {
-        const picked = select.selectedOptions[0];
-        if (picked && picked.dataset.email) {
-            return picked.dataset.email;
-        }
-    }
-    return "";
+/** The button says what happened and goes back to what it is. */
+function confirmCopy(button) {
+    const label = button.textContent;
+    button.textContent = button.dataset.copied;
+    setTimeout(() => (button.textContent = label), 1500);
 }

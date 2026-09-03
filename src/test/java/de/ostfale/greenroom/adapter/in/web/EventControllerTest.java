@@ -1259,6 +1259,38 @@ class EventControllerTest {
                 .isEqualTo(LocalTime.of(19, 0));
     }
 
+    // --- the text an announcement is written from ---------------------------------------
+
+    @Test
+    void theInvitationTextStandsOnThePageForTheButtonToCopy() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+        events.changeTalk(id, 0, "Records in Java 25", "Warum Records mehr sind.",
+                LocalTime.of(19, 0), List.of("Architekt bei der Musterfirma"));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.selectFirst("#invitation").wholeText()).isEqualTo("""
+                Warum Records mehr sind.
+
+                Referent - Max Muster
+                Architekt bei der Musterfirma""");
+        assertThat(page.selectFirst("button[data-copy]").text()).isEqualTo("Einladungstext kopieren");
+    }
+
+    /** A talk always has its person, so a topic without an abstract still offers a name. */
+    @Test
+    void aTopicWithoutAnAbstractOffersWhatIsKnown() throws Exception {
+        Long id = events.add(Event.draftFor(aTalk(speakerId))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.selectFirst("#invitation").wholeText())
+                .isEqualTo("Referent - Max Muster");
+        assertThat(page.select("button[data-copy]")).isNotEmpty();
+    }
+
     // --- the evening for somebody's own calendar ---------------------------------------
 
     @Test

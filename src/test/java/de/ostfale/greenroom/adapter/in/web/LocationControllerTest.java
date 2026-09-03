@@ -415,6 +415,18 @@ class LocationControllerTest {
         assertThat(locations.byId(id).orElseThrow().contacts()).hasSize(1);
     }
 
+    /** The list could write to them and the place's own page could not. Now both can. */
+    @Test
+    void theDetailPageOpensAMailToTheContact() throws Exception {
+        Long id = locations.add(aLocation()).id();
+
+        String html = mvc.perform(get("/location/" + id))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parse(html).selectFirst("#contact-list a[href^=mailto]").attr("href"))
+                .isEqualTo("mailto:max@example.org");
+    }
+
     @Test
     void theDetailPageOffersOneFormPerContactAndFoldsAwayTheOneToAdd() throws Exception {
         Long id = locations.add(aLocation()

@@ -8,11 +8,19 @@
     <div class="headline">
         <h1 th:text="${event.displayName()} ?: 'Ohne Titel'">Ohne Titel</h1>
         <div class="actions">
+            <!-- Only where there is something to announce. -->
+            <button type="button" th:if="${!#strings.isEmpty(invitation)}"
+                    data-copy="#invitation" data-copied="Kopiert"
+                    onclick="copyToClipboard(this)">Einladungstext kopieren</button>
             <!-- Only where there is a day to put in a calendar. -->
             <a th:if="${event.date}" th:href="@{/event/{id}/ical(id=${event.id})}"
                download>Termin exportieren</a>
             <a class="back" th:href="@{/event}">Zurück zur Liste</a>
         </div>
+
+        <!-- What the button copies, kept as text rather than built in the script: the
+             newlines are the point, and an attribute is a poor place for them. -->
+        <pre id="invitation" hidden th:text="${invitation}"></pre>
     </div>
 
     <div class="bento stretch">

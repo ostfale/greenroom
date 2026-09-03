@@ -520,8 +520,11 @@ public class EventController {
         model.addAttribute("today", LocalDate.now());
         model.addAttribute("speakers", known);
         // The talks name their speakers by id, and a page shows people by name.
-        model.addAttribute("speakerNames", known.stream()
-                .collect(Collectors.toMap(Speaker::id, Speaker::name)));
+        Map<Long, String> byName = known.stream()
+                .collect(Collectors.toMap(Speaker::id, Speaker::name));
+        model.addAttribute("speakerNames", byName);
+        model.addAttribute("invitation",
+                InvitationText.of(event, byName, errors.text("invitation.speaker")));
         Location host = locations.byId(event.locationId()).orElse(null);
         model.addAttribute("location", host);
         // The address select reads these; the same fragment is served on its own when the

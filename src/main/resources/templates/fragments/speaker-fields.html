@@ -12,7 +12,11 @@
             <label>Name
                 <input type="text" name="name" required th:value="${speaker.name}">
             </label>
-            <label>E-Mail
+            <label>
+                <span class="captioned">E-Mail
+                    <a th:if="${speaker.email}" th:href="'mailto:' + ${speaker.email}"
+                       title="Mail an diese Adresse schreiben">&#9993;</a>
+                </span>
                 <input type="email" name="email" required th:value="${speaker.email}">
             </label>
         </div>

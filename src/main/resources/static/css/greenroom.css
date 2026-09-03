@@ -384,6 +384,19 @@ form {
     max-width: 52rem;
 }
 
+/* A caption with something to click beside it. The label stacks its children, so the two
+   need a line of their own to share. */
+.captioned {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+}
+
+.captioned a {
+    font-size: .875rem;
+    text-decoration: none;
+}
+
 label {
     display: grid;
     gap: .3125rem;

@@ -13,7 +13,11 @@
         <label>Name
             <input type="text" name="contactName" required th:value="${contact.name}">
         </label>
-        <label>E-Mail
+        <label>
+            <span class="captioned">E-Mail
+                <a th:if="${contact.email}" th:href="'mailto:' + ${contact.email}"
+                   title="Mail an diesen Ansprechpartner schreiben">&#9993;</a>
+            </span>
             <input type="email" name="contactEmail" required th:value="${contact.email}">
         </label>
         <label>Telefon
