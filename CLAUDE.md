@@ -136,6 +136,15 @@ Copied, not referenced:
 - a `Location` keeps every address it ever had; only the active flag moves. `capacity` sits
   on the `Address`, because the seat count of an old address is part of what that evening
   was
+- an `Event` says which of its venue's addresses it was at, by position, and that is the
+  one place this project references what it elsewhere copies. An address here is never
+  rewritten and never dropped — only flagged inactive — so pointing at one is as stable as
+  copying it, and the old address is written down once at the place instead of once per
+  evening. Empty means the address the place has today, which is what a planned evening
+  wants: it moves along when the venue does
+- a place may have several addresses in use at once — two lecture halls picked by
+  availability. There is no "current" one then, so the page asks which it was instead of
+  letting the first in the list answer for all of them
 - the position sits on the `Address`, for the reason the seat count does: an old address
   points at where that evening was. It is looked up once from the written address and kept;
   where nobody can place it there is none, and the page shows no map. Not being found is a

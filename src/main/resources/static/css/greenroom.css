@@ -378,6 +378,12 @@ form {
     box-shadow: var(--shadow);
 }
 
+/* A form that carries an abstract and a biography needs the room to show them. 34rem is
+   right for a handful of short fields and cramped for two blocks of prose. */
+.sheet.wide {
+    max-width: 52rem;
+}
+
 label {
     display: grid;
     gap: .3125rem;

@@ -46,7 +46,7 @@ class EventTest {
     @Test
     void anEveningNeedsAtLeastOneTalk() {
         assertThat(ruleBrokenBy(() -> new Event(null, null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE,
-                null, List.of(), List.of())))
+                null, null, List.of(), List.of())))
                 .isEqualTo(Rule.EVENT_NEEDS_ONE_TALK);
 
         assertThat(ruleBrokenBy(() -> Event.draftFor(aReadyTalk(SPEAKER)).withTalks(List.of())))
@@ -153,6 +153,35 @@ class EventTest {
         assertThat(evening.mentions("JAVA-herbst")).isTrue();
         assertThat(evening.mentions("  ")).isTrue();
         assertThat(evening.mentions(null)).isTrue();
+    }
+
+    // --- which address the evening was at -----------------------------------------------
+
+    @Test
+    void theEveningCanNameWhichAddressItWasAt() {
+        Event evening = Event.draftFor(aReadyTalk(SPEAKER)).withLocation(VENUE);
+
+        assertThat(evening.addressPosition()).isNull();
+        assertThat(evening.withAddressAt(1).addressPosition()).isEqualTo(1);
+    }
+
+    /** A position points into one place's list; at another place the number means a house. */
+    @Test
+    void thePinnedAddressDoesNotTravelToAnotherPlace() {
+        Event evening = Event.draftFor(aReadyTalk(SPEAKER)).withLocation(VENUE).withAddressAt(1);
+
+        assertThat(evening.withLocation(VENUE).addressPosition()).isEqualTo(1);
+        assertThat(evening.withLocation(VENUE + 1).addressPosition()).isNull();
+        assertThat(evening.withLocation(null).addressPosition()).isNull();
+    }
+
+    @Test
+    void thePinSurvivesEverythingElseTheEveningDoes() {
+        Event evening = Event.draftFor(aReadyTalk(SPEAKER))
+                .withLocation(VENUE).withAddressAt(1).withDate(EVENING);
+
+        assertThat(evening.moveTo(EventStatus.DATE_CONFIRMED).addressPosition()).isEqualTo(1);
+        assertThat(evening.withMotto("Java-Herbst").addressPosition()).isEqualTo(1);
     }
 
     // --- when the evening begins --------------------------------------------------------

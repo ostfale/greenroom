@@ -5,6 +5,8 @@ import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.in.PastEvening;
 import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.application.port.out.SpeakerRepository;
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
@@ -68,7 +70,8 @@ public class EventService implements ManageEvents {
 
     @Override
     public Event enterPast(PastEvening past) {
-        Speaker speaker = knownBy(past.speakerEmail(), past.speakerName());
+        Speaker speaker = speakerRepository.findById(past.speakerId())
+                .orElseThrow(() -> new RuleViolated(Rule.NO_SPEAKER_CHOSEN));
         Talk talk = Talk.by(TalkSpeaker.of(speaker.id()).withAnnouncedBio(past.announcedBio()))
                 .withTitle(past.title())
                 .withAbstract(past.abstractText())
@@ -77,20 +80,9 @@ public class EventService implements ManageEvents {
         // promises; only the walk through the chain is left out, and retracing a planning
         // that is ten years over would be ceremony.
         Event evening = new Event(null, past.date(), null, null, null, past.status(),
-                past.mode(), past.locationId(), List.of(talk), List.of());
+                past.mode(), past.locationId(), past.addressPosition(), List.of(talk), List.of());
         log.debug("EventService :: past evening on {} as {}", past.date(), past.status());
         return eventRepository.save(evening);
-    }
-
-    /**
-     * The address is the person: somebody who spoke before is found again rather than
-     * written down twice. Only the name and the address are taken — everything else about
-     * them is of today and has nothing to do with an evening ten years ago.
-     */
-    private Speaker knownBy(String email, String name) {
-        String address = email == null ? "" : email.strip();
-        return speakerRepository.findByEmail(address)
-                .orElseGet(() -> speakerRepository.save(Speaker.of(name, address)));
     }
 
     @Override

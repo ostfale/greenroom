@@ -259,6 +259,47 @@ class LocationTest {
     }
 
     /** A point or no point — a latitude without a longitude is neither. */
+    /**
+     * Kühne+Nagel moved: the old address stays, deactivated, and an evening from before the
+     * move points at it. Without the position an evening ten years old would show where the
+     * company sits today.
+     */
+    @Test
+    void anAddressIsFoundByPositionAndTheCurrentOneWithoutIt() {
+        Location moved = aLocation()
+                .movedTo(Address.at("Altweg 3", "20095", "Hamburg"))
+                .movedTo(Address.at("Neuweg 9", "20097", "Hamburg"));
+
+        // Appended in the order they were written down, so the oldest sits first.
+        assertThat(moved.addressAt(null).line()).isEqualTo("Neuweg 9, 20097 Hamburg");
+        assertThat(moved.addressAt(0).line()).isEqualTo("Altweg 3, 20095 Hamburg");
+        assertThat(moved.addressAt(0).active()).isFalse();
+        assertThat(ruleBrokenBy(() -> moved.addressAt(7)))
+                .isEqualTo(Rule.NO_ADDRESS_AT_POSITION);
+    }
+
+    /**
+     * The HAW case: two lecture halls in use at once, picked by whichever was free. There
+     * is no current one to fall back on, and the page has to ask rather than guess.
+     */
+    @Test
+    void aPlaceCanOfferTwoAddressesAtOnce() {
+        Location twoHalls = aLocation()
+                .withAdditionalAddress(Address.at("Berliner Tor 5", "20099", "Hamburg"))
+                .withAdditionalAddress(Address.at("Berliner Tor 7", "20099", "Hamburg"));
+
+        assertThat(twoHalls.hasSeveralAddressesInUse()).isTrue();
+        assertThat(twoHalls.addressAt(0).line()).isEqualTo("Berliner Tor 5, 20099 Hamburg");
+        assertThat(twoHalls.addressAt(1).line()).isEqualTo("Berliner Tor 7, 20099 Hamburg");
+    }
+
+    @Test
+    void onePlaceWithOneAddressAsksNobodyAnything() {
+        Location one = aLocation().movedTo(Address.at("Musterweg 1", "22179", "Hamburg"));
+
+        assertThat(one.hasSeveralAddressesInUse()).isFalse();
+    }
+
     @Test
     void halfAPositionIsNoPosition() {
         assertThat(ruleBrokenBy(() -> new Address("Musterweg 1", null, null, null, true, 53.55, null)))

@@ -97,8 +97,14 @@ create table event
     status      text   not null,
     mode        text   not null,
     location_id bigint references location (id),
+    address_position int,
     tags        text[] not null default '{}'
 );
+
+comment on column event.address_position is
+    'Which of the location''s addresses this evening was at, by position. Null means the one
+     it has today. A place that moved keeps the old address, and an evening from before the
+     move points at it rather than at where the company sits now.';
 
 comment on table event is
     'One evening. Has no title: it is called by its motto, otherwise by the title of its talk.';

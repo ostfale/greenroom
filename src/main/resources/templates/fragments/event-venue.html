@@ -8,7 +8,13 @@
         <p><a th:href="@{/location/{id}(id=${location.id})}"
               th:text="${location.name}">Musterfirma GmbH</a></p>
         <p class="hint"
-           th:text="${#strings.isEmpty(location.addressLine())} ? '—' : ${location.addressLine()}">—</p>
+           th:with="here=${location.addressAt(event.addressPosition)}"
+           th:text="${here} == null or ${#strings.isEmpty(here.line())} ? '—' : ${here.line()}">—</p>
+
+        <!-- Two rooms in use at once have no "current" one, so the evening has to name it. -->
+        <p class="hint" th:if="${location.hasSeveralAddressesInUse()} and ${event.addressPosition} == null">
+            Dieser Ort hat mehrere Adressen in Benutzung — bitte unten angeben, welche es war.
+        </p>
 
         <!-- The address opens the mail client; what is written in it is nobody's business here. -->
         <ul class="plain" th:unless="${#lists.isEmpty(location.contacts())}">
@@ -31,7 +37,10 @@
           hx-target="#event-venue"
           hx-swap="outerHTML">
         <label>Gastgeber
-            <select name="locationId">
+            <select name="locationId"
+                    th:hx-get="@{/event/{id}/addresses(id=${event.id})}"
+                    hx-target="#venue-address"
+                    hx-swap="outerHTML">
                 <option value="">Noch offen</option>
                 <option th:each="place : ${locations}"
                         th:value="${place.id}"
@@ -40,10 +49,34 @@
             </select>
         </label>
 
+        <!-- Reloaded when the place changes: a position points into one place's list. -->
+        <div th:replace="~{fragments/event-venue :: venue-address}"></div>
+
         <div class="actions">
             <button type="submit">Ort übernehmen</button>
         </div>
     </form>
+</div>
+
+<!--
+  Which address of that place. Only where there is a choice: one address is no question,
+  and none is nothing to ask about. The empty entry says what it resolves to, so a place
+  with two rooms in use cannot silently pick whichever is listed first.
+-->
+<div id="venue-address" th:fragment="venue-address">
+    <label th:if="${place} != null and ${#lists.size(place.addresses)} > 1">Adresse
+        <select name="addressPosition">
+            <option value=""
+                    th:text="${place.hasSeveralAddressesInUse()}
+                             ? 'Noch nicht festgelegt'
+                             : 'Aktuelle Adresse (' + ${place.addressLine()} + ')'">Aktuelle Adresse</option>
+            <option th:each="address, i : ${place.addresses}" th:value="${i.index}"
+                    th:selected="${i.index} == ${chosenAddress}"
+                    th:text="${address.line()}
+                             + (${address.capacity} != null ? ' · ' + ${address.capacity} + ' Plätze' : '')
+                             + (${address.active} ? '' : ' · stillgelegt')">Musterweg 1</option>
+        </select>
+    </label>
 </div>
 </body>
 </html>

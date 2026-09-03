@@ -16,6 +16,7 @@ import de.ostfale.greenroom.domain.events.EventMode;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
 import de.ostfale.greenroom.domain.events.TalkSpeaker;
+import de.ostfale.greenroom.domain.locations.Address;
 import de.ostfale.greenroom.domain.locations.ContactPerson;
 import de.ostfale.greenroom.domain.locations.Location;
 import de.ostfale.greenroom.domain.speakers.Speaker;
@@ -1124,6 +1125,73 @@ class EventControllerTest {
         String two = mvc.perform(get("/event/" + id)).andReturn().getResponse().getContentAsString();
         assertThat(Jsoup.parse(two).selectFirst("#event-basics p.hint").text())
                 .contains("mehrere Vorträge");
+    }
+
+    // --- which address the evening was at -----------------------------------------------
+
+    /** Kühne+Nagel moved. An evening from before the move must not show today's address. */
+    @Test
+    void anEveningKeepsTheAddressThePlaceHadBackThen() throws Exception {
+        Long place = locations.add(aLocation()
+                .movedTo(anAddress())
+                .movedTo(Address.at("Neuweg 9", "20097", "Hamburg"))).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withLocation(place)).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/location")
+                        .param("locationId", String.valueOf(place))
+                        .param("addressPosition", "0"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).select("#event-venue p.hint").text())
+                .contains(anAddress().line()).doesNotContain("Neuweg 9");
+        assertThat(events.byId(id).orElseThrow().addressPosition()).isZero();
+    }
+
+    /** The HAW case: two halls in use at once, so nothing may be picked for the evening. */
+    @Test
+    void aPlaceWithTwoAddressesInUseAsksWhichOneItWas() throws Exception {
+        Long place = locations.add(aLocation()
+                .withAdditionalAddress(Address.at("Berliner Tor 5", "20099", "Hamburg"))
+                .withAdditionalAddress(Address.at("Berliner Tor 7", "20099", "Hamburg"))).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withLocation(place)).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-venue p.hint").text()).contains("mehrere Adressen");
+        assertThat(page.select("select[name=addressPosition] option").eachText())
+                .containsExactly("Noch nicht festgelegt",
+                        "Berliner Tor 5, 20099 Hamburg", "Berliner Tor 7, 20099 Hamburg");
+    }
+
+    /** One address is no question, so the tile does not ask one. */
+    @Test
+    void aPlaceWithOneAddressIsNotAskedAbout() throws Exception {
+        Long place = locations.add(aLocation().movedTo(anAddress())).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withLocation(place)).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("select[name=addressPosition]")).isEmpty();
+    }
+
+    /** A number that points at no address of that place is a stale page, not an address. */
+    @Test
+    void anAddressThatIsNotThereIsRefused() throws Exception {
+        Long place = locations.add(aLocation().movedTo(anAddress())).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/location")
+                        .param("locationId", String.valueOf(place))
+                        .param("addressPosition", "7"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("Adresse");
+        assertThat(events.byId(id).orElseThrow().locationId()).isNull();
     }
 
     // --- when a talk begins -------------------------------------------------------------

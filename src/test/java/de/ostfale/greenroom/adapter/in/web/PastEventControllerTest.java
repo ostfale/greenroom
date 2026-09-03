@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static de.ostfale.greenroom.Fixtures.aLocation;
+import static de.ostfale.greenroom.Fixtures.aSpeaker;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -50,11 +51,13 @@ class PastEventControllerTest {
     private TestDatabase database;
 
     private Long place;
+    private Long speakerId;
 
     @BeforeEach
-    void aPlaceToHaveBeenAt() {
+    void aPlaceAndAPersonToPointAt() {
         database.empty();
         place = locations.add(aLocation()).id();
+        speakerId = speakers.add(aSpeaker().withBio("Architekt bei der Musterfirma")).id();
     }
 
     @Test
@@ -102,9 +105,8 @@ class PastEventControllerTest {
 
         Document page = Jsoup.parse(html);
         assertThat(page.selectFirst("p.error").text()).contains("Titel und eine Beschreibung");
-        assertThat(page.selectFirst("input[name=speakerName]").val()).isEqualTo("Max Muster");
+        assertThat(page.selectFirst("input[name=title]").val()).isEqualTo("Records in Java 25");
         assertThat(events.all()).isEmpty();
-        assertThat(speakers.all()).isEmpty();
     }
 
     @Test
@@ -138,15 +140,53 @@ class PastEventControllerTest {
                 .containsExactly("Erledigt", "Abgesagt");
     }
 
-    /** The address is the person: whoever spoke before is not written down a second time. */
+    /** Written down, never invented: the form picks people, it does not create them. */
     @Test
-    void aSpeakerWhoAlreadySpokeIsFoundByTheirAddress() throws Exception {
+    void twoEveningsWithTheSamePersonAreStillOnePerson() throws Exception {
         mvc.perform(anEvening(Map.of("date", "2019-11-14")));
-        mvc.perform(anEvening(Map.of("date", "2020-05-07", "speakerName", "Wer auch immer")));
+        mvc.perform(anEvening(Map.of("date", "2020-05-07")));
 
         assertThat(events.all()).hasSize(2);
-        assertThat(speakers.all()).singleElement()
-                .satisfies(person -> assertThat(person.name()).isEqualTo("Max Muster"));
+        assertThat(speakers.all()).hasSize(1);
+    }
+
+    @Test
+    void withoutAnybodyToPickTheFormSaysSoInsteadOfOfferingItself() throws Exception {
+        database.empty();
+
+        String html = mvc.perform(get("/event/past"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parse(html).select("form")).isEmpty();
+        assertThat(Jsoup.parse(html).selectFirst("p.error").text())
+                .contains("kein Referent erfasst");
+    }
+
+    /** The place was picked and refused for another reason: it must not be lost with it. */
+    @Test
+    void whatWasPickedComesBackOnARefusal() throws Exception {
+        String html = mvc.perform(anEvening(Map.of("abstractText", "")))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document page = Jsoup.parse(html);
+        assertThat(page.selectFirst("select[name=locationId] option[selected]").text())
+                .isEqualTo("Musterfirma GmbH");
+        assertThat(page.selectFirst("select[name=speakerId] option[selected]").text())
+                .contains("Max Muster");
+    }
+
+    /** The biography the evening announces opens with what the person says today. */
+    @Test
+    void pickingSomebodyBringsTheirBiographyIntoTheField() throws Exception {
+        String fragment = mvc.perform(get("/event/past/bio")
+                        .param("speakerId", String.valueOf(speakerId)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("textarea[name=announcedBio]").val())
+                .isEqualTo(speakers.byId(speakerId).orElseThrow().bio());
     }
 
     @Test
@@ -175,8 +215,7 @@ class PastEventControllerTest {
                 "startsAt", "19:00",
                 "mode", "ONSITE",
                 "status", "DONE",
-                "speakerName", "Max Muster",
-                "speakerEmail", "max@example.org",
+                "speakerId", String.valueOf(speakerId),
                 "title", "Records in Java 25",
                 "abstractText", "Was Records sind und wofür sie taugen.",
                 "announcedBio", "Damals bei der Musterfirma",

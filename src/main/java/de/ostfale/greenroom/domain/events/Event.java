@@ -30,6 +30,17 @@ import static de.ostfale.greenroom.domain.Texts.required;
  * <p>There is no title. The evening is called by its {@code motto} if it has one, otherwise
  * by the title of its talk — with one talk nothing is maintained twice, with several the
  * evening gets a name of its own.
+ *
+ * <p>{@code addressPosition} says which of the venue's addresses this evening was at.
+ * A place keeps every address it ever had, and until now no evening said which one it
+ * used: one that moved showed its new address on an evening ten years old. Empty means
+ * the address the place has today, which is what a planned evening wants — it moves
+ * along when the venue does. Set means that one, whatever happened since.
+ *
+ * <p>A position rather than a copy, and that is the one place this project references
+ * what it elsewhere copies: an address is never rewritten and never dropped here, only
+ * flagged inactive, so pointing at one is as stable as copying it — and it lets the old
+ * address be written down once at the place instead of once per evening.
  */
 public record Event(
         @Id Long id,
@@ -40,6 +51,7 @@ public record Event(
         EventStatus status,
         EventMode mode,
         Long locationId,
+        Integer addressPosition,
         List<Talk> talks,
         List<String> tags) {
 
@@ -71,7 +83,8 @@ public record Event(
 
     /** A topic: somebody we want to hear, and nothing settled yet. */
     public static Event draftFor(Talk talk) {
-        return new Event(null, null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE, null, List.of(talk), List.of());
+        return new Event(null, null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE,
+                null, null, List.of(talk), List.of());
     }
 
     /**
@@ -84,15 +97,18 @@ public record Event(
         if (!status.canMoveTo(target)) {
             throw new RuleViolated(Rule.EVENT_DOES_NOT_MOVE, status, target);
         }
-        return new Event(id, date, motto, moderator, notes, target, mode, locationId, talks, tags);
+        return new Event(id, date, motto, moderator, notes, target, mode, locationId,
+                addressPosition, talks, tags);
     }
 
     public Event withDate(LocalDate newDate) {
-        return new Event(id, newDate, motto, moderator, notes, status, mode, locationId, talks, tags);
+        return new Event(id, newDate, motto, moderator, notes, status, mode, locationId,
+                addressPosition, talks, tags);
     }
 
     public Event withMotto(String newMotto) {
-        return new Event(id, date, newMotto, moderator, notes, status, mode, locationId, talks, tags);
+        return new Event(id, date, newMotto, moderator, notes, status, mode, locationId,
+                addressPosition, talks, tags);
     }
 
     /**
@@ -100,24 +116,42 @@ public record Event(
      * one of us, and a person the tool does not otherwise have to know anything about.
      */
     public Event withModerator(String newModerator) {
-        return new Event(id, date, motto, newModerator, notes, status, mode, locationId, talks, tags);
+        return new Event(id, date, motto, newModerator, notes, status, mode, locationId,
+                addressPosition, talks, tags);
     }
 
     /** Anything worth writing down that has no field of its own. */
     public Event withNotes(String newNotes) {
-        return new Event(id, date, motto, moderator, newNotes, status, mode, locationId, talks, tags);
+        return new Event(id, date, motto, moderator, newNotes, status, mode, locationId,
+                addressPosition, talks, tags);
     }
 
     public Event withMode(EventMode newMode) {
-        return new Event(id, date, motto, moderator, notes, status, newMode, locationId, talks, tags);
+        return new Event(id, date, motto, moderator, notes, status, newMode, locationId,
+                addressPosition, talks, tags);
     }
 
+    /**
+     * The host. A pinned address does not travel with it: a position points into one place's
+     * list, and at another place the same number means another building.
+     */
     public Event withLocation(Long newLocationId) {
-        return new Event(id, date, motto, moderator, notes, status, mode, newLocationId, talks, tags);
+        Integer stays = Objects.equals(locationId, newLocationId) ? addressPosition : null;
+        return new Event(id, date, motto, moderator, notes, status, mode, newLocationId,
+                stays, talks, tags);
+    }
+
+    /**
+     * Which of the venue's addresses this evening was at. Empty is the one it has today.
+     */
+    public Event withAddressAt(Integer position) {
+        return new Event(id, date, motto, moderator, notes, status, mode, locationId,
+                position, talks, tags);
     }
 
     public Event withTalks(List<Talk> newTalks) {
-        return new Event(id, date, motto, moderator, notes, status, mode, locationId, newTalks, tags);
+        return new Event(id, date, motto, moderator, notes, status, mode, locationId,
+                addressPosition, newTalks, tags);
     }
 
     public Event withAdditionalTalk(Talk talk) {
@@ -163,7 +197,8 @@ public record Event(
      * announced with — the same reason the speaker's biography is copied onto the talk.
      */
     public Event withTags(List<String> newTags) {
-        return new Event(id, date, motto, moderator, notes, status, mode, locationId, talks, newTags);
+        return new Event(id, date, motto, moderator, notes, status, mode, locationId,
+                addressPosition, talks, newTags);
     }
 
     public boolean carries(String tag) {

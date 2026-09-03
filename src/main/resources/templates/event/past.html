@@ -9,7 +9,15 @@
 
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form class="sheet" method="post" th:action="@{/event/past}">
+    <!-- Both lists have to exist first: this form writes down what happened, it does not
+         invent the people it happened with. -->
+    <div class="sheet wide" th:if="${#lists.isEmpty(speakers)}">
+        <p class="error">Es ist noch kein Referent erfasst.</p>
+        <p><a class="button" th:href="@{/speaker/new}">Referent anlegen</a></p>
+    </div>
+
+    <form class="sheet wide" th:unless="${#lists.isEmpty(speakers)}"
+          method="post" th:action="@{/event/past}">
         <p class="hint">
             Für die Abende, die schon gelaufen sind. Wie sie damals zustande kamen, wird
             nicht erfasst — hier zählt nur, was stattgefunden hat. Der Abend wird direkt in
@@ -33,57 +41,84 @@
                             th:text="#{'event.mode.' + ${way}}">Vor Ort</option>
                 </select>
             </label>
+            <label>Ausgang
+                <select name="status">
+                    <option th:each="ending : ${endings}" th:value="${ending}"
+                            th:selected="${submitted.status} == ${ending.name()}"
+                            th:text="#{'event.status.' + ${ending}}">Erledigt</option>
+                </select>
+            </label>
         </div>
 
-        <label>Ausgang
-            <select name="status">
-                <option th:each="ending : ${endings}" th:value="${ending}"
-                        th:selected="${submitted.status} == ${ending.name()}"
-                        th:text="#{'event.status.' + ${ending}}">Erledigt</option>
-            </select>
-        </label>
+        <div class="row even">
+            <label>Ort
+                <select name="locationId"
+                        th:hx-get="@{/event/past/addresses}"
+                        hx-target="#venue-address"
+                        hx-swap="outerHTML">
+                    <option value="">Nicht erfasst</option>
+                    <option th:each="one : ${locations}" th:value="${one.id}"
+                            th:selected="${submitted.locationId} == ${one.id.toString()}"
+                            th:text="${one.name}">Musterfirma GmbH</option>
+                </select>
+            </label>
 
-        <fieldset>
-            <legend>Referent</legend>
-            <div class="row even">
-                <label>Name
-                    <input type="text" name="speakerName" required th:value="${submitted.speakerName}">
-                </label>
-                <label>E-Mail
-                    <input type="email" name="speakerEmail" required
-                           th:value="${submitted.speakerEmail}">
+            <!-- A place that moved keeps its old address; an evening from before the move
+                 points at that one rather than at where the company sits today. -->
+            <div id="venue-address" th:fragment="venue-address">
+                <label th:if="${place} != null and ${#lists.size(place.addresses)} > 1">Adresse
+                    <select name="addressPosition">
+                        <option value=""
+                                th:text="${place.hasSeveralAddressesInUse()}
+                                         ? 'Noch nicht festgelegt'
+                                         : 'Aktuelle Adresse (' + ${place.addressLine()} + ')'">Aktuelle Adresse</option>
+                        <option th:each="address, i : ${place.addresses}" th:value="${i.index}"
+                                th:selected="${submitted.addressPosition} == ${i.index.toString()}"
+                                th:text="${address.line()}
+                                         + (${address.capacity} != null ? ' · ' + ${address.capacity} + ' Plätze' : '')
+                                         + (${address.active} ? '' : ' · stillgelegt')">Musterweg 1</option>
+                    </select>
                 </label>
             </div>
-            <p class="hint">
-                An der Adresse wird jemand wiedererkannt, der schon einmal gesprochen hat —
-                dann entsteht kein zweiter Eintrag.
-            </p>
-        </fieldset>
+        </div>
 
         <fieldset>
             <legend>Vortrag</legend>
+
+            <!-- Picking somebody fetches the biography they carry today into the field
+                 below; it is the copy this evening announced, and it is edited there. -->
+            <label>Referent
+                <select name="speakerId" required
+                        th:hx-get="@{/event/past/bio}"
+                        hx-target="#announced-bio"
+                        hx-swap="outerHTML">
+                    <option value="">Bitte auswählen</option>
+                    <option th:each="person : ${speakers}" th:value="${person.id}"
+                            th:selected="${submitted.speakerId} == ${person.id.toString()}"
+                            th:text="${person.company} != null
+                                     ? ${person.name} + ' – ' + ${person.company}
+                                     : ${person.name}">Max Muster</option>
+                </select>
+            </label>
+
             <label>Titel
                 <input type="text" name="title" th:value="${submitted.title}">
             </label>
-            <label>Abstract
-                <textarea name="abstractText" rows="4" th:text="${submitted.abstractText}"></textarea>
-            </label>
-            <label>Kurzvita von damals
-                <textarea name="announcedBio" rows="3" th:text="${submitted.announcedBio}"></textarea>
-            </label>
-            <p class="hint">
-                Die Vita steht am Vortrag, nicht am Referenten: sie beschreibt die Person
-                von damals und bleibt so stehen, auch wenn sich heute alles geändert hat.
-            </p>
-        </fieldset>
 
-        <label>Ort
-            <select name="locationId">
-                <option value="">Nicht erfasst</option>
-                <option th:each="place : ${locations}" th:value="${place.id}"
-                        th:text="${place.name}">Musterfirma GmbH</option>
-            </select>
-        </label>
+            <label>Abstract
+                <textarea name="abstractText" rows="8"
+                          th:text="${submitted.abstractText}"></textarea>
+            </label>
+
+            <label id="announced-bio" th:fragment="announced-bio">Kurzvita von damals
+                <textarea name="announcedBio" rows="6" th:text="${announcedBio}"></textarea>
+                <span class="hint">
+                    Kommt vom Referenten und steht danach am Vortrag: sie beschreibt die
+                    Person von damals und bleibt so stehen, auch wenn sich heute alles
+                    geändert hat.
+                </span>
+            </label>
+        </fieldset>
 
         <p class="hint">
             „Erledigt“ verlangt, was ein erledigter Abend hat: Datum, Ort und zu jedem

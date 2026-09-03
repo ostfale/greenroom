@@ -150,6 +150,31 @@ public record Location(
         return current == null ? null : current.capacity();
     }
 
+    /**
+     * The address an evening was at: the one at that position, or the one the place has
+     * today when no position was written down.
+     *
+     * <p>A place with two addresses in use at once — two lecture halls, two rooms of
+     * different size — has no "current" one to fall back on, and the page has to say so
+     * rather than let {@link #currentAddress} pick whichever sits first.
+     *
+     * @throws RuleViolated if there is no address at that position
+     */
+    public Address addressAt(Integer position) {
+        if (position == null) {
+            return currentAddress();
+        }
+        if (position < 0 || position >= addresses.size()) {
+            throw new RuleViolated(Rule.NO_ADDRESS_AT_POSITION, position);
+        }
+        return addresses.get(position);
+    }
+
+    /** Whether the place offers several at once, so an evening has to name the one it used. */
+    public boolean hasSeveralAddressesInUse() {
+        return activeAddresses().size() > 1;
+    }
+
     /** What a list shows: the current address on one line, empty while there is none. */
     public String addressLine() {
         Address current = currentAddress();

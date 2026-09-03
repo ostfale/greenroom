@@ -3,6 +3,7 @@ package de.ostfale.greenroom.adapter.in.web;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
+import de.ostfale.greenroom.domain.locations.Address;
 import de.ostfale.greenroom.domain.locations.Location;
 
 import java.nio.charset.StandardCharsets;
@@ -75,7 +76,7 @@ final class CalendarEntry {
         }
         lines.add("SUMMARY:" + escaped(name));
         if (place != null) {
-            lines.add("LOCATION:" + escaped(where(place)));
+            lines.add("LOCATION:" + escaped(where(place, event.addressPosition())));
         }
         String talks = talks(event, speakerNames);
         if (!talks.isEmpty()) {
@@ -96,8 +97,10 @@ final class CalendarEntry {
         return "greenroom-" + event.date() + ".ics";
     }
 
-    private static String where(Location place) {
-        String address = place.addressLine();
+    /** The address this evening was at, which for an old one is not today's. */
+    private static String where(Location place, Integer position) {
+        Address here = place.addressAt(position);
+        String address = here == null ? "" : here.line();
         return address.isEmpty() ? place.name() : place.name() + ", " + address;
     }
 

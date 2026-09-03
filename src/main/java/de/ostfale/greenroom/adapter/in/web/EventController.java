@@ -323,15 +323,55 @@ public class EventController {
     @PostMapping("/{id}/location")
     public String assignVenue(@PathVariable Long id,
                               @RequestParam(defaultValue = "") String locationId,
+                              @RequestParam(defaultValue = "") String addressPosition,
                               Model model) {
         try {
             Event known = events.byId(id).orElseThrow(() ->
                     new RuleViolated(Rule.NOT_FOUND));
-            events.change(known.withLocation(venue(locationId)));
+            Long place = venue(locationId);
+            // withLocation drops a pin that belonged to another place, so the address is
+            // set after it and never before.
+            events.change(known.withLocation(place)
+                    .withAddressAt(addressAt(place, addressPosition)));
         } catch (RuleViolated e) {
             model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-venue :: event-venue");
+    }
+
+    /**
+     * The addresses of the place that was just picked. Its own little route because the
+     * second select depends on the first, and htmx swaps it rather than the whole tile.
+     */
+    @GetMapping("/{id}/addresses")
+    public String venueAddresses(@PathVariable Long id,
+                                 @RequestParam(defaultValue = "") String locationId,
+                                 Model model) {
+        Long place = venue(locationId);
+        model.addAttribute("place", place == null ? null : locations.byId(place).orElse(null));
+        // Another place means another list, so nothing is preselected in it.
+        model.addAttribute("chosenAddress", null);
+        return "fragments/event-venue :: venue-address";
+    }
+
+    /**
+     * Which of the venue's addresses, checked against the place it belongs to: a position
+     * that is not there is a stale page or a tampered form, and either way not an address.
+     */
+    private Integer addressAt(Long place, String position) {
+        if (place == null || position == null || position.isBlank()) {
+            return null;
+        }
+        int picked;
+        try {
+            picked = Integer.parseInt(position.strip());
+        } catch (NumberFormatException e) {
+            throw new RuleViolated(Rule.NO_ADDRESS_AT_POSITION, position);
+        }
+        // Asked so it refuses here rather than on the page that reads it back.
+        locations.byId(place).orElseThrow(() -> new RuleViolated(Rule.NOT_FOUND))
+                .addressAt(picked);
+        return picked;
     }
 
     /** Empty is a valid answer here: an evening may well have no venue yet. */
@@ -482,8 +522,12 @@ public class EventController {
         // The talks name their speakers by id, and a page shows people by name.
         model.addAttribute("speakerNames", known.stream()
                 .collect(Collectors.toMap(Speaker::id, Speaker::name)));
-        locations.byId(event.locationId())
-                .ifPresent(location -> model.addAttribute("location", location));
+        Location host = locations.byId(event.locationId()).orElse(null);
+        model.addAttribute("location", host);
+        // The address select reads these; the same fragment is served on its own when the
+        // place changes, and then they come from the request instead.
+        model.addAttribute("place", host);
+        model.addAttribute("chosenAddress", event.addressPosition());
     }
 
     /**
