@@ -21,7 +21,7 @@
       The trigger sits on the form rather than on the fields, so every request carries the
       whole row: a select changes, and typing in the search box settles for a moment first.
     -->
-    <form class="filters" method="get" th:action="@{/event}"
+    <form class="filters" method="get" th:action="@{/event}"ja
           th:hx-get="@{/event}"
           hx-target="#event-table"
           hx-swap="outerHTML"

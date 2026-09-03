@@ -463,6 +463,10 @@ input[type=search] {
     display: grid;
     grid-template-columns: minmax(0, 7rem) minmax(0, 1fr);
     gap: 1rem;
+    /* Tops, not middles, the same reason .filters says so: one label may carry a hint under
+       its field and the other not, and stretched to equal height the shorter one would push
+       its control down to meet nothing. */
+    align-items: start;
 }
 
 /* Two fields of equal standing — a date next to a name, not a label next to a value. */
