@@ -11,6 +11,8 @@ of an evening easier than a Markdown note would — that is the only benchmark.
 - **KISS.** One user, one machine, a few hundred rows. Do not build for scale, for
   multi-tenancy or for a persistence swap that will never happen.
 - **DRY.** One field list per concept. No parallel model that exists only to be mapped.
+  The one command record is `PastEvening`, and it earns its place: its fields belong to
+  four different records, none of which is stored yet when the form is submitted.
 - **What is copied is not referenced.** Whatever an evening was announced with must stay
   what it was, however the underlying record changes later.
 - **What is a matter of judgement is shown, not refused.** A clash, a step the state

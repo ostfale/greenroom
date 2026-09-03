@@ -10,7 +10,8 @@ import java.util.Optional;
 /**
  * Everything the web adapter needs to keep the list of evenings. The aggregate itself is
  * the argument and the result — there is no command record that would only be mapped onto
- * the same fields again.
+ * the same fields again. {@link #enterPast} is the one exception, and
+ * {@link PastEvening} carries the reason.
  */
 public interface ManageEvents {
 
@@ -53,6 +54,28 @@ public interface ManageEvents {
      * nothing.
      */
     List<Event> clashesWith(Event event);
+
+    /**
+     * An evening that already happened, written down in one go: date, venue, talk, speaker
+     * and the status it ended in.
+     *
+     * <p>It does not walk the state machine, and that is the whole point of the method.
+     * The chain — topic, date, venue, announced, over — is how an evening is planned, and
+     * for one that is ten years past there is no planning left to retrace: it would be
+     * four steps of ceremony for every row of a backlog.
+     *
+     * <p>Nothing is bypassed by it. What each status promises is enforced by the record
+     * itself, not by the transitions: a {@code DONE} evening still has to carry a date, a
+     * venue and a title and an abstract on every talk, or it is refused here just as it
+     * would be on the last step of the chain.
+     *
+     * <p>The speaker is found by address or created: somebody who spoke before is not
+     * written down a second time.
+     *
+     * @throws de.ostfale.greenroom.domain.RuleViolated if the evening does not carry what
+     *                                                  the chosen status promises
+     */
+    Event enterPast(PastEvening past);
 
     /** A further talk on the same evening, with the person who gives it. */
     Event addTalk(Long eventId, Talk talk);

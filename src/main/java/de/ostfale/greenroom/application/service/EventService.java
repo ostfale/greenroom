@@ -2,11 +2,14 @@ package de.ostfale.greenroom.application.service;
 
 import de.ostfale.greenroom.application.port.in.EventFilter;
 import de.ostfale.greenroom.application.port.in.ManageEvents;
+import de.ostfale.greenroom.application.port.in.PastEvening;
 import de.ostfale.greenroom.application.port.out.EventRepository;
+import de.ostfale.greenroom.application.port.out.SpeakerRepository;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
 import de.ostfale.greenroom.domain.events.TalkSpeaker;
+import de.ostfale.greenroom.domain.speakers.Speaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -23,9 +26,11 @@ public class EventService implements ManageEvents {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final EventRepository eventRepository;
+    private final SpeakerRepository speakerRepository;
 
-    public EventService(EventRepository eventRepository) {
+    public EventService(EventRepository eventRepository, SpeakerRepository speakerRepository) {
         this.eventRepository = eventRepository;
+        this.speakerRepository = speakerRepository;
     }
 
     @Override
@@ -58,6 +63,32 @@ public class EventService implements ManageEvents {
                 .toList();
         log.debug("EventService :: {} other events on {}", sameDay.size(), event.date());
         return sameDay;
+    }
+
+    @Override
+    public Event enterPast(PastEvening past) {
+        Speaker speaker = knownBy(past.speakerEmail(), past.speakerName());
+        Talk talk = Talk.by(TalkSpeaker.of(speaker.id()).withAnnouncedBio(past.announcedBio()))
+                .withTitle(past.title())
+                .withAbstract(past.abstractText());
+        // Straight at the status it ended in. The record still checks what that status
+        // promises; only the walk through the chain is left out, and retracing a planning
+        // that is ten years over would be ceremony.
+        Event evening = new Event(null, past.date(), null, null, null, past.status(),
+                past.mode(), past.locationId(), List.of(talk), List.of());
+        log.debug("EventService :: past evening on {} as {}", past.date(), past.status());
+        return eventRepository.save(evening);
+    }
+
+    /**
+     * The address is the person: somebody who spoke before is found again rather than
+     * written down twice. Only the name and the address are taken — everything else about
+     * them is of today and has nothing to do with an evening ten years ago.
+     */
+    private Speaker knownBy(String email, String name) {
+        String address = email == null ? "" : email.strip();
+        return speakerRepository.findByEmail(address)
+                .orElseGet(() -> speakerRepository.save(Speaker.of(name, address)));
     }
 
     @Override
