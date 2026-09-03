@@ -1,5 +1,7 @@
 package de.ostfale.greenroom.domain.activities;
 
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import org.springframework.data.annotation.Id;
 
 import java.time.LocalDate;
@@ -35,22 +37,22 @@ public record SpeakerInquiry(
 
     public SpeakerInquiry {
         if (eventId == null) {
-            throw new IllegalArgumentException("SpeakerInquiry :: an inquiry belongs to an event");
+            throw new RuleViolated(Rule.INQUIRY_BELONGS_TO_AN_EVENT);
         }
         if (speakerId == null) {
-            throw new IllegalArgumentException("SpeakerInquiry :: an inquiry goes to a speaker");
+            throw new RuleViolated(Rule.INQUIRY_NEEDS_A_SPEAKER);
         }
         if (sentAt == null) {
-            throw new IllegalArgumentException("SpeakerInquiry :: an inquiry is logged after it went out");
+            throw new RuleViolated(Rule.INQUIRY_NEEDS_A_SENT_DATE);
         }
         if (channel == null) {
-            throw new IllegalArgumentException("SpeakerInquiry :: an inquiry needs a channel");
+            throw new RuleViolated(Rule.INQUIRY_NEEDS_A_CHANNEL);
         }
         if (outcome == null) {
-            throw new IllegalArgumentException("SpeakerInquiry :: an inquiry needs an outcome");
+            throw new RuleViolated(Rule.INQUIRY_NEEDS_AN_OUTCOME);
         }
         if ((outcome == InquiryOutcome.PENDING) != (answeredOn == null)) {
-            throw new IllegalArgumentException("SpeakerInquiry :: an answer is dated, and only an answer is");
+            throw new RuleViolated(Rule.INQUIRY_ANSWER_IS_DATED);
         }
         note = optional(note);
     }
@@ -65,20 +67,19 @@ public record SpeakerInquiry(
     /**
      * The answer came in, on the day it came in.
      *
-     * @throws IllegalStateException    if this inquiry was answered before
-     * @throws IllegalArgumentException if the answer is {@code PENDING}, which is the
-     *                                  absence of an answer rather than one, or if the day
-     *                                  it arrived is missing
+     * @throws RuleViolated if this inquiry was answered before, if the answer is
+     *                      {@code PENDING} — which is the absence of an answer rather than
+     *                      one — or if the day it arrived is missing
      */
     public SpeakerInquiry answered(InquiryOutcome answer, LocalDate on) {
         if (outcome != InquiryOutcome.PENDING) {
-            throw new IllegalStateException("SpeakerInquiry :: this inquiry was already answered");
+            throw new RuleViolated(Rule.INQUIRY_ALREADY_ANSWERED);
         }
         if (answer == null || answer == InquiryOutcome.PENDING) {
-            throw new IllegalArgumentException("SpeakerInquiry :: PENDING is not an answer");
+            throw new RuleViolated(Rule.PENDING_IS_NOT_AN_ANSWER);
         }
         if (on == null) {
-            throw new IllegalArgumentException("SpeakerInquiry :: an answer is dated, and only an answer is");
+            throw new RuleViolated(Rule.INQUIRY_ANSWER_IS_DATED);
         }
         return new SpeakerInquiry(id, eventId, speakerId, askedAbout, sentAt, channel, answer, on, note);
     }

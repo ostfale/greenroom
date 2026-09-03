@@ -1,5 +1,8 @@
 package de.ostfale.greenroom.adapter.in.web;
 
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
@@ -20,7 +23,7 @@ final class FormValues {
         try {
             return LocalDate.parse(value.strip());
         } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("Form :: the date is not a date: " + value);
+            throw new RuleViolated(Rule.DATE_UNREADABLE, value);
         }
     }
 }

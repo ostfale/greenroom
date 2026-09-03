@@ -1,5 +1,7 @@
 package de.ostfale.greenroom.domain.events;
 
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.speakers.Speaker;
 
 import static de.ostfale.greenroom.domain.Texts.optional;
@@ -16,7 +18,7 @@ public record TalkSpeaker(Long speakerId, String announcedBio) {
 
     public TalkSpeaker {
         if (speakerId == null) {
-            throw new IllegalArgumentException("TalkSpeaker :: a talk speaker points at a stored speaker");
+            throw new RuleViolated(Rule.SPEAKER_NOT_STORED);
         }
         announcedBio = optional(announcedBio);
     }
@@ -24,7 +26,7 @@ public record TalkSpeaker(Long speakerId, String announcedBio) {
     /** The speaker with the biography they have right now — this is the copy being made. */
     public static TalkSpeaker announcing(Speaker speaker) {
         if (speaker.id() == null) {
-            throw new IllegalArgumentException("TalkSpeaker :: this speaker has not been stored yet");
+            throw new RuleViolated(Rule.SPEAKER_NOT_STORED);
         }
         return new TalkSpeaker(speaker.id(), speaker.bio());
     }

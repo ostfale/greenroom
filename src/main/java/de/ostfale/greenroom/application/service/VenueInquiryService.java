@@ -4,6 +4,8 @@ import de.ostfale.greenroom.application.port.in.ManageVenueInquiries;
 import de.ostfale.greenroom.application.port.out.MailMessage;
 import de.ostfale.greenroom.application.port.out.SendMail;
 import de.ostfale.greenroom.application.port.out.VenueInquiryRepository;
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.activities.InquiryOutcome;
 import de.ostfale.greenroom.domain.activities.VenueInquiry;
 import org.slf4j.Logger;
@@ -56,7 +58,7 @@ public class VenueInquiryService implements ManageVenueInquiries {
     @Override
     public VenueInquiry answer(Long inquiryId, InquiryOutcome outcome) {
         VenueInquiry known = inquiryRepository.findById(inquiryId).orElseThrow(() ->
-                new IllegalArgumentException("VenueInquiryService :: there is no inquiry " + inquiryId));
+                new RuleViolated(Rule.NO_SUCH_INQUIRY, inquiryId));
         log.debug("VenueInquiryService :: inquiry {} answered with {}", inquiryId, outcome);
         return inquiryRepository.save(known.answered(outcome, LocalDate.now()));
     }

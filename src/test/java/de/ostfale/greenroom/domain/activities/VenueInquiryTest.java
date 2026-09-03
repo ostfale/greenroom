@@ -1,12 +1,13 @@
 package de.ostfale.greenroom.domain.activities;
 
+import de.ostfale.greenroom.domain.Rule;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 
 import static de.ostfale.greenroom.Fixtures.EVENING;
+import static de.ostfale.greenroom.Violations.ruleBrokenBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Plain Java, no Spring: the mirror image of the speaker inquiry, and where it differs. */
 class VenueInquiryTest {
@@ -32,12 +33,10 @@ class VenueInquiryTest {
 
     @Test
     void anInquiryBelongsToAnEveningAndGoesToAPlace() {
-        assertThatThrownBy(() -> VenueInquiry.sent(null, LOCATION, null, EVENING, SENT, ContactChannel.EMAIL))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("belongs to an event");
-        assertThatThrownBy(() -> VenueInquiry.sent(EVENT, null, null, EVENING, SENT, ContactChannel.EMAIL))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("goes to a location");
+        assertThat(ruleBrokenBy(() -> VenueInquiry.sent(null, LOCATION, null, EVENING, SENT, ContactChannel.EMAIL)))
+                .isEqualTo(Rule.INQUIRY_BELONGS_TO_AN_EVENT);
+        assertThat(ruleBrokenBy(() -> VenueInquiry.sent(EVENT, null, null, EVENING, SENT, ContactChannel.EMAIL)))
+                .isEqualTo(Rule.INQUIRY_NEEDS_A_LOCATION);
     }
 
     /**
@@ -47,19 +46,16 @@ class VenueInquiryTest {
      */
     @Test
     void aPlaceIsOnlyAskedAboutADayThatIsAlreadySet() {
-        assertThatThrownBy(() -> VenueInquiry.sent(EVENT, LOCATION, null, null, SENT, ContactChannel.EMAIL))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("a date the evening already has");
+        assertThat(ruleBrokenBy(() -> VenueInquiry.sent(EVENT, LOCATION, null, null, SENT, ContactChannel.EMAIL)))
+                .isEqualTo(Rule.VENUE_INQUIRY_NEEDS_A_DATE);
     }
 
     @Test
     void anInquiryIsWrittenDownAfterItWentOut() {
-        assertThatThrownBy(() -> VenueInquiry.sent(EVENT, LOCATION, null, EVENING, null, ContactChannel.EMAIL))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("after it went out");
-        assertThatThrownBy(() -> VenueInquiry.sent(EVENT, LOCATION, null, EVENING, SENT, null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("needs a channel");
+        assertThat(ruleBrokenBy(() -> VenueInquiry.sent(EVENT, LOCATION, null, EVENING, null, ContactChannel.EMAIL)))
+                .isEqualTo(Rule.INQUIRY_NEEDS_A_SENT_DATE);
+        assertThat(ruleBrokenBy(() -> VenueInquiry.sent(EVENT, LOCATION, null, EVENING, SENT, null)))
+                .isEqualTo(Rule.INQUIRY_NEEDS_A_CHANNEL);
     }
 
     /** Whom we wrote to is copied, not looked up — and may well be nobody in particular. */
@@ -84,21 +80,18 @@ class VenueInquiryTest {
     void anAnsweredInquiryIsNotAnsweredAgain() {
         VenueInquiry declined = sent().answered(InquiryOutcome.DECLINED, ANSWERED);
 
-        assertThatThrownBy(() -> declined.answered(InquiryOutcome.ACCEPTED, ANSWERED))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("already answered");
+        assertThat(ruleBrokenBy(() -> declined.answered(InquiryOutcome.ACCEPTED, ANSWERED)))
+                .isEqualTo(Rule.INQUIRY_ALREADY_ANSWERED);
     }
 
     @Test
     void pendingIsTheAbsenceOfAnAnswerAndNotOne() {
         VenueInquiry inquiry = sent();
 
-        assertThatThrownBy(() -> inquiry.answered(InquiryOutcome.PENDING, ANSWERED))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("not an answer");
-        assertThatThrownBy(() -> inquiry.answered(null, ANSWERED))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("not an answer");
+        assertThat(ruleBrokenBy(() -> inquiry.answered(InquiryOutcome.PENDING, ANSWERED)))
+                .isEqualTo(Rule.PENDING_IS_NOT_AN_ANSWER);
+        assertThat(ruleBrokenBy(() -> inquiry.answered(null, ANSWERED)))
+                .isEqualTo(Rule.PENDING_IS_NOT_AN_ANSWER);
     }
 
     @Test
@@ -131,8 +124,7 @@ class VenueInquiryTest {
         assertThat(sent().answered(InquiryOutcome.ACCEPTED, ANSWERED).answeredOn())
                 .isEqualTo(ANSWERED);
 
-        assertThatThrownBy(() -> sent().answered(InquiryOutcome.ACCEPTED, null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("an answer is dated");
+        assertThat(ruleBrokenBy(() -> sent().answered(InquiryOutcome.ACCEPTED, null)))
+                .isEqualTo(Rule.INQUIRY_ANSWER_IS_DATED);
     }
 }

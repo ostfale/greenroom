@@ -1,5 +1,7 @@
 package de.ostfale.greenroom.domain.events;
 
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import org.springframework.data.annotation.Id;
 
 import java.util.ArrayList;
@@ -29,13 +31,12 @@ public record Talk(
 
     public Talk {
         if (speakers == null || speakers.isEmpty()) {
-            throw new IllegalArgumentException("Talk :: a talk needs at least one speaker");
+            throw new RuleViolated(Rule.TALK_NEEDS_A_SPEAKER);
         }
         Set<Long> seen = new HashSet<>();
         for (TalkSpeaker speaker : speakers) {
             if (!seen.add(speaker.speakerId())) {
-                throw new IllegalArgumentException(
-                        "Talk :: speaker " + speaker.speakerId() + " is on this talk twice");
+                throw new RuleViolated(Rule.SPEAKER_TWICE_ON_TALK, speaker.speakerId());
             }
         }
         title = optional(title);

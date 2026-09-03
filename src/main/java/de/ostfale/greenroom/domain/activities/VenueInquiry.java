@@ -1,5 +1,7 @@
 package de.ostfale.greenroom.domain.activities;
 
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import org.springframework.data.annotation.Id;
 
 import java.time.LocalDate;
@@ -46,25 +48,25 @@ public record VenueInquiry(
 
     public VenueInquiry {
         if (eventId == null) {
-            throw new IllegalArgumentException("VenueInquiry :: an inquiry belongs to an event");
+            throw new RuleViolated(Rule.INQUIRY_BELONGS_TO_AN_EVENT);
         }
         if (locationId == null) {
-            throw new IllegalArgumentException("VenueInquiry :: an inquiry goes to a location");
+            throw new RuleViolated(Rule.INQUIRY_NEEDS_A_LOCATION);
         }
         if (forDate == null) {
-            throw new IllegalArgumentException("VenueInquiry :: a place is asked about a date the evening already has");
+            throw new RuleViolated(Rule.VENUE_INQUIRY_NEEDS_A_DATE);
         }
         if (sentAt == null) {
-            throw new IllegalArgumentException("VenueInquiry :: an inquiry is logged after it went out");
+            throw new RuleViolated(Rule.INQUIRY_NEEDS_A_SENT_DATE);
         }
         if (channel == null) {
-            throw new IllegalArgumentException("VenueInquiry :: an inquiry needs a channel");
+            throw new RuleViolated(Rule.INQUIRY_NEEDS_A_CHANNEL);
         }
         if (outcome == null) {
-            throw new IllegalArgumentException("VenueInquiry :: an inquiry needs an outcome");
+            throw new RuleViolated(Rule.INQUIRY_NEEDS_AN_OUTCOME);
         }
         if ((outcome == InquiryOutcome.PENDING) != (answeredOn == null)) {
-            throw new IllegalArgumentException("VenueInquiry :: an answer is dated, and only an answer is");
+            throw new RuleViolated(Rule.INQUIRY_ANSWER_IS_DATED);
         }
         contactName = optional(contactName);
         note = optional(note);
@@ -80,20 +82,19 @@ public record VenueInquiry(
     /**
      * The answer came in, on the day it came in.
      *
-     * @throws IllegalStateException    if this inquiry was answered before
-     * @throws IllegalArgumentException if the answer is {@code PENDING}, which is the
-     *                                  absence of an answer rather than one, or if the day
-     *                                  it arrived is missing
+     * @throws RuleViolated if this inquiry was answered before, if the answer is
+     *                      {@code PENDING} — which is the absence of an answer rather than
+     *                      one — or if the day it arrived is missing
      */
     public VenueInquiry answered(InquiryOutcome answer, LocalDate on) {
         if (outcome != InquiryOutcome.PENDING) {
-            throw new IllegalStateException("VenueInquiry :: this inquiry was already answered");
+            throw new RuleViolated(Rule.INQUIRY_ALREADY_ANSWERED);
         }
         if (answer == null || answer == InquiryOutcome.PENDING) {
-            throw new IllegalArgumentException("VenueInquiry :: PENDING is not an answer");
+            throw new RuleViolated(Rule.PENDING_IS_NOT_AN_ANSWER);
         }
         if (on == null) {
-            throw new IllegalArgumentException("VenueInquiry :: an answer is dated, and only an answer is");
+            throw new RuleViolated(Rule.INQUIRY_ANSWER_IS_DATED);
         }
         return new VenueInquiry(id, eventId, locationId, contactName, forDate, sentAt, channel,
                 answer, on, note);

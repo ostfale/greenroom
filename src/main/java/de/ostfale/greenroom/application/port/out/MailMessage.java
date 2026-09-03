@@ -1,5 +1,7 @@
 package de.ostfale.greenroom.application.port.out;
 
+import de.ostfale.greenroom.domain.Rule;
+
 import static de.ostfale.greenroom.domain.Texts.required;
 
 /**
@@ -13,8 +15,8 @@ import static de.ostfale.greenroom.domain.Texts.required;
 public record MailMessage(String to, String subject, String body) {
 
     public MailMessage {
-        to = required(to, "MailMessage :: a mail needs somebody to go to");
-        subject = required(subject, "MailMessage :: a mail needs a subject");
-        body = required(body, "MailMessage :: an empty mail is not worth sending");
+        to = required(to, Rule.MAIL_NEEDS_A_RECIPIENT);
+        subject = required(subject, Rule.MAIL_NEEDS_A_SUBJECT);
+        body = required(body, Rule.MAIL_NEEDS_A_BODY);
     }
 }

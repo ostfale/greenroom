@@ -4,6 +4,8 @@ import de.ostfale.greenroom.application.port.in.ManageSpeakerInquiries;
 import de.ostfale.greenroom.application.port.out.MailMessage;
 import de.ostfale.greenroom.application.port.out.SendMail;
 import de.ostfale.greenroom.application.port.out.SpeakerInquiryRepository;
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.activities.InquiryOutcome;
 import de.ostfale.greenroom.domain.activities.SpeakerInquiry;
 import org.slf4j.Logger;
@@ -55,7 +57,7 @@ public class SpeakerInquiryService implements ManageSpeakerInquiries {
     @Override
     public SpeakerInquiry answer(Long inquiryId, InquiryOutcome outcome) {
         SpeakerInquiry known = inquiryRepository.findById(inquiryId).orElseThrow(() ->
-                new IllegalArgumentException("SpeakerInquiryService :: there is no inquiry " + inquiryId));
+                new RuleViolated(Rule.NO_SUCH_INQUIRY, inquiryId));
         log.debug("SpeakerInquiryService :: inquiry {} answered with {}", inquiryId, outcome);
         return inquiryRepository.save(known.answered(outcome, LocalDate.now()));
     }

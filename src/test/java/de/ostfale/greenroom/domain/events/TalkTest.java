@@ -1,13 +1,14 @@
 package de.ostfale.greenroom.domain.events;
 
+import de.ostfale.greenroom.domain.Rule;
 import de.ostfale.greenroom.domain.speakers.Speaker;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static de.ostfale.greenroom.Violations.ruleBrokenBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Plain Java, no Spring: the talk carries its own rules. */
 class TalkTest {
@@ -17,27 +18,23 @@ class TalkTest {
 
     @Test
     void aTalkNeedsAtLeastOneSpeaker() {
-        assertThatThrownBy(() -> new Talk(null, "Records in Java 25", null, List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("speaker");
+        assertThat(ruleBrokenBy(() -> new Talk(null, "Records in Java 25", null, List.of())))
+                .isEqualTo(Rule.TALK_NEEDS_A_SPEAKER);
 
-        assertThatThrownBy(() -> new Talk(null, "Records in Java 25", null, null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("speaker");
+        assertThat(ruleBrokenBy(() -> new Talk(null, "Records in Java 25", null, null)))
+                .isEqualTo(Rule.TALK_NEEDS_A_SPEAKER);
     }
 
     @Test
     void theSpeakerCannotBeTakenAwayAgain() {
-        assertThatThrownBy(() -> Talk.by(MAX).withSpeakers(List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("speaker");
+        assertThat(ruleBrokenBy(() -> Talk.by(MAX).withSpeakers(List.of())))
+                .isEqualTo(Rule.TALK_NEEDS_A_SPEAKER);
     }
 
     @Test
     void theSameSpeakerCannotBeOnTheTalkTwice() {
-        assertThatThrownBy(() -> Talk.by(MAX).withAdditionalSpeaker(TalkSpeaker.of(1L)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("twice");
+        assertThat(ruleBrokenBy(() -> Talk.by(MAX).withAdditionalSpeaker(TalkSpeaker.of(1L))))
+                .isEqualTo(Rule.SPEAKER_TWICE_ON_TALK);
     }
 
     @Test
@@ -120,15 +117,13 @@ class TalkTest {
 
     @Test
     void aSpeakerThatWasNeverStoredCannotBeAnnounced() {
-        assertThatThrownBy(() -> TalkSpeaker.announcing(Speaker.of("Max Muster", "max@example.org")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("stored");
+        assertThat(ruleBrokenBy(() -> TalkSpeaker.announcing(Speaker.of("Max Muster", "max@example.org"))))
+                .isEqualTo(Rule.SPEAKER_NOT_STORED);
     }
 
     @Test
     void aTalkSpeakerAlwaysPointsAtASpeaker() {
-        assertThatThrownBy(() -> TalkSpeaker.of(null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("speaker");
+        assertThat(ruleBrokenBy(() -> TalkSpeaker.of(null)))
+                .isEqualTo(Rule.SPEAKER_NOT_STORED);
     }
 }

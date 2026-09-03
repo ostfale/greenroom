@@ -1,5 +1,7 @@
 package de.ostfale.greenroom.domain.activities;
 
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import org.springframework.data.annotation.Id;
 
 import java.time.LocalDate;
@@ -29,21 +31,21 @@ public record Activity(
 
     public Activity {
         if (eventId == null) {
-            throw new IllegalArgumentException("Activity :: an entry belongs to an event");
+            throw new RuleViolated(Rule.ACTIVITY_BELONGS_TO_AN_EVENT);
         }
         if (happenedOn == null) {
-            throw new IllegalArgumentException("Activity :: an entry is dated");
+            throw new RuleViolated(Rule.ACTIVITY_IS_DATED);
         }
         if (direction == null) {
-            throw new IllegalArgumentException("Activity :: an entry needs a direction");
+            throw new RuleViolated(Rule.ACTIVITY_NEEDS_A_DIRECTION);
         }
         if (direction == ActivityDirection.NOTE && channel != null) {
-            throw new IllegalArgumentException("Activity :: a note went nowhere, so it has no channel");
+            throw new RuleViolated(Rule.NOTE_HAS_NO_CHANNEL);
         }
         if (direction != ActivityDirection.NOTE && channel == null) {
-            throw new IllegalArgumentException("Activity :: something that went out or came in needs a channel");
+            throw new RuleViolated(Rule.ACTIVITY_NEEDS_A_CHANNEL);
         }
-        what = required(what, "Activity :: an entry needs to say what happened");
+        what = required(what, Rule.ACTIVITY_NEEDS_A_TEXT);
     }
 
     /** Something we did or that reached us, over a channel. */

@@ -1,5 +1,7 @@
 package de.ostfale.greenroom.domain.events;
 
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import org.springframework.data.annotation.Id;
 
 import java.time.LocalDate;
@@ -39,23 +41,22 @@ public record Event(
 
     public Event {
         if (status == null) {
-            throw new IllegalArgumentException("Event :: an event needs a status");
+            throw new RuleViolated(Rule.EVENT_NEEDS_A_STATUS);
         }
         if (mode == null) {
-            throw new IllegalArgumentException("Event :: an event needs a mode");
+            throw new RuleViolated(Rule.EVENT_NEEDS_A_MODE);
         }
         if (talks == null || talks.isEmpty()) {
-            throw new IllegalArgumentException("Event :: an event needs at least one talk");
+            throw new RuleViolated(Rule.EVENT_NEEDS_ONE_TALK);
         }
         if (status.requiresADate() && date == null) {
-            throw new IllegalArgumentException("Event :: " + status + " needs a date");
+            throw new RuleViolated(Rule.EVENT_NEEDS_A_DATE, status);
         }
         if (status.requiresAVenue() && locationId == null) {
-            throw new IllegalArgumentException("Event :: " + status + " needs a location");
+            throw new RuleViolated(Rule.EVENT_NEEDS_A_LOCATION, status);
         }
         if (status.requiresPublishableTalks() && !talks.stream().allMatch(Talk::isReadyToPublish)) {
-            throw new IllegalArgumentException(
-                    "Event :: " + status + " needs a title and an abstract on every talk");
+            throw new RuleViolated(Rule.EVENT_NEEDS_PUBLISHABLE_TALKS, status);
         }
         motto = optional(motto);
         moderator = optional(moderator);
@@ -73,11 +74,11 @@ public record Event(
      * Moves the evening on. The transition itself is guarded by {@link EventStatus}; what
      * the new status requires is guarded by this record.
      *
-     * @throws IllegalStateException if the state machine does not allow the step
+     * @throws RuleViolated if the state machine does not allow the step
      */
     public Event moveTo(EventStatus target) {
         if (!status.canMoveTo(target)) {
-            throw new IllegalStateException("Event :: " + status + " does not move to " + target);
+            throw new RuleViolated(Rule.EVENT_DOES_NOT_MOVE, status, target);
         }
         return new Event(id, date, motto, moderator, notes, target, mode, locationId, talks, tags);
     }
@@ -136,8 +137,8 @@ public record Event(
     /**
      * Drops the talk at that position.
      *
-     * @throws IllegalArgumentException if it was the last one — an evening without a talk
-     *                                  is not an evening
+     * @throws RuleViolated if it was the last one — an evening without a talk is not an
+     *                      evening
      */
     public Event withTalkRemoved(int position) {
         List<Talk> left = new ArrayList<>(talks);
@@ -147,7 +148,7 @@ public record Event(
 
     private int known(int position) {
         if (position < 0 || position >= talks.size()) {
-            throw new IllegalArgumentException("Event :: there is no talk at position " + position);
+            throw new RuleViolated(Rule.NO_TALK_AT_POSITION, position);
         }
         return position;
     }
@@ -207,9 +208,9 @@ public record Event(
     private static List<String> normalised(List<String> tags) {
         List<String> kept = new ArrayList<>();
         for (String tag : tags) {
-            String word = required(tag, "Event :: a tag needs a word");
+            String word = required(tag, Rule.TAG_NEEDS_A_WORD);
             if (kept.stream().anyMatch(seen -> seen.equalsIgnoreCase(word))) {
-                throw new IllegalArgumentException("Event :: the tag " + word + " is on this event twice");
+                throw new RuleViolated(Rule.TAG_TWICE_ON_EVENT, word);
             }
             kept.add(word);
         }

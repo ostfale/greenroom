@@ -1,11 +1,12 @@
 package de.ostfale.greenroom.domain.activities;
 
+import de.ostfale.greenroom.domain.Rule;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 
+import static de.ostfale.greenroom.Violations.ruleBrokenBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Plain Java, no Spring: what an entry is, and what a direction commits it to. */
 class ActivityTest {
@@ -15,19 +16,16 @@ class ActivityTest {
 
     @Test
     void anEntryBelongsToAnEveningAndIsDated() {
-        assertThatThrownBy(() -> Activity.noted(null, DAY, "Beamer defekt"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("belongs to an event");
-        assertThatThrownBy(() -> Activity.noted(EVENT, null, "Beamer defekt"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("is dated");
+        assertThat(ruleBrokenBy(() -> Activity.noted(null, DAY, "Beamer defekt")))
+                .isEqualTo(Rule.ACTIVITY_BELONGS_TO_AN_EVENT);
+        assertThat(ruleBrokenBy(() -> Activity.noted(EVENT, null, "Beamer defekt")))
+                .isEqualTo(Rule.ACTIVITY_IS_DATED);
     }
 
     @Test
     void anEntrySaysWhatHappened() {
-        assertThatThrownBy(() -> Activity.noted(EVENT, DAY, "   "))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("say what happened");
+        assertThat(ruleBrokenBy(() -> Activity.noted(EVENT, DAY, "   ")))
+                .isEqualTo(Rule.ACTIVITY_NEEDS_A_TEXT);
     }
 
     /** The direction is what separates something we did from something we wrote down. */
@@ -35,10 +33,9 @@ class ActivityTest {
     void aNoteWentNowhereSoItHasNoChannel() {
         assertThat(Activity.noted(EVENT, DAY, "Beamer defekt").channel()).isNull();
 
-        assertThatThrownBy(() -> new Activity(null, EVENT, DAY, ActivityDirection.NOTE,
-                ContactChannel.EMAIL, "Beamer defekt"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("a note went nowhere");
+        assertThat(ruleBrokenBy(() -> new Activity(null, EVENT, DAY, ActivityDirection.NOTE,
+                ContactChannel.EMAIL, "Beamer defekt")))
+                .isEqualTo(Rule.NOTE_HAS_NO_CHANNEL);
     }
 
     @Test
@@ -46,10 +43,9 @@ class ActivityTest {
         assertThat(Activity.over(EVENT, DAY, ActivityDirection.OUTGOING, ContactChannel.EMAIL,
                 "Sponsor angeschrieben").channel()).isEqualTo(ContactChannel.EMAIL);
 
-        assertThatThrownBy(() -> new Activity(null, EVENT, DAY, ActivityDirection.INCOMING,
-                null, "Sponsor sagt zu"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("needs a channel");
+        assertThat(ruleBrokenBy(() -> new Activity(null, EVENT, DAY, ActivityDirection.INCOMING,
+                null, "Sponsor sagt zu")))
+                .isEqualTo(Rule.ACTIVITY_NEEDS_A_CHANNEL);
     }
 
     /**

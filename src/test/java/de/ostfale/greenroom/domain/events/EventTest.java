@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.domain.events;
 
+import de.ostfale.greenroom.domain.Rule;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -8,8 +9,8 @@ import java.util.List;
 import static de.ostfale.greenroom.Fixtures.EVENING;
 import static de.ostfale.greenroom.Fixtures.aReadyTalk;
 import static de.ostfale.greenroom.Fixtures.aTalk;
+import static de.ostfale.greenroom.Violations.ruleBrokenBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Plain Java, no Spring: the evening carries its own rules. */
 class EventTest {
@@ -42,14 +43,12 @@ class EventTest {
 
     @Test
     void anEveningNeedsAtLeastOneTalk() {
-        assertThatThrownBy(() -> new Event(null, null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE,
-                null, List.of(), List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("talk");
+        assertThat(ruleBrokenBy(() -> new Event(null, null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE,
+                null, List.of(), List.of())))
+                .isEqualTo(Rule.EVENT_NEEDS_ONE_TALK);
 
-        assertThatThrownBy(() -> Event.draftFor(aReadyTalk(SPEAKER)).withTalks(List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("talk");
+        assertThat(ruleBrokenBy(() -> Event.draftFor(aReadyTalk(SPEAKER)).withTalks(List.of())))
+                .isEqualTo(Rule.EVENT_NEEDS_ONE_TALK);
     }
 
     // --- what the status promises, the record enforces ------------------------------
@@ -58,27 +57,24 @@ class EventTest {
     void aConfirmedDateCannotBeMissing() {
         Event topic = Event.draftFor(aReadyTalk(SPEAKER));
 
-        assertThatThrownBy(() -> topic.moveTo(EventStatus.DATE_CONFIRMED))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("date");
+        assertThat(ruleBrokenBy(() -> topic.moveTo(EventStatus.DATE_CONFIRMED)))
+                .isEqualTo(Rule.EVENT_NEEDS_A_DATE);
     }
 
     @Test
     void theDateCannotBeTakenAwayFromASettledEvening() {
         Event settled = Event.draftFor(aReadyTalk(SPEAKER)).withDate(EVENING).moveTo(EventStatus.DATE_CONFIRMED);
 
-        assertThatThrownBy(() -> settled.withDate(null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("date");
+        assertThat(ruleBrokenBy(() -> settled.withDate(null)))
+                .isEqualTo(Rule.EVENT_NEEDS_A_DATE);
     }
 
     @Test
     void aConfirmedVenueCannotBeMissing() {
         Event settled = Event.draftFor(aReadyTalk(SPEAKER)).withDate(EVENING).moveTo(EventStatus.DATE_CONFIRMED);
 
-        assertThatThrownBy(() -> settled.moveTo(EventStatus.VENUE_CONFIRMED))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("location");
+        assertThat(ruleBrokenBy(() -> settled.moveTo(EventStatus.VENUE_CONFIRMED)))
+                .isEqualTo(Rule.EVENT_NEEDS_A_LOCATION);
     }
 
     @Test
@@ -91,9 +87,8 @@ class EventTest {
                 .withAdditionalTalk(aTalk(2L).withTitle("Ohne Abstract"));
 
         assertThat(hosted.allTalksAreReadyToPublish()).isFalse();
-        assertThatThrownBy(() -> hosted.moveTo(EventStatus.PUBLISHED))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("abstract");
+        assertThat(ruleBrokenBy(() -> hosted.moveTo(EventStatus.PUBLISHED)))
+                .isEqualTo(Rule.EVENT_NEEDS_PUBLISHABLE_TALKS);
     }
 
     @Test
@@ -108,12 +103,11 @@ class EventTest {
     void aStepTheStateMachineForbidsIsRefused() {
         Event topic = Event.draftFor(aReadyTalk(SPEAKER));
 
-        assertThatThrownBy(() -> topic.moveTo(EventStatus.PUBLISHED))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("DRAFT");
+        assertThat(ruleBrokenBy(() -> topic.moveTo(EventStatus.PUBLISHED)))
+                .isEqualTo(Rule.EVENT_DOES_NOT_MOVE);
 
-        assertThatThrownBy(() -> published().moveTo(EventStatus.DONE).moveTo(EventStatus.PUBLISHED))
-                .isInstanceOf(IllegalStateException.class);
+        assertThat(ruleBrokenBy(() -> published().moveTo(EventStatus.DONE).moveTo(EventStatus.PUBLISHED)))
+                .isEqualTo(Rule.EVENT_DOES_NOT_MOVE);
     }
 
     @Test
@@ -166,18 +160,16 @@ class EventTest {
     void theSameKeywordCannotBeOnTheEveningTwice() {
         Event event = Event.draftFor(aReadyTalk(SPEAKER));
 
-        assertThatThrownBy(() -> event.withTags(List.of("Spring", "spring")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("twice");
+        assertThat(ruleBrokenBy(() -> event.withTags(List.of("Spring", "spring"))))
+                .isEqualTo(Rule.TAG_TWICE_ON_EVENT);
     }
 
     @Test
     void aKeywordIsAWordOrItIsNotThere() {
         Event event = Event.draftFor(aReadyTalk(SPEAKER));
 
-        assertThatThrownBy(() -> event.withTags(List.of("  ")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("word");
+        assertThat(ruleBrokenBy(() -> event.withTags(List.of("  "))))
+                .isEqualTo(Rule.TAG_NEEDS_A_WORD);
         assertThat(event.withTags(List.of(" Java ")).tags()).containsExactly("Java");
     }
 
@@ -231,30 +223,26 @@ class EventTest {
     void theLastTalkStays() {
         Event event = Event.draftFor(aReadyTalk(SPEAKER));
 
-        assertThatThrownBy(() -> event.withTalkRemoved(0))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("at least one talk");
+        assertThat(ruleBrokenBy(() -> event.withTalkRemoved(0)))
+                .isEqualTo(Rule.EVENT_NEEDS_ONE_TALK);
     }
 
     @Test
     void thereIsNoTalkOutsideTheList() {
         Event event = Event.draftFor(aReadyTalk(SPEAKER));
 
-        assertThatThrownBy(() -> event.talkAt(1))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("no talk at position");
-        assertThatThrownBy(() -> event.withTalkRemoved(-1))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("no talk at position");
+        assertThat(ruleBrokenBy(() -> event.talkAt(1)))
+                .isEqualTo(Rule.NO_TALK_AT_POSITION);
+        assertThat(ruleBrokenBy(() -> event.withTalkRemoved(-1)))
+                .isEqualTo(Rule.NO_TALK_AT_POSITION);
     }
 
     @Test
     void anAnnouncedEveningKeepsEveryTalkWorthAnnouncing() {
         Event published = published();
 
-        assertThatThrownBy(() -> published.withTalkChanged(0, published.talkAt(0).withTitle(null)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("needs a title and an abstract");
+        assertThat(ruleBrokenBy(() -> published.withTalkChanged(0, published.talkAt(0).withTitle(null))))
+                .isEqualTo(Rule.EVENT_NEEDS_PUBLISHABLE_TALKS);
     }
 
     // --- who leads through the evening ------------------------------------------------

@@ -10,6 +10,8 @@ import de.ostfale.greenroom.application.port.in.ManageTags;
 import de.ostfale.greenroom.application.port.in.ManageVenueInquiries;
 import de.ostfale.greenroom.application.port.out.MailMessage;
 import de.ostfale.greenroom.application.port.out.SendMail;
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.activities.Activity;
 import de.ostfale.greenroom.domain.activities.ActivityDirection;
 import de.ostfale.greenroom.domain.activities.ContactChannel;
@@ -57,10 +59,12 @@ public class EventController {
     private final ManageSpeakerInquiries inquiries;
     private final ManageVenueInquiries venueInquiries;
     private final ManageActivities activities;
+    private final ErrorMessages errors;
 
     public EventController(ManageEvents events, ManageSpeakers speakers, ManageLocations locations,
                            ManageTags tags, ManageSpeakerInquiries inquiries,
-                           ManageVenueInquiries venueInquiries, ManageActivities activities) {
+                           ManageVenueInquiries venueInquiries, ManageActivities activities,
+                           ErrorMessages errors) {
         this.events = events;
         this.speakers = speakers;
         this.locations = locations;
@@ -68,6 +72,7 @@ public class EventController {
         this.inquiries = inquiries;
         this.venueInquiries = venueInquiries;
         this.activities = activities;
+        this.errors = errors;
     }
 
     @GetMapping
@@ -144,10 +149,10 @@ public class EventController {
             Talk talk = Talk.by(announced(speakerId)).withTitle(title);
             events.add(Event.draftFor(talk).withDate(evening(date)));
             return "redirect:/event";
-        } catch (IllegalArgumentException e) {
+        } catch (RuleViolated e) {
             // The records know the rules; the form only has to say so in German and keep
             // what was typed.
-            model.addAttribute("error", message(e));
+            model.addAttribute("error", errors.german(e));
             model.addAttribute("submitted", submitted(speakerId, title, date));
             model.addAttribute("speakers", speakers.all());
             return "event/form";
@@ -163,31 +168,23 @@ public class EventController {
         Long id = speaker(speakerId);
         return speakers.byId(id)
                 .map(TalkSpeaker::announcing)
-                .orElseThrow(() -> new IllegalArgumentException("Event :: no speaker was chosen"));
+                .orElseThrow(() -> new RuleViolated(Rule.NO_SPEAKER_CHOSEN));
     }
 
     private static Long speaker(String speakerId) {
         if (speakerId == null || speakerId.isBlank()) {
-            throw new IllegalArgumentException("Event :: no speaker was chosen");
+            throw new RuleViolated(Rule.NO_SPEAKER_CHOSEN);
         }
         try {
             return Long.valueOf(speakerId.strip());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Event :: no speaker was chosen");
+            throw new RuleViolated(Rule.NO_SPEAKER_CHOSEN);
         }
     }
 
     /** Empty means the date is still open — a topic is allowed to have none. */
     private static LocalDate evening(String date) {
         return FormValues.date(date);
-    }
-
-    private static String message(IllegalArgumentException e) {
-        String reason = e.getMessage() == null ? "" : e.getMessage();
-        if (reason.contains("not a date")) {
-            return "Das Datum konnte nicht gelesen werden.";
-        }
-        return "Bitte einen Referenten auswählen.";
     }
 
     private void fill(Model model, EventFilter filter) {
@@ -255,13 +252,13 @@ public class EventController {
                          Model model) {
         try {
             Event known = events.byId(id).orElseThrow(() ->
-                    new IllegalArgumentException("EventController :: unknown event"));
+                    new RuleViolated(Rule.NOT_FOUND));
             events.change(known.withDate(evening(date))
                     .withMotto(motto)
                     .withModerator(moderator)
                     .withNotes(notes));
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", planningMessage(e));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-basics :: event-basics");
     }
@@ -274,8 +271,8 @@ public class EventController {
     public String moveTo(@PathVariable Long id, @RequestParam EventStatus target, Model model) {
         try {
             events.moveTo(id, target);
-        } catch (IllegalStateException | IllegalArgumentException e) {
-            model.addAttribute("error", planningMessage(e));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-status :: event-status");
     }
@@ -290,10 +287,10 @@ public class EventController {
                               Model model) {
         try {
             Event known = events.byId(id).orElseThrow(() ->
-                    new IllegalArgumentException("EventController :: unknown event"));
+                    new RuleViolated(Rule.NOT_FOUND));
             events.change(known.withLocation(venue(locationId)));
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", planningMessage(e));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-venue :: event-venue");
     }
@@ -306,7 +303,7 @@ public class EventController {
         try {
             return Long.valueOf(locationId.strip());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Event :: no location was chosen");
+            throw new RuleViolated(Rule.NO_LOCATION_CHOSEN);
         }
     }
 
@@ -320,10 +317,10 @@ public class EventController {
                              Model model) {
         try {
             Event known = events.byId(id).orElseThrow(() ->
-                    new IllegalArgumentException("EventController :: unknown event"));
+                    new RuleViolated(Rule.NOT_FOUND));
             events.change(known.withTags(chosen == null ? List.of() : chosen));
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", planningMessage(e));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-tags :: event-tags");
     }
@@ -359,8 +356,8 @@ public class EventController {
     private String talks(Long id, Model model, Supplier<Event> change) {
         try {
             change.get();
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", planningMessage(e));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-talks :: event-talks");
     }
@@ -375,12 +372,12 @@ public class EventController {
                               Model model) {
         try {
             Event known = events.byId(id).orElseThrow(() ->
-                    new IllegalArgumentException("EventController :: unknown event"));
+                    new RuleViolated(Rule.NOT_FOUND));
             inquiries.send(SpeakerInquiry
                     .sent(id, speaker(speakerId), known.date(), day(sentAt), how(channel))
                     .withNote(note));
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", planningMessage(e));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-inquiries :: event-inquiries");
     }
@@ -393,8 +390,8 @@ public class EventController {
                                 Model model) {
         try {
             inquiries.answer(inquiryId, outcome);
-        } catch (IllegalStateException | IllegalArgumentException e) {
-            model.addAttribute("error", planningMessage(e));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-inquiries :: event-inquiries");
     }
@@ -413,12 +410,12 @@ public class EventController {
                                    Model model) {
         try {
             Event known = events.byId(id).orElseThrow(() ->
-                    new IllegalArgumentException("EventController :: unknown event"));
+                    new RuleViolated(Rule.NOT_FOUND));
             venueInquiries.send(VenueInquiry
                     .sent(id, askedPlace(locationId), contactName, known.date(), day(sentAt), how(channel))
                     .withNote(note));
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", planningMessage(e));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-venue-inquiries :: event-venue-inquiries");
     }
@@ -431,8 +428,8 @@ public class EventController {
                                      Model model) {
         try {
             venueInquiries.answer(inquiryId, outcome);
-        } catch (IllegalStateException | IllegalArgumentException e) {
-            model.addAttribute("error", planningMessage(e));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-venue-inquiries :: event-venue-inquiries");
     }
@@ -452,15 +449,15 @@ public class EventController {
                               Model model) {
         try {
             Event known = events.byId(id).orElseThrow(() ->
-                    new IllegalArgumentException("EventController :: unknown event"));
+                    new RuleViolated(Rule.NOT_FOUND));
             Speaker person = speakers.byId(speaker(speakerId)).orElseThrow(() ->
-                    new IllegalArgumentException("Event :: no speaker was chosen"));
+                    new RuleViolated(Rule.NO_SPEAKER_CHOSEN));
             inquiries.sendByMail(
                     SpeakerInquiry.sent(id, person.id(), known.date(), day(sentAt), ContactChannel.EMAIL)
                             .withNote(note),
                     new MailMessage(person.email(), subject, body));
-        } catch (IllegalArgumentException | SendMail.MailNotSent e) {
-            model.addAttribute("error", planningMessage(e));
+        } catch (RuleViolated | SendMail.MailNotSent e) {
+            model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-inquiries :: event-inquiries");
     }
@@ -477,14 +474,14 @@ public class EventController {
                                    Model model) {
         try {
             Event known = events.byId(id).orElseThrow(() ->
-                    new IllegalArgumentException("EventController :: unknown event"));
+                    new RuleViolated(Rule.NOT_FOUND));
             Long place = askedPlace(locationId);
             venueInquiries.sendByMail(
                     VenueInquiry.sent(id, place, contactName, known.date(), day(sentAt),
                             ContactChannel.EMAIL).withNote(note),
                     new MailMessage(addressOf(place, contactName), subject, body));
-        } catch (IllegalArgumentException | SendMail.MailNotSent e) {
-            model.addAttribute("error", planningMessage(e));
+        } catch (RuleViolated | SendMail.MailNotSent e) {
+            model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-venue-inquiries :: event-venue-inquiries");
     }
@@ -498,7 +495,7 @@ public class EventController {
                 .filter(person -> person.name().equals(contactName))
                 .findFirst()
                 .map(ContactPerson::email)
-                .orElseThrow(() -> new IllegalArgumentException("Event :: no contact was chosen"));
+                .orElseThrow(() -> new RuleViolated(Rule.NO_CONTACT_CHOSEN));
     }
 
     /**
@@ -518,7 +515,7 @@ public class EventController {
     private static Long askedPlace(String locationId) {
         Long place = venue(locationId);
         if (place == null) {
-            throw new IllegalArgumentException("Event :: no location was chosen");
+            throw new RuleViolated(Rule.NO_LOCATION_CHOSEN);
         }
         return place;
     }
@@ -543,8 +540,8 @@ public class EventController {
             // A note went nowhere, so whatever the channel select was left on is dropped.
             ContactChannel way = kind == ActivityDirection.NOTE ? null : how(channel);
             activities.append(new Activity(null, id, day(happenedOn), kind, way, what));
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", planningMessage(e));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-history :: event-history");
     }
@@ -553,7 +550,7 @@ public class EventController {
         try {
             return ActivityDirection.valueOf(direction.strip());
         } catch (RuntimeException e) {
-            throw new IllegalArgumentException("Activity :: an entry needs a direction");
+            throw new RuleViolated(Rule.ACTIVITY_NEEDS_A_DIRECTION);
         }
     }
 
@@ -569,7 +566,7 @@ public class EventController {
         try {
             return ContactChannel.valueOf(channel.strip());
         } catch (RuntimeException e) {
-            throw new IllegalArgumentException("SpeakerInquiry :: an inquiry needs a channel");
+            throw new RuleViolated(Rule.INQUIRY_NEEDS_A_CHANNEL);
         }
     }
 
@@ -652,78 +649,5 @@ public class EventController {
             }
         }
         return choices;
-    }
-
-    /** The records refuse in English; the page has to say in German what is missing. */
-    private static String planningMessage(RuntimeException e) {
-        String reason = e.getMessage() == null ? "" : e.getMessage();
-        if (reason.contains("already answered")) {
-            return "Diese Anfrage ist schon beantwortet. Für einen neuen Versuch bitte eine neue Anfrage anlegen.";
-        }
-        if (reason.contains("PENDING is not an answer")) {
-            return "Bitte eine Antwort auswählen.";
-        }
-        if (reason.contains("the mail server refused")) {
-            return "Die Mail ist nicht rausgegangen — der Mailserver hat sie abgelehnt. "
-                    + "Die Anfrage wurde deshalb auch nicht notiert.";
-        }
-        if (reason.contains("no contact was chosen")) {
-            return "Bitte auswählen, wer an diesem Ort angeschrieben wird.";
-        }
-        if (reason.contains("a mail needs a subject")) {
-            return "Bitte einen Betreff eingeben.";
-        }
-        if (reason.contains("an empty mail is not worth sending")) {
-            return "Bitte einen Text eingeben.";
-        }
-        if (reason.contains("an inquiry needs a channel")) {
-            return "Bitte angeben, auf welchem Weg gefragt wurde.";
-        }
-        if (reason.contains("an entry needs a direction")) {
-            return "Bitte angeben, ob der Eintrag raus, rein oder nur notiert ist.";
-        }
-        if (reason.contains("an entry needs to say what happened")) {
-            return "Bitte eintragen, was passiert ist.";
-        }
-        if (reason.contains("a place is asked about a date")) {
-            return "Zuerst braucht das Event einen Termin — danach werden die Orte gefragt.";
-        }
-        if (reason.contains("there is no inquiry")) {
-            return "Diese Anfrage gibt es nicht mehr — bitte die Seite neu laden.";
-        }
-        if (reason.contains("is on this event twice")) {
-            return "Dieser Tag steht schon an diesem Event.";
-        }
-        if (reason.contains("a tag needs a word")) {
-            return "Ein Tag braucht ein Wort.";
-        }
-        if (reason.contains("at least one talk")) {
-            return "Der letzte Vortrag kann nicht entfernt werden — ohne ihn ist es kein Event.";
-        }
-        if (reason.contains("no talk at position")) {
-            return "Diesen Vortrag gibt es nicht mehr — bitte die Seite neu laden.";
-        }
-        if (reason.contains("no speaker was chosen")) {
-            return "Bitte einen Referenten auswählen.";
-        }
-        if (reason.contains("no location was chosen")) {
-            return "Bitte einen Ort auswählen.";
-        }
-        if (reason.contains("does not move to")) {
-            return "Dieser Schritt ist von hier aus nicht möglich.";
-        }
-        if (reason.contains("needs a date")) {
-            return "Dafür braucht das Event ein Datum.";
-        }
-        if (reason.contains("needs a location")) {
-            return "Dafür braucht das Event einen Ort.";
-        }
-        if (reason.contains("needs a title and an abstract")) {
-            return "Dafür braucht jeder Vortrag einen Titel und eine Beschreibung.";
-        }
-        if (reason.contains("not a date")) {
-            return "Das Datum konnte nicht gelesen werden.";
-        }
-        return "Die Änderung wurde nicht übernommen.";
     }
 }
