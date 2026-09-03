@@ -27,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -1122,6 +1123,46 @@ class EventControllerTest {
         String two = mvc.perform(get("/event/" + id)).andReturn().getResponse().getContentAsString();
         assertThat(Jsoup.parse(two).selectFirst("#event-basics p.hint").text())
                 .contains("mehrere Vorträge");
+    }
+
+    // --- the evening for somebody's own calendar ---------------------------------------
+
+    @Test
+    void theEveningIsHandedOutAsACalendarFile() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Java-Herbst")
+                .withDate(EVENING)).id();
+
+        MvcResult result = mvc.perform(get("/event/" + id + "/ical"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertThat(result.getResponse().getContentType()).startsWith("text/calendar");
+        assertThat(result.getResponse().getHeader("Content-Disposition"))
+                .contains("attachment").contains("greenroom-2026-09-24.ics");
+        assertThat(result.getResponse().getContentAsString())
+                .contains("SUMMARY:Java-Herbst")
+                .contains("DTSTART;VALUE=DATE:20260924");
+    }
+
+    @Test
+    void anEveningWithoutADayHasNothingToExport() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        mvc.perform(get("/event/" + id + "/ical")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void theLinkIsOfferedOnlyOnceThereIsADay() throws Exception {
+        Long topic = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+        Long dated = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+
+        assertThat(Jsoup.parse(mvc.perform(get("/event/" + topic))
+                .andReturn().getResponse().getContentAsString())
+                .select("a[href$=/ical]")).isEmpty();
+        assertThat(Jsoup.parse(mvc.perform(get("/event/" + dated))
+                .andReturn().getResponse().getContentAsString())
+                .selectFirst("a[href$=/ical]").text()).isEqualTo("Termin exportieren");
     }
 
     // --- the speakers of the evening, reachable from here ------------------------------

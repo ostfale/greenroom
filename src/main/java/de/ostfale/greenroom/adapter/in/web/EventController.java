@@ -18,6 +18,10 @@ import de.ostfale.greenroom.domain.events.TalkSpeaker;
 import de.ostfale.greenroom.domain.locations.Location;
 import de.ostfale.greenroom.domain.speakers.Speaker;
 import de.ostfale.greenroom.domain.tags.Tag;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,7 +29,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -264,6 +271,32 @@ public class EventController {
             model.addAttribute("error", errors.german(e));
         }
         return tile(id, model, "fragments/event-basics :: event-basics");
+    }
+
+    /**
+     * The evening for somebody's own calendar. A file rather than a subscription: this
+     * runs in a home network and is reachable by nobody a calendar could poll.
+     */
+    @GetMapping("/{id}/ical")
+    @ResponseBody
+    public ResponseEntity<String> ical(@PathVariable Long id) {
+        Event known = events.byId(id).orElse(null);
+        if (known == null || known.date() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        String file = CalendarEntry.of(known, known.displayName() != null
+                        ? known.displayName()
+                        : errors.text("ical.untitled"),
+                locations.byId(known.locationId()).orElse(null),
+                speakers.all().stream()
+                        .collect(Collectors.toMap(Speaker::id, Speaker::name)),
+                Instant.now());
+        return ResponseEntity.ok()
+                .contentType(new MediaType("text", "calendar", StandardCharsets.UTF_8))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(CalendarEntry.fileName(known)).build().toString())
+                .body(file);
     }
 
     /**

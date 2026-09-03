@@ -7,7 +7,12 @@
 <main>
     <div class="headline">
         <h1 th:text="${event.displayName()} ?: 'Ohne Titel'">Ohne Titel</h1>
-        <a class="back" th:href="@{/event}">Zurück zur Liste</a>
+        <div class="actions">
+            <!-- Only where there is a day to put in a calendar. -->
+            <a th:if="${event.date}" th:href="@{/event/{id}/ical(id=${event.id})}"
+               download>Termin exportieren</a>
+            <a class="back" th:href="@{/event}">Zurück zur Liste</a>
+        </div>
     </div>
 
     <div class="bento stretch">
