@@ -104,6 +104,25 @@ class CalendarEntryTest {
         assertThat(unfolded(file)).contains("DESCRIPTION:Records in Java 25 — Max Muster");
     }
 
+    /**
+     * Several talks are several lines, and a line break inside a value is the two
+     * characters backslash-n — a real one would end the property and break the file. This
+     * is the case a Java Day or an Architekturtag hits and a single-talk evening never does.
+     */
+    @Test
+    void theLineBreakBetweenTwoTalksIsEscapedRatherThanReal() {
+        Event twoTalks = anEvening().withAdditionalTalk(
+                aReadyTalk(SPEAKER).withTitle("Zweiter Vortrag"));
+
+        String file = CalendarEntry.of(twoTalks, "Java Day", null, NAMES, NOW);
+
+        assertThat(unfolded(file))
+                .contains("DESCRIPTION:Records in Java 25 — Max Muster"
+                        + "\\nZweiter Vortrag — Max Muster");
+        // A real break would end the property, and the line after it would be no property.
+        assertThat(unfolded(file)).doesNotContain("Max Muster\nZweiter");
+    }
+
     /** A comma or a semicolon separates values in this format, so a title may carry neither. */
     @Test
     void whatWouldSeparateValuesIsEscaped() {
