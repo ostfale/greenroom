@@ -1,5 +1,7 @@
 package de.ostfale.greenroom.domain.speakers;
 
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import org.springframework.data.annotation.Id;
 
 import java.util.Set;
@@ -21,18 +23,18 @@ public record SpeakerPhoto(@Id Long id, Long speakerId, String contentType, byte
 
     public SpeakerPhoto {
         if (speakerId == null) {
-            throw new IllegalArgumentException("SpeakerPhoto :: a photo belongs to a stored speaker");
+            throw new RuleViolated(Rule.PHOTO_NEEDS_A_STORED_SPEAKER);
         }
         if (data == null || data.length == 0) {
-            throw new IllegalArgumentException("SpeakerPhoto :: there is no picture in this file");
+            throw new RuleViolated(Rule.PHOTO_IS_EMPTY);
         }
         if (data.length > MAX_BYTES) {
-            throw new IllegalArgumentException("SpeakerPhoto :: the picture is too large: " + data.length);
+            throw new RuleViolated(Rule.PHOTO_TOO_LARGE, data.length);
         }
         // A client may send no content type at all; Set.of would answer that with an NPE.
         contentType = contentType == null ? "" : contentType.strip().toLowerCase();
         if (!ACCEPTED.contains(contentType)) {
-            throw new IllegalArgumentException("SpeakerPhoto :: not a picture we can show: " + contentType);
+            throw new RuleViolated(Rule.PHOTO_NOT_A_KIND_WE_SHOW, contentType);
         }
         data = data.clone();
     }

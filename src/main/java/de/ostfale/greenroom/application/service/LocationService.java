@@ -3,6 +3,8 @@ package de.ostfale.greenroom.application.service;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.out.LocationRepository;
 import de.ostfale.greenroom.application.port.out.LookUpAddress;
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.locations.Address;
 import de.ostfale.greenroom.domain.locations.ContactPerson;
 import de.ostfale.greenroom.domain.locations.Location;
@@ -72,7 +74,7 @@ public class LocationService implements ManageLocations {
     public Location locate(Long locationId, int position) {
         Location known = known(locationId);
         if (position < 0 || position >= known.addresses().size()) {
-            throw new IllegalArgumentException("Location :: there is no address at position " + position);
+            throw new RuleViolated(Rule.NO_ADDRESS_AT_POSITION, position);
         }
         List<Address> addresses = new ArrayList<>(known.addresses());
         addresses.set(position, located(addresses.get(position)));

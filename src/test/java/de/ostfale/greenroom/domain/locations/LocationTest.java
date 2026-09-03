@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.domain.locations;
 
+import de.ostfale.greenroom.domain.Rule;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -7,46 +8,40 @@ import java.util.List;
 
 import static de.ostfale.greenroom.Fixtures.aContact;
 import static de.ostfale.greenroom.Fixtures.aLocation;
+import static de.ostfale.greenroom.Violations.ruleBrokenBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Plain Java, no Spring: that is the point of keeping the rules in the records. */
 class LocationTest {
 
     @Test
     void aLocationNeedsAName() {
-        assertThatThrownBy(() -> Location.of("  ", aContact()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("name");
+        assertThat(ruleBrokenBy(() -> Location.of("  ", aContact())))
+                .isEqualTo(Rule.LOCATION_NEEDS_A_NAME);
     }
 
     @Test
     void aLocationNeedsSomebodyToAsk() {
-        assertThatThrownBy(() -> new Location(null, "Musterfirma GmbH", null, true, List.of(), List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("contact person");
+        assertThat(ruleBrokenBy(() -> new Location(null, "Musterfirma GmbH", null, true, List.of(), List.of())))
+                .isEqualTo(Rule.LOCATION_NEEDS_A_CONTACT);
 
-        assertThatThrownBy(() -> new Location(null, "Musterfirma GmbH", null, true, List.of(), null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("contact person");
+        assertThat(ruleBrokenBy(() -> new Location(null, "Musterfirma GmbH", null, true, List.of(), null)))
+                .isEqualTo(Rule.LOCATION_NEEDS_A_CONTACT);
     }
 
     @Test
     void theContactPersonCannotBeTakenAwayAgain() {
-        assertThatThrownBy(() -> aLocation().withContacts(List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("contact person");
+        assertThat(ruleBrokenBy(() -> aLocation().withContacts(List.of())))
+                .isEqualTo(Rule.LOCATION_NEEDS_A_CONTACT);
     }
 
     @Test
     void aContactPersonNeedsANameAndAnAddress() {
-        assertThatThrownBy(() -> ContactPerson.of(" ", "max@example.org"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("name");
+        assertThat(ruleBrokenBy(() -> ContactPerson.of(" ", "max@example.org")))
+                .isEqualTo(Rule.CONTACT_NEEDS_A_NAME);
 
-        assertThatThrownBy(() -> ContactPerson.of("Max Muster", ""))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("email");
+        assertThat(ruleBrokenBy(() -> ContactPerson.of("Max Muster", "")))
+                .isEqualTo(Rule.CONTACT_NEEDS_AN_EMAIL);
     }
 
     @Test
@@ -86,9 +81,8 @@ class LocationTest {
 
         assertThat(address.withCapacity(null).capacity()).isNull();
         assertThat(address.withCapacity(80).capacity()).isEqualTo(80);
-        assertThatThrownBy(() -> address.withCapacity(0))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("capacity");
+        assertThat(ruleBrokenBy(() -> address.withCapacity(0)))
+                .isEqualTo(Rule.CAPACITY_IS_A_NUMBER_OF_SEATS);
     }
 
     @Test
@@ -126,9 +120,8 @@ class LocationTest {
 
     @Test
     void anAddressNeedsAStreetOrATown() {
-        assertThatThrownBy(() -> Address.at("  ", "", null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("street or a town");
+        assertThat(ruleBrokenBy(() -> Address.at("  ", "", null)))
+                .isEqualTo(Rule.ADDRESS_NEEDS_A_STREET_OR_TOWN);
     }
 
     @Test
@@ -171,9 +164,8 @@ class LocationTest {
     void thereIsNoAddressAtAPositionThatDoesNotExist() {
         Location location = aLocation();
 
-        assertThatThrownBy(() -> location.withAddressActive(0, false))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("position");
+        assertThat(ruleBrokenBy(() -> location.withAddressActive(0, false)))
+                .isEqualTo(Rule.NO_ADDRESS_AT_POSITION);
     }
 
     // --- keeping the contacts up to date ---------------------------------------------
@@ -206,21 +198,18 @@ class LocationTest {
     void theLastContactCannotBeRemoved() {
         Location location = aLocation();
 
-        assertThatThrownBy(() -> location.withContactRemoved(0))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("at least one contact person");
+        assertThat(ruleBrokenBy(() -> location.withContactRemoved(0)))
+                .isEqualTo(Rule.LOCATION_NEEDS_A_CONTACT);
     }
 
     @Test
     void thereIsNoContactAtAPositionThatDoesNotExist() {
         Location location = aLocation();
 
-        assertThatThrownBy(() -> location.withContactRemoved(3))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("position");
-        assertThatThrownBy(() -> location.withContactChanged(3, aContact()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("position");
+        assertThat(ruleBrokenBy(() -> location.withContactRemoved(3)))
+                .isEqualTo(Rule.NO_CONTACT_AT_POSITION);
+        assertThat(ruleBrokenBy(() -> location.withContactChanged(3, aContact())))
+                .isEqualTo(Rule.NO_CONTACT_AT_POSITION);
     }
 
     @Test
@@ -272,22 +261,18 @@ class LocationTest {
     /** A point or no point — a latitude without a longitude is neither. */
     @Test
     void halfAPositionIsNoPosition() {
-        assertThatThrownBy(() -> new Address("Musterweg 1", null, null, null, true, 53.55, null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("half a position");
-        assertThatThrownBy(() -> new Address("Musterweg 1", null, null, null, true, null, 9.99))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("half a position");
+        assertThat(ruleBrokenBy(() -> new Address("Musterweg 1", null, null, null, true, 53.55, null)))
+                .isEqualTo(Rule.POSITION_IS_HALF);
+        assertThat(ruleBrokenBy(() -> new Address("Musterweg 1", null, null, null, true, null, 9.99)))
+                .isEqualTo(Rule.POSITION_IS_HALF);
     }
 
     @Test
     void aPositionIsOnThisPlanet() {
-        assertThatThrownBy(() -> Address.at("Musterweg 1", null, "Hamburg").at(91.0, 9.99))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("point on this planet");
-        assertThatThrownBy(() -> Address.at("Musterweg 1", null, "Hamburg").at(53.55, 181.0))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("point on this planet");
+        assertThat(ruleBrokenBy(() -> Address.at("Musterweg 1", null, "Hamburg").at(91.0, 9.99)))
+                .isEqualTo(Rule.POSITION_OFF_THE_PLANET);
+        assertThat(ruleBrokenBy(() -> Address.at("Musterweg 1", null, "Hamburg").at(53.55, 181.0)))
+                .isEqualTo(Rule.POSITION_OFF_THE_PLANET);
     }
 
     @Test

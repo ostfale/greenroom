@@ -1,5 +1,7 @@
 package de.ostfale.greenroom.domain.locations;
 
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import org.springframework.data.annotation.Id;
 
 import java.util.ArrayList;
@@ -33,9 +35,9 @@ public record Location(
         List<ContactPerson> contacts) {
 
     public Location {
-        name = required(name, "Location :: a location needs a name");
+        name = required(name, Rule.LOCATION_NEEDS_A_NAME);
         if (contacts == null || contacts.isEmpty()) {
-            throw new IllegalArgumentException("Location :: a location needs at least one contact person");
+            throw new RuleViolated(Rule.LOCATION_NEEDS_A_CONTACT);
         }
         notes = optional(notes);
         addresses = addresses == null ? List.of() : List.copyOf(addresses);
@@ -80,7 +82,7 @@ public record Location(
     /** Turns the address at that position on or off. */
     public Location withAddressActive(int position, boolean active) {
         if (position < 0 || position >= addresses.size()) {
-            throw new IllegalArgumentException("Location :: there is no address at position " + position);
+            throw new RuleViolated(Rule.NO_ADDRESS_AT_POSITION, position);
         }
         List<Address> changed = new ArrayList<>(addresses);
         Address address = changed.get(position);
@@ -116,7 +118,7 @@ public record Location(
     /**
      * Drops the contact at that position.
      *
-     * @throws IllegalArgumentException if it was the last one — a location nobody can be
+     * @throws RuleViolated if it was the last one — a location nobody can be
      *                                  asked about is not a location we can use
      */
     public Location withContactRemoved(int position) {
@@ -127,7 +129,7 @@ public record Location(
 
     private int known(int position) {
         if (position < 0 || position >= contacts.size()) {
-            throw new IllegalArgumentException("Location :: there is no contact person at position " + position);
+            throw new RuleViolated(Rule.NO_CONTACT_AT_POSITION, position);
         }
         return position;
     }

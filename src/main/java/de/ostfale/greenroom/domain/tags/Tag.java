@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.domain.tags;
 
+import de.ostfale.greenroom.domain.Rule;
 import org.springframework.data.annotation.Id;
 
 import static de.ostfale.greenroom.domain.Texts.required;
@@ -13,7 +14,7 @@ import static de.ostfale.greenroom.domain.Texts.required;
 public record Tag(@Id Long id, String name) {
 
     public Tag {
-        name = required(name, "Tag :: a tag needs a name");
+        name = required(name, Rule.TAG_NEEDS_A_NAME);
     }
 
     /** A new tag, not yet stored. */

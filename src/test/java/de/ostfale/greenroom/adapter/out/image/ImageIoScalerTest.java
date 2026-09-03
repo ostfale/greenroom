@@ -1,8 +1,8 @@
 package de.ostfale.greenroom.adapter.out.image;
 
+import de.ostfale.greenroom.domain.Rule;
 import org.junit.jupiter.api.Test;
 
-import javax.imageio.ImageIO;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -10,9 +10,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import javax.imageio.ImageIO;
 
+import static de.ostfale.greenroom.Violations.ruleBrokenBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Real ImageIO, no Spring — the bytes that come out are what matters. */
 class ImageIoScalerTest {
@@ -102,8 +103,7 @@ class ImageIoScalerTest {
 
     @Test
     void somethingThatIsNoPictureIsRefused() {
-        assertThatThrownBy(() -> scaler.toJpegAtMost("keine Datei, nur Text".getBytes(), 600))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("not a picture");
+        assertThat(ruleBrokenBy(() -> scaler.toJpegAtMost("keine Datei, nur Text".getBytes(), 600)))
+                .isEqualTo(Rule.PHOTO_NOT_A_KIND_WE_SHOW);
     }
 }

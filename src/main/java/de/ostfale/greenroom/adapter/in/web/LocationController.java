@@ -1,14 +1,16 @@
 package de.ostfale.greenroom.adapter.in.web;
 
 import de.ostfale.greenroom.application.port.in.ManageLocations;
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.locations.Address;
 import de.ostfale.greenroom.domain.locations.ContactPerson;
 import de.ostfale.greenroom.domain.locations.Location;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -22,9 +24,11 @@ import java.util.function.Supplier;
 public class LocationController {
 
     private final ManageLocations locations;
+    private final ErrorMessages errors;
 
-    public LocationController(ManageLocations locations) {
+    public LocationController(ManageLocations locations, ErrorMessages errors) {
         this.locations = locations;
+        this.errors = errors;
     }
 
     @GetMapping
@@ -68,14 +72,14 @@ public class LocationController {
                 location = location.movedTo(
                         Address.at(street, postalCode, city).withCapacity(seats(capacity)));
             } else if (!capacity.isBlank()) {
-                throw new IllegalArgumentException("Location :: a capacity belongs to an address");
+                throw new RuleViolated(Rule.CAPACITY_BELONGS_TO_AN_ADDRESS);
             }
             locations.add(location);
             return "redirect:/location";
-        } catch (IllegalArgumentException e) {
+        } catch (RuleViolated e) {
             // The records know the rules; the form only has to say so in German and keep
             // what was typed.
-            model.addAttribute("error", message(e));
+            model.addAttribute("error", errors.german(e));
             model.addAttribute("submitted", submitted(name, street, postalCode, city, capacity,
                     notes, contactName, contactEmail, contactPhone));
             return "location/form";
@@ -90,19 +94,8 @@ public class LocationController {
         try {
             return Integer.valueOf(capacity.strip());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Address :: capacity is not a number: " + capacity);
+            throw new RuleViolated(Rule.CAPACITY_IS_A_NUMBER_OF_SEATS, capacity);
         }
-    }
-
-    private static String message(IllegalArgumentException e) {
-        String reason = e.getMessage() == null ? "" : e.getMessage();
-        if (reason.contains("capacity belongs to an address")) {
-            return "Die Plätze gehören zu einer Adresse — bitte auch die Adresse angeben.";
-        }
-        if (reason.contains("capacity")) {
-            return "Die Plätze müssen eine Zahl größer als null sein.";
-        }
-        return "Name des Ortes sowie Name und E-Mail-Adresse des Ansprechpartners sind Pflichtfelder.";
     }
 
     @GetMapping("/{id}")
@@ -129,8 +122,8 @@ public class LocationController {
                         "Zu dieser Adresse hat OpenStreetMap keinen Punkt geliefert. "
                                 + "Meist fehlt die Hausnummer oder die Stadt.");
             }
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", "Diese Adresse gibt es nicht mehr — bitte die Seite neu laden.");
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         locations.byId(id).ifPresent(location -> show(model, location));
         return "fragments/address-list :: address-list-and-summary";
@@ -145,11 +138,11 @@ public class LocationController {
                          Model model) {
         try {
             Location known = locations.byId(id).orElseThrow(() ->
-                    new IllegalArgumentException("LocationController :: unknown location"));
+                    new RuleViolated(Rule.NOT_FOUND));
             locations.change(new Location(id, name, notes, inUse,
                     known.addresses(), known.contacts()));
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", "Der Name des Ortes ist ein Pflichtfeld.");
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         locations.byId(id).ifPresent(location -> show(model, location));
         return "fragments/location-fields :: location-fields";
@@ -170,10 +163,8 @@ public class LocationController {
         try {
             show(model, locations.addAddress(id,
                     Address.at(street, postalCode, city).withCapacity(seats(capacity)), moved));
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", e.getMessage() != null && e.getMessage().contains("capacity")
-                    ? "Die Plätze müssen eine Zahl größer als null sein."
-                    : "Eine Adresse braucht mindestens Straße oder Stadt.");
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
             locations.byId(id).ifPresent(location -> show(model, location));
         }
         return "fragments/address-list :: address-list-and-summary";
@@ -221,22 +212,11 @@ public class LocationController {
     private String contactFragment(Long id, Model model, Supplier<Location> change) {
         try {
             show(model, change.get());
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", contactMessage(e));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
             locations.byId(id).ifPresent(location -> show(model, location));
         }
         return "fragments/contact-list :: contact-list";
-    }
-
-    private static String contactMessage(IllegalArgumentException e) {
-        String reason = e.getMessage() == null ? "" : e.getMessage();
-        if (reason.contains("at least one contact person")) {
-            return "Der letzte Ansprechpartner kann nicht entfernt werden — ohne ihn ist der Ort nicht nutzbar.";
-        }
-        if (reason.contains("email")) {
-            return "Ein Ansprechpartner braucht eine E-Mail-Adresse.";
-        }
-        return "Ein Ansprechpartner braucht einen Namen.";
     }
 
     private void show(Model model, Location location) {

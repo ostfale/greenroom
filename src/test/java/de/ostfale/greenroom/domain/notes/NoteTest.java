@@ -1,11 +1,12 @@
 package de.ostfale.greenroom.domain.notes;
 
+import de.ostfale.greenroom.domain.Rule;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 
+import static de.ostfale.greenroom.Violations.ruleBrokenBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Plain Java, no Spring: what a slip needs and what it may leave out. */
 class NoteTest {
@@ -16,17 +17,15 @@ class NoteTest {
     void aNoteIsStampedWhenItIsWritten() {
         assertThat(Note.written(NOW, "Testcontainers-Abend?", null).writtenAt()).isEqualTo(NOW);
 
-        assertThatThrownBy(() -> Note.written(null, "Testcontainers-Abend?", null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("stamped when it is written");
+        assertThat(ruleBrokenBy(() -> Note.written(null, "Testcontainers-Abend?", null)))
+                .isEqualTo(Rule.NOTE_IS_STAMPED);
     }
 
     /** The title is what the board shows, so there is no note without one. */
     @Test
     void aNoteNeedsATitle() {
-        assertThatThrownBy(() -> Note.written(NOW, "   ", "Der Rest steht hier."))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("needs a title");
+        assertThat(ruleBrokenBy(() -> Note.written(NOW, "   ", "Der Rest steht hier.")))
+                .isEqualTo(Rule.NOTE_NEEDS_A_TITLE);
     }
 
     /** Often the title is already the whole thought. */
@@ -55,9 +54,8 @@ class NoteTest {
     void aChangeCannotTakeTheTitleAway() {
         Note note = new Note(1L, NOW, "Testcontainers-Abend?", null);
 
-        assertThatThrownBy(() -> note.withTitle("  "))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("needs a title");
+        assertThat(ruleBrokenBy(() -> note.withTitle("  ")))
+                .isEqualTo(Rule.NOTE_NEEDS_A_TITLE);
     }
 
     /** The text may be taken away again — it was optional to begin with. */

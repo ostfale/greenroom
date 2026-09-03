@@ -2,6 +2,8 @@ package de.ostfale.greenroom.application.service;
 
 import de.ostfale.greenroom.application.port.in.ManageNotes;
 import de.ostfale.greenroom.application.port.out.NoteRepository;
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.notes.Note;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +47,7 @@ public class NoteService implements ManageNotes {
     @Override
     public Note change(Long id, String title, String text) {
         Note known = byId(id).orElseThrow(() ->
-                new IllegalArgumentException("NoteService :: there is no note " + id));
+                new RuleViolated(Rule.NO_SUCH_NOTE, id));
         return noteRepository.save(known.withTitle(title).withText(text));
     }
 

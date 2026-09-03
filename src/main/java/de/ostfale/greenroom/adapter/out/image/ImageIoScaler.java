@@ -1,13 +1,12 @@
 package de.ostfale.greenroom.adapter.out.image;
 
 import de.ostfale.greenroom.application.port.out.ScaleImages;
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import javax.imageio.IIOImage;
-import javax.imageio.ImageIO;
-import javax.imageio.ImageWriteParam;
-import javax.imageio.ImageWriter;
-import javax.imageio.stream.ImageOutputStream;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -17,6 +16,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Iterator;
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 
 /**
  * Scaling with what the JDK already has. No library: one user uploads a handful of
@@ -24,6 +28,8 @@ import java.util.Iterator;
  */
 @Component
 public class ImageIoScaler implements ScaleImages {
+
+    private static final Logger log = LoggerFactory.getLogger(ImageIoScaler.class);
 
     private static final float QUALITY = 0.85f;
 
@@ -38,11 +44,14 @@ public class ImageIoScaler implements ScaleImages {
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(data));
             if (image == null) {
-                throw new IllegalArgumentException("ImageIoScaler :: not a picture we can show");
+                throw new RuleViolated(Rule.PHOTO_NOT_A_KIND_WE_SHOW);
             }
             return image;
         } catch (IOException e) {
-            throw new IllegalArgumentException("ImageIoScaler :: not a picture we can show", e);
+            // The page only says which kinds we show; why these bytes were unreadable is
+            // of no use to it, and of every use in the log.
+            log.debug("ImageIoScaler :: the bytes could not be read as a picture", e);
+            throw new RuleViolated(Rule.PHOTO_NOT_A_KIND_WE_SHOW);
         }
     }
 

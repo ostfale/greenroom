@@ -25,7 +25,7 @@ class ErrorMessages {
     }
 
     /** The sentence for this refusal, in German. */
-    String german(RuntimeException e) {
+    String german(Exception e) {
         return switch (e) {
             case RuleViolated violation -> text("rule." + violation.rule(), violation.args());
             case SendMail.MailNotSent ignored -> text("error.mail.refused");
@@ -37,7 +37,7 @@ class ErrorMessages {
      * Without arguments the text is taken as it stands; with them it goes through
      * {@code MessageFormat}, which is why an apostrophe in such a text has to be doubled.
      */
-    private String text(String key, Object... args) {
+    String text(String key, Object... args) {
         return messages.getMessage(key, args.length == 0 ? null : args,
                 LocaleContextHolder.getLocale());
     }

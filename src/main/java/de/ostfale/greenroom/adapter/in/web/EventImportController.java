@@ -3,6 +3,7 @@ package de.ostfale.greenroom.adapter.in.web;
 import de.ostfale.greenroom.application.port.in.ImportPastEvents;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.in.PastEvening;
+import de.ostfale.greenroom.domain.Rule;
 import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.events.EventMode;
 import org.springframework.stereotype.Controller;
@@ -58,10 +59,10 @@ public class EventImportController {
             imports.enter(new PastEvening(FormValues.date(date), how(mode), speakerName,
                     speakerEmail, title, abstractText, announcedBio, venue(locationId)));
             return "redirect:/event";
-        } catch (RuleViolated | IllegalArgumentException e) {
+        } catch (RuleViolated e) {
             // The records know the rules; the form only has to say so in German and keep
             // what was typed.
-            model.addAttribute("error", message(e));
+            model.addAttribute("error", errors.german(e));
             fill(model, submitted(date, mode, speakerName, speakerEmail, title, abstractText,
                     announcedBio));
             return "event/import";
@@ -76,7 +77,7 @@ public class EventImportController {
         try {
             return EventMode.valueOf(mode.strip());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("PastEvening :: unknown mode: " + mode);
+            throw new RuleViolated(Rule.EVENT_NEEDS_A_MODE, mode);
         }
     }
 
@@ -88,27 +89,8 @@ public class EventImportController {
         try {
             return Long.valueOf(locationId.strip());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("PastEvening :: no location was chosen");
+            throw new RuleViolated(Rule.NO_LOCATION_CHOSEN);
         }
-    }
-
-    /**
-     * Half a rule and half a sentence, for as long as that is true: the event, its talk
-     * and the date name a {@code Rule} already, the speaker still refuses in English.
-     * The two branches left here go when it moves over.
-     */
-    private String message(RuntimeException e) {
-        if (e instanceof RuleViolated) {
-            return errors.german(e);
-        }
-        String reason = e.getMessage() == null ? "" : e.getMessage();
-        if (reason.contains("needs an email")) {
-            return "Die E-Mail-Adresse gehört dazu — an ihr wird der Referent über die Jahre wiedererkannt.";
-        }
-        if (reason.contains("needs a name")) {
-            return "Bitte den Namen des Referenten eintragen.";
-        }
-        return "Der Abend konnte nicht übernommen werden.";
     }
 
     private void fill(Model model, Map<String, String> submitted) {

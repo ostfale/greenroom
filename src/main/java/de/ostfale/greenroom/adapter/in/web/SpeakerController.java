@@ -1,6 +1,8 @@
 package de.ostfale.greenroom.adapter.in.web;
 
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.speakers.Speaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,8 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -30,9 +32,11 @@ public class SpeakerController {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final ManageSpeakers speakers;
+    private final ErrorMessages errors;
 
-    public SpeakerController(ManageSpeakers speakers) {
+    public SpeakerController(ManageSpeakers speakers, ErrorMessages errors) {
         this.speakers = speakers;
+        this.errors = errors;
     }
 
     /** The whole page, filtered by the search box if it carries anything. */
@@ -72,7 +76,7 @@ public class SpeakerController {
                     photo == null ? null : photo.getContentType(),
                     photo == null ? null : photo.getBytes());
             return "redirect:/speaker";
-        } catch (IOException | IllegalArgumentException e) {
+        } catch (IOException | RuleViolated e) {
             // The records know the rules; the form only has to say so in German and keep
             // what was typed. The chosen file is gone — no browser lets us put it back.
             model.addAttribute("error", addMessage(e));
@@ -103,10 +107,10 @@ public class SpeakerController {
                          Model model) {
         try {
             Speaker known = speakers.byId(id).orElseThrow(() ->
-                    new IllegalArgumentException("SpeakerController :: unknown speaker"));
+                    new RuleViolated(Rule.NOT_FOUND));
             speakers.change(new Speaker(id, name, company, email, phone, bio, notes, known.links()));
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", "Name und E-Mail-Adresse sind Pflichtfelder.");
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         return detailFragment(id, model);
     }
@@ -116,10 +120,8 @@ public class SpeakerController {
         try {
             speakers.remove(id);
             return "redirect:/speaker";
-        } catch (IllegalStateException e) {
-            model.addAttribute("error", e.getMessage() != null && e.getMessage().contains("was asked")
-                    ? "Dieser Referent wurde für einen Abend angefragt; die Anfrage bleibt in der Historie."
-                    : "Dieser Referent ist für einen Vortrag angekündigt und bleibt deshalb bestehen.");
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
             return detailFragment(id, model);
         }
     }
@@ -148,8 +150,8 @@ public class SpeakerController {
                               Model model) {
         try {
             speakers.storePhoto(id, photo.getContentType(), photo.getBytes());
-        } catch (IOException | IllegalArgumentException e) {
-            model.addAttribute("error", photoMessage(e));
+        } catch (IOException | RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         return photoFragment(id, model);
     }
@@ -166,27 +168,14 @@ public class SpeakerController {
         return "fragments/speaker-photo :: speaker-photo";
     }
 
-    /** Creating fails either on the speaker or on the picture — say which. */
-    private static String addMessage(Exception e) {
-        return aboutThePicture(e)
-                ? photoMessage(e) + " Der Referent wurde nicht angelegt."
-                : "Name und E-Mail-Adresse sind Pflichtfelder.";
-    }
-
-    /** Every complaint about the file carries the word, whether it came from the record or the scaler. */
-    private static boolean aboutThePicture(Exception e) {
-        return e.getMessage() != null && e.getMessage().contains("picture");
-    }
-
-    private static String photoMessage(Exception e) {
-        String reason = e.getMessage() == null ? "" : e.getMessage();
-        if (reason.contains("too large")) {
-            return "Das Bild ist zu groß — bis zu 2 MB sind möglich.";
-        }
-        if (reason.contains("not a picture we can show")) {
-            return "Nur JPEG, PNG, WebP oder GIF.";
-        }
-        return "Es war kein Bild in der Datei.";
+    /**
+     * Creating fails either on the speaker or on the picture, and the two read differently:
+     * a refused picture takes the whole speaker with it, which is worth saying.
+     */
+    private String addMessage(Exception e) {
+        return e instanceof RuleViolated refusal && refusal.rule().isAboutAPicture()
+                ? errors.text("error.speaker.notCreated", errors.german(refusal))
+                : errors.german(e);
     }
 
     private void fill(Model model, String search) {

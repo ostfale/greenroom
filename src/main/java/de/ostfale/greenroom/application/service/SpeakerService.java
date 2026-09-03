@@ -3,9 +3,11 @@ package de.ostfale.greenroom.application.service;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.application.port.out.ScaleImages;
-import de.ostfale.greenroom.application.port.out.SpeakerPhotoRepository;
 import de.ostfale.greenroom.application.port.out.SpeakerInquiryRepository;
+import de.ostfale.greenroom.application.port.out.SpeakerPhotoRepository;
 import de.ostfale.greenroom.application.port.out.SpeakerRepository;
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.speakers.Speaker;
 import de.ostfale.greenroom.domain.speakers.SpeakerPhoto;
 import org.slf4j.Logger;
@@ -56,10 +58,10 @@ public class SpeakerService implements ManageSpeakers {
         // Asked before deleting, so the page can name the reason instead of showing a
         // constraint violation. The foreign key stays as the last word.
         if (eventRepository.isOnATalk(id)) {
-            throw new IllegalStateException("SpeakerService :: this speaker is announced on a talk");
+            throw new RuleViolated(Rule.SPEAKER_IS_ANNOUNCED_ON_A_TALK);
         }
         if (inquiryRepository.wasAsked(id)) {
-            throw new IllegalStateException("SpeakerService :: this speaker was asked about an evening");
+            throw new RuleViolated(Rule.SPEAKER_WAS_ASKED_ABOUT_AN_EVENING);
         }
         speakerRepository.deleteById(id);
     }
@@ -90,7 +92,7 @@ public class SpeakerService implements ManageSpeakers {
     public SpeakerPhoto storePhoto(Long speakerId, String contentType, byte[] data) {
         // contentType is what the browser claimed; the scaler trusts the bytes instead.
         if (byId(speakerId).isEmpty()) {
-            throw new IllegalArgumentException("SpeakerService :: there is no speaker " + speakerId);
+            throw new RuleViolated(Rule.NOT_FOUND, speakerId);
         }
         // Shrunk before it is stored, and re-encoded as JPEG on the way. Reading the bytes
         // is also the better check: a PDF renamed to .png passes any content type, not this.

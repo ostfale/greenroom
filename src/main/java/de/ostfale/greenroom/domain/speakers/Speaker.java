@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.domain.speakers;
 
+import de.ostfale.greenroom.domain.Rule;
 import org.springframework.data.annotation.Id;
 
 import java.util.List;
@@ -25,8 +26,8 @@ public record Speaker(
         List<SpeakerLink> links) {
 
     public Speaker {
-        name = required(name, "Speaker :: a speaker needs a name");
-        email = required(email, "Speaker :: a speaker needs an email address");
+        name = required(name, Rule.SPEAKER_NEEDS_A_NAME);
+        email = required(email, Rule.SPEAKER_NEEDS_AN_EMAIL);
         company = optional(company);
         phone = optional(phone);
         bio = optional(bio);

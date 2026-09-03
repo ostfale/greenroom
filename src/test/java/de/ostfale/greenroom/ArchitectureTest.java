@@ -1,12 +1,15 @@
 package de.ostfale.greenroom;
 
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaConstructorCall;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.library.GeneralCodingRules;
 import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition;
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 
 import static com.tngtech.archunit.base.DescribedPredicate.describe;
 import static com.tngtech.archunit.base.DescribedPredicate.not;
@@ -124,6 +127,31 @@ public class ArchitectureTest {
                     (JavaClass type) -> type.isRecord() || type.isAssignableTo(Throwable.class))))
             .should().beInterfaces()
             .because("an outgoing port is an interface that an adapter implements");
+
+    /**
+     * The domain names the rule it stands on and never writes the reason out. What a
+     * refusal means in German is looked up from the {@link Rule} in messages.properties —
+     * a record that threw an IllegalArgumentException would be a sentence nobody
+     * translates, and the page would fall back to something unhelpful.
+     *
+     * <p>The services keep their own guards: "already stored" is a programming error, not
+     * something a page has to explain, and it is nobody's rule.
+     */
+    @ArchTest
+    static final ArchRule domainRefusesByName = noClasses()
+            .that().resideInAPackage("..greenroom.domain..")
+            .and(not(describe("the refusal itself, which calls its own super constructor",
+                    (JavaClass type) -> type.isEquivalentTo(RuleViolated.class))))
+            .should().callConstructorWhere(describe("an exception other than RuleViolated",
+                    (JavaConstructorCall call) -> {
+                        JavaClass thrown = call.getTargetOwner();
+                        return thrown.isAssignableTo(Throwable.class)
+                                && !thrown.isEquivalentTo(RuleViolated.class)
+                                // Written by the compiler behind every exhaustive switch,
+                                // not by anybody refusing anything.
+                                && !thrown.isEquivalentTo(MatchException.class);
+                    }))
+            .because("a refusal is a Rule; its German sentence lives in messages.properties");
 
     // --- general hygiene ----------------------------------------------------------
 

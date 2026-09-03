@@ -1,18 +1,18 @@
 package de.ostfale.greenroom.domain.tags;
 
+import de.ostfale.greenroom.domain.Rule;
 import org.junit.jupiter.api.Test;
 
+import static de.ostfale.greenroom.Violations.ruleBrokenBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Plain Java, no Spring. */
 class TagTest {
 
     @Test
     void aTagNeedsAName() {
-        assertThatThrownBy(() -> Tag.named("  "))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("name");
+        assertThat(ruleBrokenBy(() -> Tag.named("  ")))
+                .isEqualTo(Rule.TAG_NEEDS_A_NAME);
     }
 
     @Test

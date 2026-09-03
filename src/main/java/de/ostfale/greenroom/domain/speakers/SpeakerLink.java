@@ -1,5 +1,7 @@
 package de.ostfale.greenroom.domain.speakers;
 
+import de.ostfale.greenroom.domain.Rule;
+
 import static de.ostfale.greenroom.domain.Texts.optional;
 import static de.ostfale.greenroom.domain.Texts.required;
 
@@ -12,7 +14,7 @@ public record SpeakerLink(
         String label) {
 
     public SpeakerLink {
-        url = required(url, "SpeakerLink :: a link needs a URL");
+        url = required(url, Rule.SPEAKER_LINK_NEEDS_A_URL);
         label = optional(label);
     }
 

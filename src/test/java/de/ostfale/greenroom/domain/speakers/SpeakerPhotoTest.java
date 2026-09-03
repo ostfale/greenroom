@@ -1,9 +1,10 @@
 package de.ostfale.greenroom.domain.speakers;
 
+import de.ostfale.greenroom.domain.Rule;
 import org.junit.jupiter.api.Test;
 
+import static de.ostfale.greenroom.Violations.ruleBrokenBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Plain Java, no Spring. */
 class SpeakerPhotoTest {
@@ -12,20 +13,17 @@ class SpeakerPhotoTest {
 
     @Test
     void aPhotoBelongsToAStoredSpeaker() {
-        assertThatThrownBy(() -> SpeakerPhoto.of(null, "image/png", PIXEL))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("stored speaker");
+        assertThat(ruleBrokenBy(() -> SpeakerPhoto.of(null, "image/png", PIXEL)))
+                .isEqualTo(Rule.PHOTO_NEEDS_A_STORED_SPEAKER);
     }
 
     @Test
     void anEmptyFileIsNoPicture() {
-        assertThatThrownBy(() -> SpeakerPhoto.of(1L, "image/png", new byte[0]))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("no picture");
+        assertThat(ruleBrokenBy(() -> SpeakerPhoto.of(1L, "image/png", new byte[0])))
+                .isEqualTo(Rule.PHOTO_IS_EMPTY);
 
-        assertThatThrownBy(() -> SpeakerPhoto.of(1L, "image/png", null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("no picture");
+        assertThat(ruleBrokenBy(() -> SpeakerPhoto.of(1L, "image/png", null)))
+                .isEqualTo(Rule.PHOTO_IS_EMPTY);
     }
 
     @Test
@@ -33,13 +31,11 @@ class SpeakerPhotoTest {
         assertThat(SpeakerPhoto.of(1L, "image/jpeg", PIXEL).contentType()).isEqualTo("image/jpeg");
         assertThat(SpeakerPhoto.of(1L, "IMAGE/PNG", PIXEL).contentType()).isEqualTo("image/png");
 
-        assertThatThrownBy(() -> SpeakerPhoto.of(1L, "application/pdf", PIXEL))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("not a picture");
+        assertThat(ruleBrokenBy(() -> SpeakerPhoto.of(1L, "application/pdf", PIXEL)))
+                .isEqualTo(Rule.PHOTO_NOT_A_KIND_WE_SHOW);
 
-        assertThatThrownBy(() -> SpeakerPhoto.of(1L, null, PIXEL))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("not a picture");
+        assertThat(ruleBrokenBy(() -> SpeakerPhoto.of(1L, null, PIXEL)))
+                .isEqualTo(Rule.PHOTO_NOT_A_KIND_WE_SHOW);
     }
 
     @Test
@@ -47,9 +43,8 @@ class SpeakerPhotoTest {
         assertThat(SpeakerPhoto.of(1L, "image/png", new byte[SpeakerPhoto.MAX_BYTES]).size())
                 .isEqualTo(SpeakerPhoto.MAX_BYTES);
 
-        assertThatThrownBy(() -> SpeakerPhoto.of(1L, "image/png", new byte[SpeakerPhoto.MAX_BYTES + 1]))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("too large");
+        assertThat(ruleBrokenBy(() -> SpeakerPhoto.of(1L, "image/png", new byte[SpeakerPhoto.MAX_BYTES + 1])))
+                .isEqualTo(Rule.PHOTO_TOO_LARGE);
     }
 
     @Test

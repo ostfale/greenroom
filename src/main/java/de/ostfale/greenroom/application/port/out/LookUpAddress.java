@@ -1,5 +1,7 @@
 package de.ostfale.greenroom.application.port.out;
 
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.locations.Address;
 
 import java.util.Optional;
@@ -31,7 +33,7 @@ public interface LookUpAddress {
 
         public Position {
             if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-                throw new IllegalArgumentException("Position :: that is not a point on this planet");
+                throw new RuleViolated(Rule.POSITION_OFF_THE_PLANET);
             }
         }
     }

@@ -1,6 +1,7 @@
 package de.ostfale.greenroom.adapter.in.web;
 
 import de.ostfale.greenroom.application.port.in.ManageNotes;
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.notes.Note;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,9 +20,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class NoteController {
 
     private final ManageNotes notes;
+    private final ErrorMessages errors;
 
-    public NoteController(ManageNotes notes) {
+    public NoteController(ManageNotes notes, ErrorMessages errors) {
         this.notes = notes;
+        this.errors = errors;
     }
 
     @GetMapping
@@ -43,8 +46,8 @@ public class NoteController {
         try {
             notes.add(title, text);
             return "redirect:/note";
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", message(e));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
             model.addAttribute("submittedTitle", title);
             model.addAttribute("submittedText", text);
             model.addAttribute("notes", notes.all());
@@ -60,8 +63,8 @@ public class NoteController {
         try {
             notes.add(title, text);
             return board(model, null);
-        } catch (IllegalArgumentException e) {
-            return board(model, message(e));
+        } catch (RuleViolated e) {
+            return board(model, errors.german(e));
         }
     }
 
@@ -89,10 +92,10 @@ public class NoteController {
         try {
             model.addAttribute("note", notes.change(id, title, text));
             return "fragments/note-board :: note-card";
-        } catch (IllegalArgumentException e) {
+        } catch (RuleViolated e) {
             // What was typed goes back into the editor, not what is stored.
             return notes.byId(id)
-                    .map(stored -> tile(model, id, "note-editor", message(e),
+                    .map(stored -> tile(model, id, "note-editor", errors.german(e),
                             stored.withTitle(title.isBlank() ? stored.title() : title)
                                     .withText(text)))
                     .orElse("fragments/note-board :: note-gone");
@@ -124,14 +127,4 @@ public class NoteController {
         return "fragments/note-board :: note-board";
     }
 
-    private static String message(IllegalArgumentException e) {
-        String reason = e.getMessage() == null ? "" : e.getMessage();
-        if (reason.contains("needs a title")) {
-            return "Bitte ein Stichwort eingeben — der Text darf leer bleiben.";
-        }
-        if (reason.contains("there is no note")) {
-            return "Diese Notiz gibt es nicht mehr — bitte die Seite neu laden.";
-        }
-        return "Die Notiz wurde nicht gespeichert.";
-    }
 }

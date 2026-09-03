@@ -1,41 +1,38 @@
 package de.ostfale.greenroom.domain.speakers;
 
+import de.ostfale.greenroom.domain.Rule;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static de.ostfale.greenroom.Violations.ruleBrokenBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Plain Java, no Spring: that is the point of keeping the rules in the record. */
 class SpeakerTest {
 
     @Test
     void aSpeakerNeedsAName() {
-        assertThatThrownBy(() -> Speaker.of("  ", "max@example.org"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("name");
+        assertThat(ruleBrokenBy(() -> Speaker.of("  ", "max@example.org")))
+                .isEqualTo(Rule.SPEAKER_NEEDS_A_NAME);
     }
 
     @Test
     void aSpeakerNeedsAnEmailAddress() {
-        assertThatThrownBy(() -> Speaker.of("Max Muster", null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("email");
+        assertThat(ruleBrokenBy(() -> Speaker.of("Max Muster", null)))
+                .isEqualTo(Rule.SPEAKER_NEEDS_AN_EMAIL);
 
-        assertThatThrownBy(() -> Speaker.of("Max Muster", " "))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("email");
+        assertThat(ruleBrokenBy(() -> Speaker.of("Max Muster", " ")))
+                .isEqualTo(Rule.SPEAKER_NEEDS_AN_EMAIL);
     }
 
     @Test
     void theAddressCannotBeTakenAwayAgain() {
         Speaker speaker = Speaker.of("Max Muster", "max@example.org");
 
-        assertThatThrownBy(() -> speaker.withContact("Musterfirma GmbH", null, null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("email");
+        assertThat(ruleBrokenBy(() -> speaker.withContact("Musterfirma GmbH", null, null)))
+                .isEqualTo(Rule.SPEAKER_NEEDS_AN_EMAIL);
     }
 
     @Test
@@ -74,7 +71,7 @@ class SpeakerTest {
 
     @Test
     void aLinkNeedsAUrl() {
-        assertThatThrownBy(() -> SpeakerLink.of(" "))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(ruleBrokenBy(() -> SpeakerLink.of(" ")))
+                .isEqualTo(Rule.SPEAKER_LINK_NEEDS_A_URL);
     }
 }

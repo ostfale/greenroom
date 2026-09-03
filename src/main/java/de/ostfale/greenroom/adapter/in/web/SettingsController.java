@@ -1,6 +1,8 @@
 package de.ostfale.greenroom.adapter.in.web;
 
 import de.ostfale.greenroom.application.port.in.ManageTags;
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.tags.Tag;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -22,9 +24,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class SettingsController {
 
     private final ManageTags tags;
+    private final ErrorMessages errors;
 
-    public SettingsController(ManageTags tags) {
+    public SettingsController(ManageTags tags, ErrorMessages errors) {
         this.tags = tags;
+        this.errors = errors;
     }
 
     @GetMapping
@@ -44,8 +48,8 @@ public class SettingsController {
         try {
             tags.add(Tag.named(name));
             return "redirect:/settings";
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", message(e, name));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
             model.addAttribute("submittedName", name);
             model.addAttribute("tags", tags.all());
             return "settings/index";
@@ -57,8 +61,8 @@ public class SettingsController {
     public String addTagFragment(@RequestParam(defaultValue = "") String name, Model model) {
         try {
             tags.add(Tag.named(name));
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", message(e, name));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
         }
         return list(model);
     }
@@ -69,7 +73,7 @@ public class SettingsController {
         return tags.byId(id)
                 .map(tag -> editor(model, tag.id(), tag.name()))
                 .orElseGet(() -> {
-                    model.addAttribute("error", gone());
+                    model.addAttribute("error", errors.text("rule." + Rule.NO_SUCH_TAG));
                     return "fragments/tag-editor :: tag-editor";
                 });
     }
@@ -84,8 +88,8 @@ public class SettingsController {
                             Model model) {
         try {
             tags.rename(id, name);
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("error", message(e, name));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
             return editor(model, id, name);
         }
         return list(model);
@@ -112,18 +116,4 @@ public class SettingsController {
         return "fragments/tag-editor :: tag-editor";
     }
 
-    private static String message(IllegalArgumentException e, String name) {
-        String reason = e.getMessage() == null ? "" : e.getMessage();
-        if (reason.contains("already on the list")) {
-            return "Der Tag " + name.strip() + " steht schon auf der Liste.";
-        }
-        if (reason.contains("there is no tag")) {
-            return gone();
-        }
-        return "Bitte einen Tag eingeben.";
-    }
-
-    private static String gone() {
-        return "Diesen Tag gibt es nicht mehr — bitte die Seite neu laden.";
-    }
 }

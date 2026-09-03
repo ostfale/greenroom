@@ -24,6 +24,13 @@ of an evening easier than a Markdown note would — that is the only benchmark.
 - Code, identifiers, comments, commit messages, log messages: English.
 - UI texts and Thymeleaf templates: German. The German lives in the template — a service
   never builds a sentence.
+- A refusal is a name, not a sentence. The records throw `RuleViolated(Rule.X)`, and the
+  German for it stands in `messages.properties` under `rule.X`. The web adapter looks it
+  up in one place, `ErrorMessages`, so no controller decides what a refusal means and no
+  code reads an exception message back. `MessagesTest` fails on a rule without a text and
+  on a text without a rule; the ArchUnit rule `domainRefusesByName` keeps the domain from
+  going back to prose. The services keep their own `IllegalArgumentException` guards —
+  "already stored" is a programming error, not something a page explains.
 - Talk to me in German.
 - Commit messages: a subject line, then dashed bullets. No prose paragraphs — one point
   per bullet, and only what a reader of the diff cannot see for themselves.

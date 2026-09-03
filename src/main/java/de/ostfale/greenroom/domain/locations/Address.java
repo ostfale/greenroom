@@ -1,5 +1,8 @@
 package de.ostfale.greenroom.domain.locations;
 
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
+
 import static de.ostfale.greenroom.domain.Texts.optional;
 
 /**
@@ -23,16 +26,16 @@ public record Address(String street, String postalCode, String city, Integer cap
         postalCode = optional(postalCode);
         city = optional(city);
         if (street == null && postalCode == null && city == null) {
-            throw new IllegalArgumentException("Address :: an address needs a street or a town");
+            throw new RuleViolated(Rule.ADDRESS_NEEDS_A_STREET_OR_TOWN);
         }
         if (capacity != null && capacity <= 0) {
-            throw new IllegalArgumentException("Address :: a capacity is a number of seats, not " + capacity);
+            throw new RuleViolated(Rule.CAPACITY_IS_A_NUMBER_OF_SEATS, capacity);
         }
         if ((latitude == null) != (longitude == null)) {
-            throw new IllegalArgumentException("Address :: half a position is no position");
+            throw new RuleViolated(Rule.POSITION_IS_HALF);
         }
         if (latitude != null && (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180)) {
-            throw new IllegalArgumentException("Address :: that is not a point on this planet");
+            throw new RuleViolated(Rule.POSITION_OFF_THE_PLANET);
         }
     }
 

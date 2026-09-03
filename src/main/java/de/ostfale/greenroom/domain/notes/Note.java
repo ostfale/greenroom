@@ -1,5 +1,7 @@
 package de.ostfale.greenroom.domain.notes;
 
+import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import org.springframework.data.annotation.Id;
 
 import java.time.LocalDateTime;
@@ -27,9 +29,9 @@ public record Note(
 
     public Note {
         if (writtenAt == null) {
-            throw new IllegalArgumentException("Note :: a note is stamped when it is written");
+            throw new RuleViolated(Rule.NOTE_IS_STAMPED);
         }
-        title = required(title, "Note :: a note needs a title");
+        title = required(title, Rule.NOTE_NEEDS_A_TITLE);
         text = optional(text);
     }
 
