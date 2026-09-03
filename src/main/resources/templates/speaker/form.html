@@ -9,24 +9,32 @@
 
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form class="sheet" method="post" enctype="multipart/form-data" th:action="@{/speaker}">
-        <label>Name
-            <input type="text" name="name" required autofocus th:value="${submitted.name}">
-        </label>
-        <label>E-Mail
-            <input type="email" name="email" required th:value="${submitted.email}">
-        </label>
-        <label>Firma
-            <input type="text" name="company" th:value="${submitted.company}">
-        </label>
-        <label>Telefon
-            <input type="tel" name="phone" th:value="${submitted.phone}">
-        </label>
+    <form class="sheet wide" method="post" enctype="multipart/form-data" th:action="@{/speaker}">
+        <div class="row even">
+            <label>Name
+                <input type="text" name="name" required autofocus th:value="${submitted.name}">
+            </label>
+            <label>E-Mail
+                <input type="email" name="email" required th:value="${submitted.email}">
+            </label>
+        </div>
+
+        <div class="row even">
+            <label>Firma
+                <input type="text" name="company" th:value="${submitted.company}">
+            </label>
+            <label>Telefon
+                <input type="tel" name="phone" th:value="${submitted.phone}">
+            </label>
+        </div>
+
         <label>Kurzvita
-            <textarea name="bio" rows="4" th:text="${submitted.bio}"></textarea>
+            <textarea name="bio" rows="8" th:text="${submitted.bio}"
+                      placeholder="Wie sie in einer Ankündigung stehen könnte"></textarea>
         </label>
         <label>Notizen
-            <textarea name="notes" rows="3" th:text="${submitted.notes}"></textarea>
+            <textarea name="notes" rows="5" th:text="${submitted.notes}"
+                      placeholder="Was sonst noch zu dieser Person zu merken ist"></textarea>
         </label>
 
         <label>Foto

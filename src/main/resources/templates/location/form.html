@@ -9,14 +9,14 @@
 
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form class="sheet" method="post" th:action="@{/location}">
+    <form class="sheet wide" method="post" th:action="@{/location}">
         <label>Name
             <input type="text" name="name" required autofocus th:value="${submitted.name}">
         </label>
         <label>Straße und Hausnummer
             <input type="text" name="street" th:value="${submitted.street}">
         </label>
-        <div class="row">
+        <div class="row even">
             <label>PLZ
                 <input type="text" name="postalCode" inputmode="numeric"
                        th:value="${submitted.postalCode}">
@@ -30,20 +30,24 @@
                    th:value="${submitted.capacity}">
         </label>
         <label>Notizen
-            <textarea name="notes" rows="3" placeholder="Anfahrt, Technik, Parken"
+            <textarea name="notes" rows="6" placeholder="Anfahrt, Technik, Parken"
                       th:text="${submitted.notes}"></textarea>
         </label>
 
         <fieldset>
             <legend>Ansprechpartner</legend>
-            <label>Name
-                <input type="text" name="contactName" required th:value="${submitted.contactName}">
-            </label>
-            <label>E-Mail
-                <input type="email" name="contactEmail" required th:value="${submitted.contactEmail}">
-            </label>
+            <div class="row even">
+                <label>Name
+                    <input type="text" name="contactName" required th:value="${submitted.contactName}">
+                </label>
+                <label>E-Mail
+                    <input type="email" name="contactEmail" required
+                           th:value="${submitted.contactEmail}">
+                </label>
+            </div>
             <label>Telefon
-                <input type="tel" name="contactPhone" th:value="${submitted.contactPhone}">
+                <input type="tel" name="contactPhone" class="narrow"
+                       th:value="${submitted.contactPhone}">
             </label>
         </fieldset>
 

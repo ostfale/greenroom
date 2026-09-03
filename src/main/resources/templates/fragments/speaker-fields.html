@@ -8,25 +8,27 @@
           th:hx-post="@{/speaker/{id}(id=${speaker.id})}"
           hx-target="#speaker-fields"
           hx-swap="outerHTML">
-        <label>Name
-            <input type="text" name="name" required th:value="${speaker.name}">
-        </label>
-        <label>E-Mail
-            <input type="email" name="email" required th:value="${speaker.email}">
-        </label>
-        <div class="row">
-            <label>Telefon
-                <input type="tel" name="phone" th:value="${speaker.phone}">
+        <div class="row even">
+            <label>Name
+                <input type="text" name="name" required th:value="${speaker.name}">
             </label>
+            <label>E-Mail
+                <input type="email" name="email" required th:value="${speaker.email}">
+            </label>
+        </div>
+        <div class="row even">
             <label>Firma
                 <input type="text" name="company" th:value="${speaker.company}">
             </label>
+            <label>Telefon
+                <input type="tel" name="phone" th:value="${speaker.phone}">
+            </label>
         </div>
         <label>Kurzvita
-            <textarea name="bio" rows="4" th:text="${speaker.bio}"></textarea>
+            <textarea name="bio" rows="8" th:text="${speaker.bio}"></textarea>
         </label>
         <label>Notizen
-            <textarea name="notes" rows="3" th:text="${speaker.notes}"></textarea>
+            <textarea name="notes" rows="5" th:text="${speaker.notes}"></textarea>
         </label>
 
         <div class="actions">
