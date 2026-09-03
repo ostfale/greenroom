@@ -36,27 +36,17 @@
 
         <section class="tile column-right">
             <h2>Tags</h2>
-            <p class="hint">
-                Das Event merkt sich die Wörter, nicht die Liste. Wird ein Tag in den
-                Einstellungen umbenannt oder gelöscht, bleibt stehen, womit dieser Abend
-                angekündigt wurde.
-            </p>
             <div th:replace="~{fragments/event-tags :: event-tags}"></div>
         </section>
 
         <section class="tile half">
             <h2>Ort</h2>
-            <p class="hint">
-                Der Abend braucht einen Gastgeber, bevor der Ort bestätigt werden kann. Der
-                Name des Ansprechpartners öffnet die Mail an ihn.
-            </p>
             <div th:replace="~{fragments/event-venue :: event-venue}"></div>
         </section>
 
         <!-- Not swapped by anything, so it stays in the page rather than in a fragment. -->
         <section class="tile half">
             <h2>Referenten</h2>
-            <p class="hint">Die Adresse öffnet die Mail an die Person.</p>
             <ul class="plain">
                 <li th:each="person : ${eventSpeakers}">
                     <a th:href="@{/speaker/{id}(id=${person.id})}"
@@ -73,20 +63,11 @@
 
         <section class="tile">
             <h2>Vorträge</h2>
-            <p class="hint">
-                Ein Vortrag entsteht immer mit der Person, die ihn hält. Titel und Abstract
-                dürfen lange offen bleiben — angekündigt wird erst, wenn beide stehen.
-            </p>
             <div th:replace="~{fragments/event-talks :: event-talks}"></div>
         </section>
 
         <section class="tile">
             <h2>Verlauf</h2>
-            <p class="hint">
-                Was passiert ist, in einer Reihe — von Hand festgehalten, denn nichts wird
-                hier von allein eingetragen. Ein Eintrag bleibt stehen: was falsch war,
-                beantwortet der nächste Eintrag.
-            </p>
             <div th:replace="~{fragments/event-history :: event-history}"></div>
         </section>
     </div>

@@ -32,18 +32,23 @@
                     <a th:href="@{/event/{id}(id=${next.evening.id})}"
                        th:text="${next.evening.displayName()} ?: 'Ohne Titel'">Ohne Titel</a>
                 </p>
+                <!-- Separated the way the line above separates its two facts. Without the
+                     mark the state and the next step read as one sentence that is none. -->
                 <p class="hint">
-                    <span class="label" th:text="#{'event.status.' + ${next.evening.status}}">Ort bestätigt</span>
+                    <span th:text="#{'event.status.' + ${next.evening.status}}">Ort bestätigt</span>
+                    ·
                     <span th:text="#{'event.step.' + ${next.step}}">Abstract fehlt</span>
                 </p>
             </div>
         </section>
 
         <section class="tile half">
-            <h2>Was noch fehlt</h2>
+            <!-- Not "what is missing": an evening that is announced and simply waiting
+                 belongs on this list too, and it says so in the last column. -->
+            <h2>Weiter geplant</h2>
 
             <p class="hint" th:if="${#lists.isEmpty(dashboard.open)}">
-                Dahinter steht nichts weiter an.
+                Dahinter ist nichts weiter geplant.
             </p>
 
             <table th:unless="${#lists.isEmpty(dashboard.open)}">

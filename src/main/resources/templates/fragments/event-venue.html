@@ -35,9 +35,11 @@
         </div>
     </form>
 
-    <!-- What was picked, read back: the company, where it sat that evening, and who is
-         written to there. -->
+    <!-- What is stored, said so: the selects above show what is about to be picked, and
+         until it is saved the two disagree. Without the caption the tile names two places
+         at once and nothing tells them apart. -->
     <div class="stack" th:if="${location}">
+        <p class="caption">Eingetragen</p>
         <p><a th:href="@{/location/{id}(id=${location.id})}"
               th:text="${location.name}">Musterfirma GmbH</a></p>
         <p class="hint"

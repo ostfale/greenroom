@@ -19,7 +19,7 @@
         Von hier führt kein Schritt mehr weiter.
     </p>
 
-    <p class="hint" th:unless="${#lists.isEmpty(transitions)}">Nächster Stand:</p>
+    <p class="caption" th:unless="${#lists.isEmpty(transitions)}">Nächster Schritt</p>
 
     <div class="actions" th:unless="${#lists.isEmpty(transitions)}">
         <button th:each="target : ${transitions}" type="button"

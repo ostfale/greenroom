@@ -68,7 +68,7 @@ class HomeControllerTest {
 
         assertThat(page.selectFirst("h1").text()).isEqualTo("Übersicht");
         assertThat(page.select("section.tile h2").eachText())
-                .containsExactly("Der nächste Abend", "Was noch fehlt", "Themen ohne Termin",
+                .containsExactly("Der nächste Abend", "Weiter geplant", "Themen ohne Termin",
                         "Wo wir schon waren", "Wen wir schon hatten", "Zahlen");
     }
 
