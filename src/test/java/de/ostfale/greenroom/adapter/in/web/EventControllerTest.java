@@ -19,6 +19,7 @@ import de.ostfale.greenroom.domain.activities.InquiryOutcome;
 import de.ostfale.greenroom.domain.activities.SpeakerInquiry;
 import de.ostfale.greenroom.domain.activities.VenueInquiry;
 import de.ostfale.greenroom.domain.events.Event;
+import de.ostfale.greenroom.domain.events.EventMode;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
 import de.ostfale.greenroom.domain.events.TalkSpeaker;
@@ -799,6 +800,67 @@ class EventControllerTest {
         assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("input[name=moderator]").val())
                 .isEqualTo("Max Muster");
         assertThat(events.byId(id).orElseThrow().moderator()).isEqualTo("Max Muster");
+    }
+
+    // --- how the evening is held -------------------------------------------------------
+
+    @Test
+    void anEveningIsHeldOnSiteUntilSomebodySaysOtherwise() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.selectFirst("select[name=mode] option[selected]").text()).isEqualTo("Vor Ort");
+        assertThat(events.byId(id).orElseThrow().mode()).isEqualTo(EventMode.ONSITE);
+    }
+
+    @Test
+    void theFormOfTheEveningIsStoredWithTheOtherBasics() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id)
+                        .param("date", "")
+                        .param("motto", "")
+                        .param("moderator", "")
+                        .param("mode", "ONLINE"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment)
+                .selectFirst("select[name=mode] option[selected]").text()).isEqualTo("Online");
+        assertThat(events.byId(id).orElseThrow().mode()).isEqualTo(EventMode.ONLINE);
+    }
+
+    /** The years worth entering by hand are the ones that were not on site. */
+    @Test
+    void theFormStaysWhenTheEveningMovesOn() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withDate(EVENING)
+                .withMode(EventMode.HYBRID)).id();
+
+        mvc.perform(post("/event/" + id + "/status").param("target", "DATE_CONFIRMED"))
+                .andExpect(status().isOk());
+
+        assertThat(events.byId(id).orElseThrow().mode()).isEqualTo(EventMode.HYBRID);
+    }
+
+    @Test
+    void aFormNobodyOffersIsRefusedAndChangesNothing() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMode(EventMode.ONLINE)).id();
+
+        String fragment = mvc.perform(post("/event/" + id)
+                        .param("date", "")
+                        .param("motto", "")
+                        .param("moderator", "")
+                        .param("mode", "IM_WALD"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("stattfindet");
+        assertThat(events.byId(id).orElseThrow().mode()).isEqualTo(EventMode.ONLINE);
     }
 
     @Test

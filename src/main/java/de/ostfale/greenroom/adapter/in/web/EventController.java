@@ -19,6 +19,7 @@ import de.ostfale.greenroom.domain.activities.InquiryOutcome;
 import de.ostfale.greenroom.domain.activities.SpeakerInquiry;
 import de.ostfale.greenroom.domain.activities.VenueInquiry;
 import de.ostfale.greenroom.domain.events.Event;
+import de.ostfale.greenroom.domain.events.EventMode;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
 import de.ostfale.greenroom.domain.events.TalkSpeaker;
@@ -187,6 +188,21 @@ public class EventController {
         return FormValues.date(date);
     }
 
+    /**
+     * How the evening is held. Empty is what a new evening is: on site. That is the
+     * ordinary case, and the years worth entering by hand are the ones that were not.
+     */
+    private static EventMode heldAs(String mode) {
+        if (mode == null || mode.isBlank()) {
+            return EventMode.ONSITE;
+        }
+        try {
+            return EventMode.valueOf(mode.strip());
+        } catch (IllegalArgumentException e) {
+            throw new RuleViolated(Rule.EVENT_NEEDS_A_MODE, mode);
+        }
+    }
+
     private void fill(Model model, EventFilter filter) {
         List<Event> all = events.all();
         int thisYear = LocalDate.now().getYear();
@@ -248,6 +264,7 @@ public class EventController {
                          @RequestParam(defaultValue = "") String date,
                          @RequestParam(defaultValue = "") String motto,
                          @RequestParam(defaultValue = "") String moderator,
+                         @RequestParam(defaultValue = "") String mode,
                          @RequestParam(defaultValue = "") String notes,
                          Model model) {
         try {
@@ -256,6 +273,7 @@ public class EventController {
             events.change(known.withDate(evening(date))
                     .withMotto(motto)
                     .withModerator(moderator)
+                    .withMode(heldAs(mode))
                     .withNotes(notes));
         } catch (RuleViolated e) {
             model.addAttribute("error", errors.german(e));
@@ -601,6 +619,7 @@ public class EventController {
         List<Location> places = locations.all();
         model.addAttribute("event", event);
         model.addAttribute("transitions", event.status().allowedTargets());
+        model.addAttribute("modes", EventMode.values());
         // Only what may still be chosen — plus the place this evening already sits at, so
         // an evening at a venue we gave up still shows it rather than losing it silently.
         model.addAttribute("locations", places.stream()

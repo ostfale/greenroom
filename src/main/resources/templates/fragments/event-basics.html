@@ -21,11 +21,19 @@
             <label>Datum
                 <input type="date" name="date" th:value="${event.date}">
             </label>
-            <label>Moderation
-                <input type="text" name="moderator" th:value="${event.moderator}"
-                       placeholder="Wer führt durch den Abend">
+            <label>Form
+                <select name="mode">
+                    <option th:each="way : ${modes}" th:value="${way}"
+                            th:selected="${way} == ${event.mode}"
+                            th:text="#{'event.mode.' + ${way}}">Vor Ort</option>
+                </select>
             </label>
         </div>
+
+        <label>Moderation
+            <input type="text" name="moderator" th:value="${event.moderator}"
+                   placeholder="Wer führt durch den Abend">
+        </label>
 
         <label>Event Name
             <input type="text" name="motto" th:value="${event.motto}"
