@@ -705,6 +705,12 @@ ul.tags {
     margin: 0;
 }
 
+/* The one field that is not a facet: it asks for what no select offers, so it gets the
+   room of two of them and stands first in the row. */
+.filters > label.wide {
+    flex: 2 1 0;
+}
+
 /* Not a label, because it holds a details rather than one control — but it reads as one. */
 .filters > .field {
     display: grid;

@@ -17,12 +17,20 @@
       One row. Only the table is swapped, never this form: the selects have to keep what
       was picked. "Filter zurücksetzen" is a plain link for the same reason — it reloads
       the page, and that is what puts the row back to how it opens.
+
+      The trigger sits on the form rather than on the fields, so every request carries the
+      whole row: a select changes, and typing in the search box settles for a moment first.
     -->
     <form class="filters" method="get" th:action="@{/event}"
           th:hx-get="@{/event}"
           hx-target="#event-table"
           hx-swap="outerHTML"
-          hx-trigger="change">
+          hx-trigger="change, search, keyup changed delay:300ms">
+        <label class="wide">Suche
+            <input type="search" name="search" th:value="${filter.text}"
+                   placeholder="Titel, Abstract, Notizen, Vita">
+        </label>
+
         <label>Jahr
             <select name="year">
                 <option th:value="${thisYear}" th:selected="${filter.year} == ${thisYear}"

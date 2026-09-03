@@ -120,6 +120,41 @@ class EventTest {
         assertThat(dropped.date()).isNull();
     }
 
+    // --- what the evening says about itself ---------------------------------------------
+
+    @Test
+    void theWordsAreLookedForWhereverTheEveningKeepsThem() {
+        Event evening = Event.draftFor(aReadyTalk(SPEAKER))
+                .withMotto("Java-Herbst")
+                .withNotes("Beamer vom Ort geliehen")
+                .withTags(List.of("Architektur"));
+
+        assertThat(evening.mentions("java-herbst")).isTrue();
+        assertThat(evening.mentions("Records in Java 25")).isTrue();
+        assertThat(evening.mentions("weniger Tippen")).isTrue();
+        assertThat(evening.mentions("beamer")).isTrue();
+        assertThat(evening.mentions("architektur")).isTrue();
+        assertThat(evening.mentions("arc42")).isFalse();
+    }
+
+    /** Where somebody worked back then stands in the announced biography, and is searched. */
+    @Test
+    void theBiographyTheEveningAnnouncedIsSearchedToo() {
+        Event evening = Event.draftFor(aTalk(SPEAKER).withSpeakers(
+                List.of(TalkSpeaker.of(SPEAKER).withAnnouncedBio("Architekt bei Hapag-Lloyd"))));
+
+        assertThat(evening.mentions("hapag")).isTrue();
+    }
+
+    @Test
+    void caseIsIgnoredAndAskingNothingMatchesEverything() {
+        Event evening = Event.draftFor(aReadyTalk(SPEAKER)).withMotto("Java-Herbst");
+
+        assertThat(evening.mentions("JAVA-herbst")).isTrue();
+        assertThat(evening.mentions("  ")).isTrue();
+        assertThat(evening.mentions(null)).isTrue();
+    }
+
     // --- when the evening begins --------------------------------------------------------
 
     /**

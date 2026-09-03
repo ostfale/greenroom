@@ -69,13 +69,14 @@ public class EventController {
     }
 
     @GetMapping
-    public String list(@RequestParam(defaultValue = "false") boolean hideClosed,
+    public String list(@RequestParam(defaultValue = "") String search,
+                       @RequestParam(defaultValue = "false") boolean hideClosed,
                        @RequestParam(required = false) String year,
                        @RequestParam(defaultValue = "") String speakerId,
                        @RequestParam(defaultValue = "") String locationId,
                        @RequestParam(name = "tag", required = false) List<String> tag,
                        Model model) {
-        fill(model, narrowedTo(hideClosed, year, speakerId, locationId, tag));
+        fill(model, narrowedTo(search, hideClosed, year, speakerId, locationId, tag));
         return "event/list";
     }
 
@@ -84,20 +85,22 @@ public class EventController {
      * with it, so the selects keep what was picked.
      */
     @GetMapping(headers = "HX-Request")
-    public String listFragment(@RequestParam(defaultValue = "false") boolean hideClosed,
+    public String listFragment(@RequestParam(defaultValue = "") String search,
+                               @RequestParam(defaultValue = "false") boolean hideClosed,
                                @RequestParam(required = false) String year,
                                @RequestParam(defaultValue = "") String speakerId,
                                @RequestParam(defaultValue = "") String locationId,
                                @RequestParam(name = "tag", required = false) List<String> tag,
                                Model model) {
-        fill(model, narrowedTo(hideClosed, year, speakerId, locationId, tag));
+        fill(model, narrowedTo(search, hideClosed, year, speakerId, locationId, tag));
         return "fragments/event-table :: event-table";
     }
 
     /** An empty select is not a value but the absence of one, so it narrows nothing. */
-    private static EventFilter narrowedTo(boolean hideClosed, String year, String speakerId,
-                                          String locationId, List<String> tag) {
-        return new EventFilter(hideClosed, yearOrThisOne(year), number(speakerId),
+    private static EventFilter narrowedTo(String search, boolean hideClosed, String year,
+                                          String speakerId, String locationId,
+                                          List<String> tag) {
+        return new EventFilter(search, hideClosed, yearOrThisOne(year), number(speakerId),
                 number(locationId), tag);
     }
 

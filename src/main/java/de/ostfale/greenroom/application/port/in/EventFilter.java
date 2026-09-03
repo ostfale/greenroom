@@ -7,8 +7,12 @@ import java.util.List;
 import static de.ostfale.greenroom.domain.Texts.optional;
 
 /**
- * What the list is narrowed down to. Every field is optional and they add up: a year, a
- * speaker, a place, a keyword, and whether what is over should be left out.
+ * What the list is narrowed down to. Every field is optional and they add up: some words
+ * to look for, a year, a speaker, a place, a keyword, and whether what is over should be
+ * left out.
+ *
+ * <p>The words are the one that is not a facet: the selects offer what exists, and this
+ * asks for what nobody thought to make a field of. "arc42" is on no list.
  *
  * <p>Filtering happens in memory, on the list that was loaded anyway. With a few hundred
  * evenings that is the whole of it — a query built from five optional pieces would be more
@@ -20,6 +24,7 @@ import static de.ostfale.greenroom.domain.Texts.optional;
  * them, the way a facet works everywhere else. The fields around them still add up.
  */
 public record EventFilter(
+        String text,
         boolean hideClosed,
         Integer year,
         Long speakerId,
@@ -27,6 +32,7 @@ public record EventFilter(
         List<String> tags) {
 
     public EventFilter {
+        text = optional(text);
         tags = tags == null ? List.of() : tags.stream()
                 .map(word -> optional(word))
                 .filter(word -> word != null)
@@ -35,7 +41,7 @@ public record EventFilter(
 
     /** Everything, in the order it is stored. */
     public static EventFilter none() {
-        return new EventFilter(false, null, null, null, List.of());
+        return new EventFilter(null, false, null, null, null, List.of());
     }
 
     /**
@@ -44,13 +50,13 @@ public record EventFilter(
      * for the second, not for the first.
      */
     public static EventFilter forYear(int year) {
-        return new EventFilter(false, year, null, null, List.of());
+        return new EventFilter(null, false, year, null, null, List.of());
     }
 
     /** Whether anything is narrowed down at all — the page offers a way back only then. */
     public boolean isSet() {
-        return hideClosed || year != null || speakerId != null || locationId != null
-                || !tags.isEmpty();
+        return text != null || hideClosed || year != null || speakerId != null
+                || locationId != null || !tags.isEmpty();
     }
 
     /**
@@ -59,7 +65,8 @@ public record EventFilter(
      * to all of them.
      */
     public boolean matches(Event event) {
-        return (!hideClosed || !event.status().isClosed())
+        return (text == null || event.mentions(text))
+                && (!hideClosed || !event.status().isClosed())
                 && (year == null || event.isIn(year))
                 && (speakerId == null || event.isGivenBy(speakerId))
                 && (locationId == null || event.isAt(locationId))

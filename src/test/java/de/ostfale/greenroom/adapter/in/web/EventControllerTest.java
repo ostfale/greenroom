@@ -1434,6 +1434,48 @@ class EventControllerTest {
      * the evenings hold what was dropped in the settings and is still what they carry.
      */
     @Test
+    void theSearchLooksThroughWhatNoSelectOffers() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Alles über arc42").withDate(EVENING));
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Etwas anderes").withDate(EVENING));
+
+        String html = mvc.perform(get("/event").param("year", "").param("search", "arc42"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parse(html).select("#event-table tbody tr td:nth-child(2)").eachText())
+                .containsExactly("Alles über arc42");
+    }
+
+    /** Where somebody worked back then stands in the announced biography, and is found. */
+    @Test
+    void theSearchReachesTheBiographyTheEveningAnnounced() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Java-Herbst").withDate(EVENING)).id();
+        events.changeTalk(id, 0, "Records in Java 25", "Warum Records mehr sind.",
+                LocalTime.of(19, 0), List.of("Architekt bei Hapag-Lloyd"));
+
+        String html = mvc.perform(get("/event").param("year", "").param("search", "hapag"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parse(html).select("#event-table tbody tr")).hasSize(1);
+    }
+
+    /** An empty result of a search is the filter's doing, and the page says so. */
+    @Test
+    void whatWasTypedComesBackInTheFieldAndAnEmptyResultSaysWhy() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Etwas anderes"));
+
+        String html = mvc.perform(get("/event").param("year", "").param("search", "arc42"))
+                .andReturn().getResponse().getContentAsString();
+
+        Document page = Jsoup.parse(html);
+        assertThat(page.selectFirst("input[name=search]").val()).isEqualTo("arc42");
+        assertThat(page.select("#event-table tbody tr")).isEmpty();
+        assertThat(page.selectFirst("#event-table caption").text()).contains("Filter");
+    }
+
+    @Test
     void theTagsOfferedAreTheListAndWhatTheEveningsCarry() throws Exception {
         tags.add(Tag.named("Noch ungenutzt"));
         events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Mit Spring")

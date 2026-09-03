@@ -9,6 +9,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import static de.ostfale.greenroom.domain.Texts.optional;
@@ -167,6 +168,34 @@ public record Event(
 
     public boolean carries(String tag) {
         return tags.stream().anyMatch(own -> own.equalsIgnoreCase(tag));
+    }
+
+    /**
+     * Whether these words stand anywhere in what the evening says about itself: its own
+     * name and notes, the title and abstract of every talk, the biographies they were
+     * announced with, and the words it carries. Case is ignored, the way
+     * {@link #carries} ignores it. Nothing asked is everything matched.
+     *
+     * <p>Not the speaker's name or company: those are records of today and belong to the
+     * person, not to the evening. What that person was back then stands in the announced
+     * biography, and that is searched.
+     */
+    public boolean mentions(String words) {
+        if (words == null || words.isBlank()) {
+            return true;
+        }
+        String looked = words.strip().toLowerCase(Locale.ROOT);
+        return holds(motto, looked)
+                || holds(notes, looked)
+                || tags.stream().anyMatch(tag -> holds(tag, looked))
+                || talks.stream().anyMatch(talk -> holds(talk.title(), looked)
+                        || holds(talk.abstractText(), looked)
+                        || talk.speakers().stream()
+                                .anyMatch(announced -> holds(announced.announcedBio(), looked)));
+    }
+
+    private static boolean holds(String field, String looked) {
+        return field != null && field.toLowerCase(Locale.ROOT).contains(looked);
     }
 
     /** In that calendar year. A topic without a date belongs to no year yet. */
