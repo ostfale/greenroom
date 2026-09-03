@@ -1,6 +1,7 @@
 package de.ostfale.greenroom.adapter.in.web;
 
 import de.ostfale.greenroom.domain.events.Event;
+import de.ostfale.greenroom.domain.events.EventMode;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.locations.Address;
 import de.ostfale.greenroom.domain.locations.Location;
@@ -25,8 +26,13 @@ class CalendarEntryTest {
     private static final Instant NOW = Instant.parse("2026-09-03T07:15:30Z");
     private static final Map<Long, String> NAMES = Map.of(SPEAKER, "Max Muster");
 
+    /**
+     * As a moment in UTC rather than a local time with a zone name: naming a zone obliges
+     * the file to define it in a VTIMEZONE block, and an instant needs no definition.
+     * 19:00 in Hamburg in November is 18:00 UTC.
+     */
     @Test
-    void theEveningBecomesAnAllDayEntryOnItsDay() {
+    void anEveningThatSaysWhenItBeginsIsAnEntryAtThatHour() {
         String file = CalendarEntry.of(anEvening(), "Java-Herbst", null, NAMES, NOW);
 
         assertThat(lines(file)).contains(
@@ -35,13 +41,33 @@ class CalendarEntryTest {
                 "BEGIN:VEVENT",
                 "UID:event-4@greenroom",
                 "DTSTAMP:20260903T071530Z",
-                "DTSTART;VALUE=DATE:20261114",
-                // The range excludes its end, so an all-day entry ends on the next day.
-                "DTEND;VALUE=DATE:20261115",
+                "DTSTART:20261114T180000Z",
                 "SUMMARY:Java-Herbst",
                 "STATUS:CONFIRMED",
                 "END:VEVENT",
                 "END:VCALENDAR");
+        // Nothing here knows when an evening is over, so nothing claims to.
+        assertThat(file).doesNotContain("DTEND");
+    }
+
+    /** Summer time is an hour the other way, and the zone has to be asked, not assumed. */
+    @Test
+    void theHourIsTheOneItWasInHamburgOnThatDay() {
+        Event june = anEvening().withDate(LocalDate.of(2026, 6, 11));
+
+        assertThat(lines(CalendarEntry.of(june, "Java-Sommer", null, NAMES, NOW)))
+                .contains("DTSTART:20260611T170000Z");
+    }
+
+    /** The years nobody noted an hour for: a banner on the day, and no invented time. */
+    @Test
+    void anEveningWithoutAnHourIsAnAllDayEntry() {
+        Event whenever = anEvening().withTalks(List.of(aReadyTalk(SPEAKER).withStartsAt(null)));
+
+        assertThat(lines(CalendarEntry.of(whenever, "Java-Herbst", null, NAMES, NOW)))
+                .contains("DTSTART;VALUE=DATE:20261114",
+                        // The range excludes its end, so an all-day entry ends the next day.
+                        "DTEND;VALUE=DATE:20261115");
     }
 
     /** RFC 5545 asks for CRLF, and a calendar that gets bare newlines reads one long line. */
@@ -119,8 +145,7 @@ class CalendarEntryTest {
 
     private static Event anEvening() {
         return new Event(4L, EVENING, "Java-Herbst", null, null, EventStatus.DRAFT,
-                de.ostfale.greenroom.domain.events.EventMode.ONSITE, null,
-                List.of(aReadyTalk(SPEAKER)), List.of());
+                EventMode.ONSITE, null, List.of(aReadyTalk(SPEAKER)), List.of());
     }
 
     private static List<String> lines(String file) {

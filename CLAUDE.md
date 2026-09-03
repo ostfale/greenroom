@@ -122,6 +122,11 @@ Shape:
 - a `ContactPerson` and a `Speaker` each have at least an email address
 - a `Talk` has no duration, and an `Event` carries a `moderator` as a name and nothing
   else — not a reference to anybody
+- a `Talk` carries the hour it begins at, and the `Event` does not: with one talk the
+  evening starts when it does, with three they start one after another. `Event.startsAt()`
+  is the earliest of them, derived and never stored. A new talk begins at `Talk.USUALLY`,
+  which is the hour a JUG evening begins at; the field may be emptied, for the years
+  nobody wrote a time down
 
 Copied, not referenced:
 

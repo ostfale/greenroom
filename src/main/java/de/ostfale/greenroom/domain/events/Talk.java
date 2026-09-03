@@ -4,6 +4,7 @@ import de.ostfale.greenroom.domain.Rule;
 import de.ostfale.greenroom.domain.RuleViolated;
 import org.springframework.data.annotation.Id;
 
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -22,12 +23,21 @@ import static de.ostfale.greenroom.domain.Texts.optional;
  *
  * <p>The field is called {@code abstractText} for one reason only: {@code abstract} is a
  * Java keyword. Everywhere else the word is "abstract".
+ *
+ * <p>{@code startsAt} is the time this talk begins, and it sits here rather than on the
+ * {@link Event} for the reason the evening has several of them: with one talk the evening
+ * starts when it does, with three they start one after another. It may be missing — for
+ * the years that were written down before anybody noted the time.
  */
 public record Talk(
         @Id Long id,
         String title,
         String abstractText,
+        LocalTime startsAt,
         List<TalkSpeaker> speakers) {
+
+    /** What a JUG evening begins at unless somebody says otherwise. */
+    public static final LocalTime USUALLY = LocalTime.of(19, 0);
 
     public Talk {
         if (speakers == null || speakers.isEmpty()) {
@@ -44,21 +54,26 @@ public record Talk(
         speakers = List.copyOf(speakers);
     }
 
-    /** A talk that is nothing yet but a person we want to hear. */
+    /** A talk that is nothing yet but a person we want to hear, at the usual hour. */
     public static Talk by(TalkSpeaker speaker) {
-        return new Talk(null, null, null, List.of(speaker));
+        return new Talk(null, null, null, USUALLY, List.of(speaker));
     }
 
     public Talk withTitle(String newTitle) {
-        return new Talk(id, newTitle, abstractText, speakers);
+        return new Talk(id, newTitle, abstractText, startsAt, speakers);
     }
 
     public Talk withAbstract(String newAbstract) {
-        return new Talk(id, title, newAbstract, speakers);
+        return new Talk(id, title, newAbstract, startsAt, speakers);
+    }
+
+    /** When it begins. Empty is allowed: an evening of ten years ago may not say. */
+    public Talk withStartsAt(LocalTime newStart) {
+        return new Talk(id, title, abstractText, newStart, speakers);
     }
 
     public Talk withSpeakers(List<TalkSpeaker> newSpeakers) {
-        return new Talk(id, title, abstractText, newSpeakers);
+        return new Talk(id, title, abstractText, startsAt, newSpeakers);
     }
 
     /** Adds a second voice — a panel, a pair, a guest. */

@@ -7,6 +7,7 @@ import de.ostfale.greenroom.domain.locations.Location;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -19,15 +20,18 @@ import java.util.StringJoiner;
  * Built here and not in the domain, for the reason {@link MapExcerpt} is: a wire format is
  * rendering, and an aggregate has no business knowing one.
  *
- * <p>An all-day entry. The record keeps a date and no time — that is a decision, not a gap
- * — and inventing half past six here would put a fact in the export that stands nowhere
- * else. A calendar shows it as a banner on the day, which is what is actually known.
+ * <p>Timed where the evening says when it begins, and an all-day banner where it does not.
+ * No end either way: a talk has no duration in this model, and inventing three hours here
+ * would put a fact in the export that stands nowhere else. A calendar reads a start without
+ * an end as a mark at that hour, which is exactly what is known.
  */
 final class CalendarEntry {
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final DateTimeFormatter STAMP =
             DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC);
+    /** The one the evenings happen in, and the one the application runs in. */
+    private static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
 
     /** RFC 5545 folds at 75 octets; a continuation begins with one space. */
     private static final int FOLD_AT = 75;
@@ -58,9 +62,17 @@ final class CalendarEntry {
         // Stable across exports, so a second import corrects the entry instead of adding one.
         lines.add("UID:event-" + event.id() + "@greenroom");
         lines.add("DTSTAMP:" + STAMP.format(now));
-        lines.add("DTSTART;VALUE=DATE:" + DAY.format(event.date()));
-        // The end of an all-day entry is the day after it: the range excludes it.
-        lines.add("DTEND;VALUE=DATE:" + DAY.format(event.date().plusDays(1)));
+        if (event.startsAt() == null) {
+            lines.add("DTSTART;VALUE=DATE:" + DAY.format(event.date()));
+            // The end of an all-day entry is the day after it: the range excludes it.
+            lines.add("DTEND;VALUE=DATE:" + DAY.format(event.date().plusDays(1)));
+        } else {
+            // As an instant in UTC rather than a local time with a TZID: naming a zone
+            // obliges the file to carry a VTIMEZONE block defining it, and a moment needs
+            // no definition. No DTEND — nothing here knows when the evening is over.
+            lines.add("DTSTART:" + STAMP.format(event.date().atTime(event.startsAt())
+                    .atZone(ZONE).toInstant()));
+        }
         lines.add("SUMMARY:" + escaped(name));
         if (place != null) {
             lines.add("LOCATION:" + escaped(where(place)));

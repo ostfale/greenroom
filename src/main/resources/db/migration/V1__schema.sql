@@ -117,8 +117,13 @@ create table talk
     event_key     int    not null,
     title         text,
     abstract_text text,
+    starts_at     time,
     unique (event, event_key)
 );
+
+comment on column talk.starts_at is
+    'When this talk begins. On the talk and not on the event: an evening with three of them
+     has no start of its own. Null for the years nobody wrote the time down.';
 
 comment on column event.motto is
     'Optional name for the evening, used when it carries several talks.';

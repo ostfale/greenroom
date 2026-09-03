@@ -20,6 +20,12 @@
             <label>Datum
                 <input type="date" name="date" required autofocus th:value="${submitted.date}">
             </label>
+            <label>Beginn
+                <input type="time" name="startsAt" th:value="${submitted.startsAt}">
+            </label>
+        </div>
+
+        <div class="row even">
             <label>Form
                 <select name="mode">
                     <option th:each="way : ${modes}" th:value="${way}"

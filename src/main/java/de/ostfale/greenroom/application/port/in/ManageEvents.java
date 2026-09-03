@@ -4,6 +4,7 @@ import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
 
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -81,7 +82,7 @@ public interface ManageEvents {
     Event addTalk(Long eventId, Talk talk);
 
     /**
-     * Title, abstract and the announced biographies of the talk at that position. The
+     * Title, abstract, start and the announced biographies of the talk at that position. The
      * biographies come back one per speaker and in their order; a list that does not match
      * is ignored, because a stale page is worth less than what is stored. Which people give
      * the talk is not the form's to change.
@@ -91,7 +92,7 @@ public interface ManageEvents {
      *                                  leave a talk without a title or an abstract
      */
     Event changeTalk(Long eventId, int position, String title, String abstractText,
-                     List<String> announcedBios);
+                     LocalTime startsAt, List<String> announcedBios);
 
     /**
      * Drops the talk at that position.

@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -71,6 +72,25 @@ class PastEventControllerTest {
             assertThat(evening.talkAt(0).speakers().getFirst().announcedBio())
                     .isEqualTo("Damals bei der Musterfirma");
         });
+    }
+
+    @Test
+    void theHourItBeganAtIsWrittenDownWithIt() throws Exception {
+        mvc.perform(anEvening(Map.of("startsAt", "18:30")))
+                .andExpect(status().is3xxRedirection());
+
+        assertThat(events.all()).singleElement().satisfies(evening ->
+                assertThat(evening.talkAt(0).startsAt()).isEqualTo(LocalTime.of(18, 30)));
+    }
+
+    /** Ten years ago nobody wrote the hour down, and the form does not invent one. */
+    @Test
+    void anEveningWithoutAnHourKeepsNone() throws Exception {
+        mvc.perform(anEvening(Map.of("startsAt", "")))
+                .andExpect(status().is3xxRedirection());
+
+        assertThat(events.all()).singleElement()
+                .satisfies(evening -> assertThat(evening.startsAt()).isNull());
     }
 
     /** The one thing the chain would have given, and the record gives it anyway. */
@@ -152,6 +172,7 @@ class PastEventControllerTest {
     private MockHttpServletRequestBuilder anEvening(Map<String, String> changed) {
         Map<String, String> fields = new HashMap<>(Map.of(
                 "date", "2019-11-14",
+                "startsAt", "19:00",
                 "mode", "ONSITE",
                 "status", "DONE",
                 "speakerName", "Max Muster",

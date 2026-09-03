@@ -5,8 +5,11 @@ import de.ostfale.greenroom.domain.RuleViolated;
 import org.springframework.data.annotation.Id;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 import static de.ostfale.greenroom.domain.Texts.optional;
 import static de.ostfale.greenroom.domain.Texts.required;
@@ -226,6 +229,19 @@ public record Event(
     /** Whether the announcement could go out: every talk carries a title and an abstract. */
     public boolean allTalksAreReadyToPublish() {
         return talks.stream().allMatch(Talk::isReadyToPublish);
+    }
+
+    /**
+     * When the evening begins: the earliest of its talks. Derived, never stored — the time
+     * belongs to the talk that starts, and an evening with three of them has no start of
+     * its own to keep. Null while no talk says when it begins.
+     */
+    public LocalTime startsAt() {
+        return talks.stream()
+                .map(Talk::startsAt)
+                .filter(Objects::nonNull)
+                .min(Comparator.naturalOrder())
+                .orElse(null);
     }
 
     /** Several talks make it a special day rather than the regular evening. */

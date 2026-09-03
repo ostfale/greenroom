@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 import static de.ostfale.greenroom.Fixtures.EVENING;
@@ -1125,6 +1126,71 @@ class EventControllerTest {
                 .contains("mehrere Vorträge");
     }
 
+    // --- when a talk begins -------------------------------------------------------------
+
+    @Test
+    void aTalkIsSavedWithTheHourItBeginsAt() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/talk/0")
+                        .param("title", "Records in Java 25")
+                        .param("abstractText", "Warum Records mehr sind als weniger Tippen.")
+                        .param("startsAt", "20:15"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("input[name=startsAt]").val())
+                .isEqualTo("20:15");
+        assertThat(events.byId(id).orElseThrow().talkAt(0).startsAt())
+                .isEqualTo(LocalTime.of(20, 15));
+    }
+
+    /** The years nobody wrote an hour down for keep none: an empty field is not an hour. */
+    @Test
+    void aTalkMayHaveNoHourAtAll() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        mvc.perform(post("/event/" + id + "/talk/0")
+                        .param("title", "Records in Java 25")
+                        .param("abstractText", "Warum Records mehr sind als weniger Tippen.")
+                        .param("startsAt", ""))
+                .andExpect(status().isOk());
+
+        assertThat(events.byId(id).orElseThrow().talkAt(0).startsAt()).isNull();
+        assertThat(events.byId(id).orElseThrow().startsAt()).isNull();
+    }
+
+    @Test
+    void aSecondTalkBringsItsOwnHourAndTheEveningBeginsWithTheFirst() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        mvc.perform(post("/event/" + id + "/talk")
+                        .param("speakerId", String.valueOf(speakerId))
+                        .param("title", "Zweiter Vortrag")
+                        .param("startsAt", "20:15"))
+                .andExpect(status().isOk());
+
+        Event evening = events.byId(id).orElseThrow();
+        assertThat(evening.talkAt(1).startsAt()).isEqualTo(LocalTime.of(20, 15));
+        assertThat(evening.startsAt()).isEqualTo(LocalTime.of(19, 0));
+    }
+
+    @Test
+    void anHourNobodyCanReadIsRefusedAndChangesNothing() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/talk/0")
+                        .param("title", "Records in Java 25")
+                        .param("startsAt", "viertel nach acht"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("Uhrzeit");
+        assertThat(events.byId(id).orElseThrow().talkAt(0).startsAt())
+                .isEqualTo(LocalTime.of(19, 0));
+    }
+
     // --- the evening for somebody's own calendar ---------------------------------------
 
     @Test
@@ -1142,7 +1208,8 @@ class EventControllerTest {
                 .contains("attachment").contains("greenroom-2026-09-24.ics");
         assertThat(result.getResponse().getContentAsString())
                 .contains("SUMMARY:Java-Herbst")
-                .contains("DTSTART;VALUE=DATE:20260924");
+                // The talk begins at the usual hour, and 19:00 in Hamburg in September is 17:00 UTC.
+                .contains("DTSTART:20260924T170000Z");
     }
 
     @Test

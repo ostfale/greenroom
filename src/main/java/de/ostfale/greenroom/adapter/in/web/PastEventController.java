@@ -49,12 +49,13 @@ public class PastEventController {
 
     @GetMapping
     public String form(Model model) {
-        fill(model, submitted("", "", "", "", "", "", "", ""));
+        fill(model, submitted("", "19:00", "", "", "", "", "", "", ""));
         return "event/past";
     }
 
     @PostMapping
     public String enter(@RequestParam(defaultValue = "") String date,
+                        @RequestParam(defaultValue = "") String startsAt,
                         @RequestParam(defaultValue = "") String mode,
                         @RequestParam(defaultValue = "") String status,
                         @RequestParam(defaultValue = "") String speakerName,
@@ -65,16 +66,16 @@ public class PastEventController {
                         @RequestParam(defaultValue = "") String locationId,
                         Model model) {
         try {
-            events.enterPast(new PastEvening(FormValues.date(date), heldAs(mode), ended(status),
-                    speakerName, speakerEmail, title, abstractText, announcedBio,
-                    venue(locationId)));
+            events.enterPast(new PastEvening(FormValues.date(date), FormValues.time(startsAt),
+                    heldAs(mode), ended(status), speakerName, speakerEmail, title, abstractText,
+                    announcedBio, venue(locationId)));
             return "redirect:/event";
         } catch (RuleViolated e) {
             // The records know the rules; the form only has to say so in German and keep
             // what was typed.
             model.addAttribute("error", errors.german(e));
-            fill(model, submitted(date, mode, status, speakerName, speakerEmail, title,
-                    abstractText, announcedBio));
+            fill(model, submitted(date, startsAt, mode, status, speakerName, speakerEmail,
+                    title, abstractText, announcedBio));
             return "event/past";
         }
     }
@@ -122,12 +123,13 @@ public class PastEventController {
         model.addAttribute("endings", ENDINGS);
     }
 
-    private static Map<String, String> submitted(String date, String mode, String status,
-                                                 String speakerName, String speakerEmail,
-                                                 String title, String abstractText,
-                                                 String announcedBio) {
+    private static Map<String, String> submitted(String date, String startsAt, String mode,
+                                                 String status, String speakerName,
+                                                 String speakerEmail, String title,
+                                                 String abstractText, String announcedBio) {
         Map<String, String> values = new LinkedHashMap<>();
         values.put("date", date);
+        values.put("startsAt", startsAt);
         values.put("mode", mode);
         values.put("status", status);
         values.put("speakerName", speakerName);

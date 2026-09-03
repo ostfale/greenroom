@@ -3,6 +3,7 @@ package de.ostfale.greenroom.domain.events;
 import de.ostfale.greenroom.domain.Rule;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -117,6 +118,27 @@ class EventTest {
 
         assertThat(dropped.status()).isEqualTo(EventStatus.CANCELLED);
         assertThat(dropped.date()).isNull();
+    }
+
+    // --- when the evening begins --------------------------------------------------------
+
+    /**
+     * The time sits on the talk, so the evening has none of its own: it begins when the
+     * first of them does. With several talks that is the whole point of putting it there.
+     */
+    @Test
+    void anEveningBeginsWithTheEarliestOfItsTalks() {
+        Event evening = Event.draftFor(aReadyTalk(SPEAKER).withStartsAt(LocalTime.of(20, 0)))
+                .withAdditionalTalk(aReadyTalk(SPEAKER + 1).withStartsAt(LocalTime.of(19, 0)));
+
+        assertThat(evening.startsAt()).isEqualTo(LocalTime.of(19, 0));
+    }
+
+    @Test
+    void anEveningNobodyNotedAnHourForBeginsAtNoStatedTime() {
+        Event evening = Event.draftFor(aReadyTalk(SPEAKER).withStartsAt(null));
+
+        assertThat(evening.startsAt()).isNull();
     }
 
     // --- what an evening is waiting for -----------------------------------------------

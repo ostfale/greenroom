@@ -366,8 +366,11 @@ public class EventController {
     public String addTalk(@PathVariable Long id,
                           @RequestParam(defaultValue = "") String speakerId,
                           @RequestParam(defaultValue = "") String title,
+                          @RequestParam(defaultValue = "") String startsAt,
                           Model model) {
-        return talks(id, model, () -> events.addTalk(id, Talk.by(announced(speakerId)).withTitle(title)));
+        return talks(id, model, () -> events.addTalk(id, Talk.by(announced(speakerId))
+                .withTitle(title)
+                .withStartsAt(FormValues.time(startsAt))));
     }
 
     @PostMapping("/{id}/talk/{position}")
@@ -375,9 +378,11 @@ public class EventController {
                              @PathVariable int position,
                              @RequestParam(defaultValue = "") String title,
                              @RequestParam(defaultValue = "") String abstractText,
+                             @RequestParam(defaultValue = "") String startsAt,
                              @RequestParam(name = "announcedBio", required = false) List<String> bios,
                              Model model) {
-        return talks(id, model, () -> events.changeTalk(id, position, title, abstractText, bios));
+        return talks(id, model, () -> events.changeTalk(id, position, title, abstractText,
+                FormValues.time(startsAt), bios));
     }
 
     @PostMapping("/{id}/talk/{position}/remove")

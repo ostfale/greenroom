@@ -4,6 +4,7 @@ import de.ostfale.greenroom.domain.Rule;
 import de.ostfale.greenroom.domain.speakers.Speaker;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,11 +19,23 @@ class TalkTest {
 
     @Test
     void aTalkNeedsAtLeastOneSpeaker() {
-        assertThat(ruleBrokenBy(() -> new Talk(null, "Records in Java 25", null, List.of())))
+        assertThat(ruleBrokenBy(() -> new Talk(null, "Records in Java 25", null, Talk.USUALLY, List.of())))
                 .isEqualTo(Rule.TALK_NEEDS_A_SPEAKER);
 
-        assertThat(ruleBrokenBy(() -> new Talk(null, "Records in Java 25", null, null)))
+        assertThat(ruleBrokenBy(() -> new Talk(null, "Records in Java 25", null, Talk.USUALLY, null)))
                 .isEqualTo(Rule.TALK_NEEDS_A_SPEAKER);
+    }
+
+    /**
+     * The usual hour to start with, so the ordinary evening costs nothing. A second talk
+     * says its own, and one from ten years ago may say none.
+     */
+    @Test
+    void aTalkBeginsAtTheUsualHourUntilSomebodySaysOtherwise() {
+        assertThat(Talk.by(MAX).startsAt()).isEqualTo(LocalTime.of(19, 0));
+        assertThat(Talk.by(MAX).withStartsAt(LocalTime.of(20, 15)).startsAt())
+                .isEqualTo(LocalTime.of(20, 15));
+        assertThat(Talk.by(MAX).withStartsAt(null).startsAt()).isNull();
     }
 
     @Test

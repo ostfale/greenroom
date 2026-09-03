@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -70,7 +71,8 @@ public class EventService implements ManageEvents {
         Speaker speaker = knownBy(past.speakerEmail(), past.speakerName());
         Talk talk = Talk.by(TalkSpeaker.of(speaker.id()).withAnnouncedBio(past.announcedBio()))
                 .withTitle(past.title())
-                .withAbstract(past.abstractText());
+                .withAbstract(past.abstractText())
+                .withStartsAt(past.startsAt());
         // Straight at the status it ended in. The record still checks what that status
         // promises; only the walk through the chain is left out, and retracing a planning
         // that is ten years over would be ceremony.
@@ -135,9 +137,10 @@ public class EventService implements ManageEvents {
 
     @Override
     public Event changeTalk(Long eventId, int position, String title, String abstractText,
-                           List<String> announcedBios) {
+                           LocalTime startsAt, List<String> announcedBios) {
         Event event = known(eventId);
-        Talk talk = event.talkAt(position).withTitle(title).withAbstract(abstractText);
+        Talk talk = event.talkAt(position).withTitle(title).withAbstract(abstractText)
+                .withStartsAt(startsAt);
         talk = talk.withSpeakers(announced(talk.speakers(), announcedBios));
         log.debug("EventService :: change talk {} of event {}", position, eventId);
         return eventRepository.save(event.withTalkChanged(position, talk));

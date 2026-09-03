@@ -79,6 +79,7 @@ public enum Rule {
     NO_SPEAKER_CHOSEN,
     NO_LOCATION_CHOSEN,
     DATE_UNREADABLE,
+    TIME_UNREADABLE,
     NOT_FOUND;
 
     private static final Set<Rule> ABOUT_A_PICTURE = EnumSet.of(

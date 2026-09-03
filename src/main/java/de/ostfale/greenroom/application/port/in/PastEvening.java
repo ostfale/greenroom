@@ -4,6 +4,7 @@ import de.ostfale.greenroom.domain.events.EventMode;
 import de.ostfale.greenroom.domain.events.EventStatus;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 /**
  * What has to be typed in to write down an evening that already took place.
@@ -18,6 +19,7 @@ import java.time.LocalDate;
  */
 public record PastEvening(
         LocalDate date,
+        LocalTime startsAt,
         EventMode mode,
         EventStatus status,
         String speakerName,
