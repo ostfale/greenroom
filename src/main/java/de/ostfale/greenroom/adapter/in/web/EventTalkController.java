@@ -48,8 +48,12 @@ public class EventTalkController {
     }
 
     /**
-     * Title, abstract, the hour it begins at, and the biographies this evening announces
-     * its speakers with. Which people give it is not this form's to change.
+     * Title, abstract, the words it is filed under, the hour it begins at, and the
+     * biographies this evening announces its speakers with. Which people give it is not
+     * this form's to change.
+     *
+     * <p>Nothing ticked sends no parameter at all, which is why the tags may be missing and
+     * missing means none. A checkbox that is off has no other way of saying so.
      */
     @PostMapping("/{position}")
     public String change(@PathVariable Long id,
@@ -57,11 +61,12 @@ public class EventTalkController {
                          @RequestParam(defaultValue = "") String title,
                          @RequestParam(defaultValue = "") String abstractText,
                          @RequestParam(defaultValue = "") String startsAt,
+                         @RequestParam(name = "tag", required = false) List<String> tags,
                          @RequestParam(name = "announcedBio", required = false) List<String> bios,
                          Model model) {
         return page.afterChanging(id, model, TILE, () ->
                 events.changeTalk(id, position, title, abstractText,
-                        FormValues.time(startsAt), bios));
+                        FormValues.time(startsAt), tags, bios));
     }
 
     /** The last one cannot go: an evening without a talk is not an evening. */

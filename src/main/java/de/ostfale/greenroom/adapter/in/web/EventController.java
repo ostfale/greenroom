@@ -35,7 +35,8 @@ import java.util.stream.Collectors;
  * event without a talk, and a talk without a speaker, do not exist.
  *
  * <p>What sits on the same page but is a thing of its own has a controller of its own: the
- * talks, the tags, the history and the calendar file. They answer with a tile of this page
+ * talks — the words a talk is filed under come in with them — the history and the calendar
+ * file. They answer with a tile of this page
  * and build it from {@link EventPage}, which is also where this one gets it.
  */
 @Controller

@@ -83,18 +83,22 @@ public interface ManageEvents {
     Event addTalk(Long eventId, Talk talk);
 
     /**
-     * Title, abstract, start and the announced biographies of the talk at that position. The
-     * biographies come back one per speaker and in their order; a list that does not match
-     * is ignored, because a stale page is worth less than what is stored. Which people give
-     * the talk is not the form's to change.
+     * Title, abstract, start, the words it is filed under and the announced biographies of
+     * the talk at that position. The biographies come back one per speaker and in their
+     * order; a list that does not match is ignored, because a stale page is worth less than
+     * what is stored. Which people give the talk is not the form's to change.
      *
-     * @throws RuleViolated             if there is no talk at that position, or if the
-     *                                  evening is already announced and the change would
-     *                                  leave a talk without a title or an abstract
+     * <p>The tags are what was ticked, in full: nothing ticked empties them. That is what a
+     * set of checkboxes says, and there is nowhere else they could have been changed.
+     *
+     * @throws RuleViolated             if there is no talk at that position, if a word is
+     *                                  ticked twice, or if the evening is already announced
+     *                                  and the change would leave a talk without a title or
+     *                                  an abstract
      * @throws IllegalArgumentException if there is no evening with that id
      */
     Event changeTalk(Long eventId, int position, String title, String abstractText,
-                     LocalTime startsAt, List<String> announcedBios);
+                     LocalTime startsAt, List<String> tags, List<String> announcedBios);
 
     /**
      * Drops the talk at that position.

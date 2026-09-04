@@ -4,7 +4,11 @@
 <div id="event-talks" class="stack" th:fragment="event-talks">
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form class="boxed guarded" method="post"
+    <!-- What names and files the talk heads it across the tile; the two blocks of prose
+         it is announced with stand side by side under that, where the page is wide enough.
+         One column of prose stretched over the whole tile is a worse line to read than a
+         narrower one. -->
+    <form class="boxed guarded talk" method="post"
           th:each="talk, i : ${event.talks}"
           th:action="@{/event/{id}/talk/{pos}(id=${event.id},pos=${i.index})}"
           th:hx-post="@{/event/{id}/talk/{pos}(id=${event.id},pos=${i.index})}"
@@ -13,6 +17,9 @@
         <p class="hint" th:unless="${talk.isReadyToPublish()}">
             <span class="badge quiet">unvollständig</span>
         </p>
+
+        <!-- Across both columns: what the talk is called heads it, it does not belong to
+             one half of it. -->
         <div class="row even">
             <label>Titel
                 <input type="text" name="title" th:value="${talk.title}">
@@ -21,18 +28,41 @@
                 <input type="time" name="startsAt" class="narrow" th:value="${talk.startsAt}">
             </label>
         </div>
-        <label>Abstract
-            <textarea name="abstractText" rows="4" th:text="${talk.abstractText}"></textarea>
+
+        <!-- The words belong to the talk, not to the evening: a night with a Spring talk
+             and a Kotlin talk is not a night about both. They file it the way the title
+             names it, so they stand with it and across the tile. Saved with everything
+             else on this form — what is ticked when it is sent is what it carries. -->
+        <div class="keywords">
+            <p class="caption">Tags</p>
+            <p class="hint" th:if="${#lists.isEmpty(tagChoices)}">
+                Es ist noch kein Tag angelegt. <a th:href="@{/settings}">Tags pflegen</a>
+            </p>
+            <ul class="tags" th:unless="${#lists.isEmpty(tagChoices)}">
+                <li th:each="word : ${tagChoices}">
+                    <label class="toggle">
+                        <input type="checkbox" name="tag" th:value="${word}"
+                               th:checked="${talk.carries(word)}">
+                        <span th:text="${word}">Spring</span>
+                    </label>
+                </li>
+            </ul>
+        </div>
+
+        <label class="abstract">Abstract
+            <textarea name="abstractText" rows="6" th:text="${talk.abstractText}"></textarea>
         </label>
 
         <!-- The biography was copied when the speaker was put on this talk. It is edited
              here and nowhere else: what the evening announced is not the speaker's current
              bio, and changing one must not change the other. -->
-        <label th:each="announced : ${talk.speakers}">
-            <span th:text="'Kurzvita ' + (${speakerNames[announced.speakerId]} ?: 'Unbekannt')">Kurzvita Max Muster</span>
-            <textarea name="announcedBio" rows="3" th:text="${announced.announcedBio}"
-                      placeholder="Wie sie in der Ankündigung stehen soll"></textarea>
-        </label>
+        <div class="bios">
+            <label th:each="announced : ${talk.speakers}">
+                <span th:text="'Kurzvita ' + (${speakerNames[announced.speakerId]} ?: 'Unbekannt')">Kurzvita Max Muster</span>
+                <textarea name="announcedBio" rows="3" th:text="${announced.announcedBio}"
+                          placeholder="Wie sie in der Ankündigung stehen soll"></textarea>
+            </label>
+        </div>
 
         <div class="actions">
             <button type="submit" disabled>Vortrag speichern</button>

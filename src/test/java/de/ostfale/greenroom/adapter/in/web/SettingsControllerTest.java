@@ -212,8 +212,8 @@ class SettingsControllerTest {
         Long speakerId = speakers.add(aSpeaker()).id();
         Long renamed = tags.add(Tag.named("Sprint")).id();
         Long dropped = tags.add(Tag.named("Architektur")).id();
-        Long eventId = events.add(Event.draftFor(aReadyTalk(speakerId))
-                .withTags(List.of("Sprint", "Architektur"))).id();
+        Long eventId = events.add(Event.draftFor(
+                aReadyTalk(speakerId).withTags(List.of("Sprint", "Architektur")))).id();
 
         mvc.perform(post("/settings/tag/" + renamed).param("name", "Spring"))
                 .andExpect(status().isOk());

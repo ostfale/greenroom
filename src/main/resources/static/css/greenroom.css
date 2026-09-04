@@ -101,7 +101,7 @@ body {
 /* --- page frame ------------------------------------------------------------------- */
 
 main {
-    max-width: 80rem;
+    max-width: 100rem;
     margin: 0 auto;
     padding: 2rem 2rem 4rem;
 }
@@ -184,12 +184,6 @@ h1 {
     grid-column: span 3;
 }
 
-/* The event detail page reads in two columns: the right one stacks the planning and the
-   keywords, so the tile on the left keeps both rows and nothing drops into the gap. */
-.tile.column-right {
-    grid-column: 3 / span 2;
-}
-
 .tile.rows-two {
     grid-row: span 2;
 }
@@ -202,6 +196,12 @@ h1 {
     font: 500 .6875rem/1 var(--mono);
     letter-spacing: .08em;
     text-transform: uppercase;
+}
+
+/* Inside a form the gap between the blocks already spaces them, so a caption that opens
+   one would count its own margin on top of that. */
+form .caption:first-child {
+    margin-top: 0;
 }
 
 /* The label on a tile speaks the call-sheet language: small, spaced, monospaced. */
@@ -603,6 +603,47 @@ form.boxed.new {
     margin-top: 1rem;
 }
 
+/* One talk carries a page's worth of fields, and its tile has the width of the window.
+   What names and files it — title, hour, keywords — heads the form across the tile; the
+   two blocks of prose it is announced with stand side by side under that. An abstract
+   stretched over the whole tile is a worse line to read than a narrower one. */
+.talk > .bios {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 64rem) {
+    .talk {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* What heads the talk or closes it belongs to neither column. */
+    .talk > .hint,
+    .talk > .row,
+    .talk > .keywords,
+    .talk > .actions {
+        grid-column: 1 / -1;
+    }
+
+    /* The abstract and the biography are one pair: same line to start on, same height to
+       end at. Both fields take the height of the row rather than the rows they declare —
+       those are the floor, not the ceiling — so two announcements of unequal length still
+       close flush. Several speakers share the height between them. */
+    .talk > .bios {
+        grid-auto-rows: 1fr;
+    }
+
+    .talk > .abstract,
+    .talk > .bios > label {
+        grid-template-rows: auto 1fr;
+    }
+
+    .talk > .abstract textarea,
+    .talk > .bios textarea {
+        height: 100%;
+    }
+}
+
 .actions {
     display: flex;
     flex-wrap: wrap;
@@ -788,6 +829,24 @@ ul.plain {
     list-style: none;
     display: grid;
     gap: .3125rem;
+}
+
+/* The speakers of the evening, standing among its facts rather than in a tile of their
+   own. One line per person: the name to click, and what identifies them behind it. */
+ul.people {
+    gap: .5rem;
+}
+
+ul.people li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .5rem;
+}
+
+ul.people .hint::before {
+    content: "·";
+    margin-right: .5rem;
 }
 
 /* The counts, in one row that wraps. Numbers read as numbers, the words stay quiet: what
@@ -1003,8 +1062,7 @@ ul.tags .toggle {
         flex: 1 1 10rem;
     }
 
-    .tile.three,
-    .tile.column-right {
+    .tile.three {
         grid-column: span 2;
     }
 
@@ -1019,7 +1077,7 @@ ul.tags .toggle {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .tile, .tile.half, .tile.quarter, .tile.three, .tile.column-right {
+    .tile, .tile.half, .tile.quarter, .tile.three {
         grid-column: span 1;
     }
 

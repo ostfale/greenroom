@@ -19,10 +19,12 @@ class TalkTest {
 
     @Test
     void aTalkNeedsAtLeastOneSpeaker() {
-        assertThat(ruleBrokenBy(() -> new Talk(null, "Records in Java 25", null, Talk.USUALLY, List.of())))
+        assertThat(ruleBrokenBy(() -> new Talk(null, "Records in Java 25", null, Talk.USUALLY,
+                List.of(), List.of())))
                 .isEqualTo(Rule.TALK_NEEDS_A_SPEAKER);
 
-        assertThat(ruleBrokenBy(() -> new Talk(null, "Records in Java 25", null, Talk.USUALLY, null)))
+        assertThat(ruleBrokenBy(() -> new Talk(null, "Records in Java 25", null, Talk.USUALLY,
+                null, List.of())))
                 .isEqualTo(Rule.TALK_NEEDS_A_SPEAKER);
     }
 
@@ -138,5 +140,51 @@ class TalkTest {
     void aTalkSpeakerAlwaysPointsAtASpeaker() {
         assertThat(ruleBrokenBy(() -> TalkSpeaker.of(null)))
                 .isEqualTo(Rule.SPEAKER_NOT_STORED);
+    }
+
+    // --- tags ---------------------------------------------------------------------------
+
+    /**
+     * The words sit on the talk because it is the talk that is about something. They are
+     * copied off the maintained list and never referenced: renaming a tag in the settings
+     * must not rewrite what an evening was announced with.
+     */
+    @Test
+    void theKeywordsAreCopiedOntoTheTalkNotReferenced() {
+        Talk talk = Talk.by(MAX).withTags(List.of("Java", "Records"));
+
+        assertThat(talk.tags()).containsExactly("Java", "Records");
+        assertThat(talk.carries("java")).isTrue();
+        assertThat(talk.carries("Testing")).isFalse();
+    }
+
+    /** No keyword was written down: that is none, not a list that is missing. */
+    @Test
+    void aTalkWithoutKeywordsCarriesAnEmptyListRatherThanNone() {
+        Talk read = new Talk(1L, "Records in Java 25", null, Talk.USUALLY, List.of(MAX), null);
+
+        assertThat(read.tags()).isEmpty();
+    }
+
+    @Test
+    void theSameKeywordCannotBeOnTheTalkTwice() {
+        assertThat(ruleBrokenBy(() -> Talk.by(MAX).withTags(List.of("Spring", "spring"))))
+                .isEqualTo(Rule.TAG_TWICE_ON_TALK);
+    }
+
+    @Test
+    void aKeywordIsAWordOrItIsNotThere() {
+        assertThat(ruleBrokenBy(() -> Talk.by(MAX).withTags(List.of("  "))))
+                .isEqualTo(Rule.TAG_NEEDS_A_WORD);
+        assertThat(Talk.by(MAX).withTags(List.of(" Java ")).tags()).containsExactly("Java");
+    }
+
+    @Test
+    void tagsAreNeverSharedWithTheCaller() {
+        List<String> mutable = new ArrayList<>(List.of("Java"));
+        Talk talk = Talk.by(MAX).withTags(mutable);
+        mutable.clear();
+
+        assertThat(talk.tags()).containsExactly("Java");
     }
 }

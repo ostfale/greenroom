@@ -50,23 +50,14 @@ class EventTest {
     @Test
     void anEveningNeedsAStatusAModeAndATalk() {
         assertThat(ruleBrokenBy(() -> new Event(1L, null, null, null, null,
-                null, EventMode.ONSITE, null, null, List.of(aReadyTalk(SPEAKER)), List.of())))
+                null, EventMode.ONSITE, null, null, List.of(aReadyTalk(SPEAKER)))))
                 .isEqualTo(Rule.EVENT_NEEDS_A_STATUS);
         assertThat(ruleBrokenBy(() -> new Event(1L, null, null, null, null,
-                EventStatus.DRAFT, null, null, null, List.of(aReadyTalk(SPEAKER)), List.of())))
+                EventStatus.DRAFT, null, null, null, List.of(aReadyTalk(SPEAKER)))))
                 .isEqualTo(Rule.EVENT_NEEDS_A_MODE);
         assertThat(ruleBrokenBy(() -> new Event(1L, null, null, null, null,
-                EventStatus.DRAFT, EventMode.ONSITE, null, null, null, List.of())))
+                EventStatus.DRAFT, EventMode.ONSITE, null, null, null)))
                 .isEqualTo(Rule.EVENT_NEEDS_ONE_TALK);
-    }
-
-    /** No keyword was written down: that is none, not a list that is missing. */
-    @Test
-    void anEveningWithoutKeywordsCarriesAnEmptyListRatherThanNone() {
-        Event read = new Event(1L, EVENING, null, null, null, EventStatus.DRAFT,
-                EventMode.ONSITE, null, null, List.of(aReadyTalk(SPEAKER)), null);
-
-        assertThat(read.tags()).isEmpty();
     }
 
     /** A filter standing on "alle" asks about nobody, and nobody speaks nowhere. */
@@ -81,7 +72,7 @@ class EventTest {
     @Test
     void anEveningNeedsAtLeastOneTalk() {
         assertThat(ruleBrokenBy(() -> new Event(null, null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE,
-                null, null, List.of(), List.of())))
+                null, null, List.of())))
                 .isEqualTo(Rule.EVENT_NEEDS_ONE_TALK);
 
         assertThat(ruleBrokenBy(() -> Event.draftFor(aReadyTalk(SPEAKER)).withTalks(List.of())))
@@ -159,10 +150,9 @@ class EventTest {
 
     @Test
     void theWordsAreLookedForWhereverTheEveningKeepsThem() {
-        Event evening = Event.draftFor(aReadyTalk(SPEAKER))
+        Event evening = Event.draftFor(aReadyTalk(SPEAKER).withTags(List.of("Architektur")))
                 .withMotto("Java-Herbst")
-                .withNotes("Beamer vom Ort geliehen")
-                .withTags(List.of("Architektur"));
+                .withNotes("Beamer vom Ort geliehen");
 
         assertThat(evening.mentions("java-herbst")).isTrue();
         assertThat(evening.mentions("Records in Java 25")).isTrue();
@@ -305,39 +295,24 @@ class EventTest {
 
     // --- tags -----------------------------------------------------------------------
 
+    /** The evening has no list of its own: it reads the words off the talks it carries. */
     @Test
-    void theKeywordsAreCopiedOntoTheEveningNotReferenced() {
-        Event event = Event.draftFor(aReadyTalk(SPEAKER)).withTags(List.of("Java", "Records"));
+    void theKeywordsOfTheEveningAreTheKeywordsOfItsTalks() {
+        Event event = Event.draftFor(aReadyTalk(SPEAKER).withTags(List.of("Java", "Records")))
+                .withAdditionalTalk(aTalk(2L).withTags(List.of("Spring")));
 
-        assertThat(event.tags()).containsExactly("Java", "Records");
+        assertThat(event.tags()).containsExactly("Java", "Records", "Spring");
         assertThat(event.carries("java")).isTrue();
         assertThat(event.carries("Testing")).isFalse();
     }
 
+    /** Two talks about the same thing name it once, however it was capitalised. */
     @Test
-    void theSameKeywordCannotBeOnTheEveningTwice() {
-        Event event = Event.draftFor(aReadyTalk(SPEAKER));
+    void aWordOnTwoTalksIsOneWordOnTheEvening() {
+        Event event = Event.draftFor(aReadyTalk(SPEAKER).withTags(List.of("Spring")))
+                .withAdditionalTalk(aTalk(2L).withTags(List.of("spring", "Testing")));
 
-        assertThat(ruleBrokenBy(() -> event.withTags(List.of("Spring", "spring"))))
-                .isEqualTo(Rule.TAG_TWICE_ON_EVENT);
-    }
-
-    @Test
-    void aKeywordIsAWordOrItIsNotThere() {
-        Event event = Event.draftFor(aReadyTalk(SPEAKER));
-
-        assertThat(ruleBrokenBy(() -> event.withTags(List.of("  "))))
-                .isEqualTo(Rule.TAG_NEEDS_A_WORD);
-        assertThat(event.withTags(List.of(" Java ")).tags()).containsExactly("Java");
-    }
-
-    @Test
-    void tagsAreNeverSharedWithTheCaller() {
-        List<String> mutable = new ArrayList<>(List.of("Java"));
-        Event event = Event.draftFor(aReadyTalk(SPEAKER)).withTags(mutable);
-        mutable.clear();
-
-        assertThat(event.tags()).containsExactly("Java");
+        assertThat(event.tags()).containsExactly("Spring", "Testing");
     }
 
     // --- the rest -------------------------------------------------------------------

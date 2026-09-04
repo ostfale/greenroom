@@ -55,6 +55,23 @@
             <button type="submit" disabled>Änderungen speichern</button>
         </div>
     </form>
+
+    <!-- Who is speaking is one of the facts of the evening, so it stands with them rather
+         than in a tile of its own. Nothing here is edited: the talks say who speaks, and
+         the person is maintained on their own page. -->
+    <p class="caption">Referenten</p>
+    <ul class="plain people">
+        <li th:each="person : ${eventSpeakers}">
+            <a th:href="@{/speaker/{id}(id=${person.id})}"
+               th:text="${person.name}">Max Muster</a>
+            <span class="hint" th:if="${person.company}"
+                  th:text="${person.company}">Nordsee GmbH</span>
+            <span class="hint">
+                <a th:href="'mailto:' + ${person.email}"
+                   th:text="${person.email}">max@example.org</a>
+            </span>
+        </li>
+    </ul>
 </div>
 </body>
 </html>

@@ -80,7 +80,7 @@ public class EventService implements ManageEvents {
         // promises; only the walk through the chain is left out, and retracing a planning
         // that is ten years over would be ceremony.
         Event evening = new Event(null, past.date(), null, null, null, past.status(),
-                past.mode(), past.locationId(), past.addressPosition(), List.of(talk), List.of());
+                past.mode(), past.locationId(), past.addressPosition(), List.of(talk));
         log.debug("EventService :: past evening on {} as {}", past.date(), past.status());
         return eventRepository.save(evening);
     }
@@ -129,10 +129,11 @@ public class EventService implements ManageEvents {
 
     @Override
     public Event changeTalk(Long eventId, int position, String title, String abstractText,
-                           LocalTime startsAt, List<String> announcedBios) {
+                           LocalTime startsAt, List<String> tags, List<String> announcedBios) {
         Event event = known(eventId);
         Talk talk = event.talkAt(position).withTitle(title).withAbstract(abstractText)
-                .withStartsAt(startsAt);
+                .withStartsAt(startsAt)
+                .withTags(tags == null ? List.of() : tags);
         talk = talk.withSpeakers(announced(talk.speakers(), announcedBios));
         log.debug("EventService :: change talk {} of event {}", position, eventId);
         return eventRepository.save(event.withTalkChanged(position, talk));

@@ -97,8 +97,7 @@ create table event
     status      text   not null,
     mode        text   not null,
     location_id bigint references location (id),
-    address_position int,
-    tags        text[] not null default '{}'
+    address_position int
 );
 
 create index event_location on event (location_id);
@@ -118,10 +117,6 @@ comment on table event is
 comment on column event.date is
     'Null while the evening is still a topic. A DRAFT has no date.';
 
-comment on column event.tags is
-    'The keywords as they were picked, copied from the list in the settings. Renaming or
-     deleting a tag there must not rewrite what an evening was announced with.';
-
 create table talk
 (
     id            bigserial primary key,
@@ -130,12 +125,19 @@ create table talk
     title         text,
     abstract_text text,
     starts_at     time,
+    tags          text[] not null default '{}',
     unique (event, event_key)
 );
 
 comment on column talk.starts_at is
     'When this talk begins. On the talk and not on the event: an evening with three of them
      has no start of its own. Null for the years nobody wrote the time down.';
+
+comment on column talk.tags is
+    'The keywords as they were picked, copied from the list in the settings. Renaming or
+     deleting a tag there must not rewrite what an evening was announced with. On the talk
+     and not on the event: a word says what is talked about, and an evening with a Spring
+     talk and a Kotlin talk is not an evening about both.';
 
 comment on column event.motto is
     'Optional name for the evening, used when it carries several talks.';

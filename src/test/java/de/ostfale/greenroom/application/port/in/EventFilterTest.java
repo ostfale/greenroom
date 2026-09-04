@@ -21,6 +21,11 @@ class EventFilterTest {
         return Event.draftFor(aReadyTalk(MAX)).withDate(EVENING);
     }
 
+    /** The words sit on the talk, so an evening is given them by giving them to its talk. */
+    private static Event taggedWith(String... words) {
+        return Event.draftFor(aReadyTalk(MAX).withTags(List.of(words))).withDate(EVENING);
+    }
+
     @Test
     void withoutAnyFieldEverythingPasses() {
         EventFilter none = EventFilter.none();
@@ -65,7 +70,7 @@ class EventFilterTest {
     /** Matched against the words the evening carries, and case is not one of them. */
     @Test
     void theTagIgnoresCase() {
-        Event tagged = dated().withTags(List.of("Spring"));
+        Event tagged = taggedWith("Spring");
 
         assertThat(new EventFilter(null, false, null, null, null, List.of("spring")).matches(tagged)).isTrue();
         assertThat(new EventFilter(null, false, null, null, null, List.of("Java")).matches(tagged)).isFalse();
@@ -116,9 +121,9 @@ class EventFilterTest {
      */
     @Test
     void severalTagsLetThroughWhateverCarriesAnyOfThem() {
-        Event spring = dated().withTags(List.of("Spring"));
-        Event kotlin = dated().withTags(List.of("Kotlin"));
-        Event testing = dated().withTags(List.of("Testing"));
+        Event spring = taggedWith("Spring");
+        Event kotlin = taggedWith("Kotlin");
+        Event testing = taggedWith("Testing");
         EventFilter either = new EventFilter(null, false, null, null, null, List.of("Spring", "Kotlin"));
 
         assertThat(either.matches(spring)).isTrue();
@@ -129,7 +134,7 @@ class EventFilterTest {
     /** One of them is enough, even when the evening carries more than was asked for. */
     @Test
     void anEveningWithMoreTagsThanWereAskedForStillPasses() {
-        Event both = dated().withTags(List.of("Spring", "Testing"));
+        Event both = taggedWith("Spring", "Testing");
 
         assertThat(new EventFilter(null, false, null, null, null, List.of("Spring")).matches(both))
                 .isTrue();
@@ -137,7 +142,7 @@ class EventFilterTest {
 
     @Test
     void theFieldsAddUp() {
-        Event tagged = dated().withLocation(PLACE).withTags(List.of("Spring"));
+        Event tagged = taggedWith("Spring").withLocation(PLACE);
         EventFilter both = new EventFilter(null, false, 2026, MAX, PLACE, List.of("Spring"));
 
         assertThat(both.matches(tagged)).isTrue();

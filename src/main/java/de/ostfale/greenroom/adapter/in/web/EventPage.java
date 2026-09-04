@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  * The page of one evening: everything it reads, and the way every tile on it answers.
  *
  * <p>Its own class because that page is not served by one controller any more. The talks,
- * the tags and the history each have theirs, and every one of them swaps a fragment that
+ * the venue and the history each have theirs, and every one of them swaps a fragment that
  * is rendered against the whole model — a tile rendered against half a model does not
  * render at all. Written down once here, so that a tile added later cannot forget half of
  * it.
@@ -132,9 +132,10 @@ class EventPage {
     }
 
     /**
-     * Every word that may be ticked: the maintained list, and on top of it whatever this
-     * evening already carries. A tag deleted from the settings must not silently fall off
-     * an evening that was announced with it.
+     * Every word that may be ticked on a talk of this evening: the maintained list, and on
+     * top of it whatever the evening already carries. A tag deleted from the settings must
+     * not silently fall off a talk that was announced with it — the boxes are the whole
+     * answer, so a word missing from them is a word thrown away.
      */
     private List<String> tagChoices(Event event) {
         List<String> choices = new ArrayList<>(tags.all().stream().map(Tag::name).toList());

@@ -204,7 +204,7 @@ class CalendarEntryTest {
 
     private static Event anEvening() {
         return new Event(4L, EVENING, "Java-Herbst", null, null, EventStatus.DRAFT,
-                EventMode.ONSITE, null, null, List.of(aReadyTalk(SPEAKER)), List.of());
+                EventMode.ONSITE, null, null, List.of(aReadyTalk(SPEAKER)));
     }
 
     private static List<String> lines(String file) {

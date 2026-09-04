@@ -30,13 +30,13 @@ public enum Rule {
     EVENT_DOES_NOT_MOVE,
     EVENT_IS_NOT_OVER,
     NO_TALK_AT_POSITION,
-    TAG_NEEDS_A_WORD,
-    TAG_TWICE_ON_EVENT,
 
-    /** A talk and the people who give it. */
+    /** A talk, the people who give it and the words it is filed under. */
     TALK_NEEDS_A_SPEAKER,
     SPEAKER_TWICE_ON_TALK,
     SPEAKER_NOT_STORED,
+    TAG_NEEDS_A_WORD,
+    TAG_TWICE_ON_TALK,
 
     /** A line in the history. */
     ACTIVITY_BELONGS_TO_AN_EVENT,

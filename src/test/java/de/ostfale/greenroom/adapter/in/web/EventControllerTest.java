@@ -281,7 +281,8 @@ class EventControllerTest {
         assertThat(page.selectFirst("#event-status .label").text()).isEqualTo("Thema");
         assertThat(page.selectFirst("#event-talks input[name=title]").val())
                 .isEqualTo("Records in Java 25");
-        assertThat(page.selectFirst("#event-talks label span").text()).isEqualTo("Kurzvita Max Muster");
+        assertThat(page.selectFirst("#event-talks label:has(textarea[name=announcedBio]) span")
+                .text()).isEqualTo("Kurzvita Max Muster");
     }
 
     @Test
@@ -908,79 +909,114 @@ class EventControllerTest {
         assertThat(events.byId(id).orElseThrow().moderator()).isEqualTo("Max Muster");
     }
 
-    // --- the keywords of an evening ---------------------------------------------------
+    // --- the keywords of a talk -------------------------------------------------------
 
     @Test
-    void theTagTileOffersTheMaintainedListAndTicksWhatIsCarried() throws Exception {
+    void theTalkOffersTheMaintainedListAndTicksWhatItCarries() throws Exception {
         tags.add(Tag.named("Spring"));
         tags.add(Tag.named("Architektur"));
-        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withTags(List.of("Spring"))).id();
+        Long id = events.add(Event.draftFor(
+                aReadyTalk(speakerId).withTags(List.of("Spring")))).id();
 
         Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
                 .andReturn().getResponse().getContentAsString());
 
-        // The settings keep the list alphabetical, and the tile offers it in that order.
-        assertThat(page.select("#event-tags ul.tags li").eachText())
+        // The settings keep the list alphabetical, and the form offers it in that order.
+        assertThat(page.select("#event-talks ul.tags li").eachText())
                 .containsExactly("Architektur", "Spring");
-        assertThat(page.select("#event-tags input[checked]").eachAttr("value"))
+        assertThat(page.select("#event-talks ul.tags input[checked]").eachAttr("value"))
                 .containsExactly("Spring");
     }
 
+    /** The boxes are part of the talk's form: what is ticked when it is sent is what sticks. */
     @Test
-    void tickingAWordPutsItOnTheEvening() throws Exception {
+    void tickingAWordPutsItOnTheTalk() throws Exception {
         tags.add(Tag.named("Spring"));
         tags.add(Tag.named("Architektur"));
         Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
 
-        String fragment = mvc.perform(post("/event/" + id + "/tags")
+        String fragment = mvc.perform(post("/event/" + id + "/talk/0")
+                        .param("title", "Records in Java 25")
+                        .param("abstractText", "Weniger Tippen")
+                        .param("startsAt", "19:00")
                         .param("tag", "Spring")
                         .param("tag", "Architektur"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        assertThat(Jsoup.parseBodyFragment(fragment).select("#event-tags input[checked]")
+        assertThat(Jsoup.parseBodyFragment(fragment).select("#event-talks ul.tags input[checked]")
                 .eachAttr("value")).containsExactly("Architektur", "Spring");
-        assertThat(events.byId(id).orElseThrow().tags()).containsExactly("Spring", "Architektur");
+        assertThat(events.byId(id).orElseThrow().talkAt(0).tags())
+                .containsExactly("Spring", "Architektur");
     }
 
+    /** A box that is off sends nothing, so nothing sent has to mean nothing ticked. */
     @Test
-    void savingWithNothingTickedLeavesTheEveningWithoutWords() throws Exception {
+    void savingWithNothingTickedLeavesTheTalkWithoutWords() throws Exception {
         tags.add(Tag.named("Spring"));
-        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withTags(List.of("Spring"))).id();
+        Long id = events.add(Event.draftFor(
+                aReadyTalk(speakerId).withTags(List.of("Spring")))).id();
 
-        mvc.perform(post("/event/" + id + "/tags")).andExpect(status().isOk());
+        mvc.perform(post("/event/" + id + "/talk/0")
+                        .param("title", "Records in Java 25")
+                        .param("abstractText", "Weniger Tippen")
+                        .param("startsAt", "19:00"))
+                .andExpect(status().isOk());
 
-        assertThat(events.byId(id).orElseThrow().tags()).isEmpty();
+        assertThat(events.byId(id).orElseThrow().talkAt(0).tags()).isEmpty();
     }
 
     /**
-     * The evening stores the word, not a reference to the list. A tag that was dropped from
-     * the settings is still offered here, ticked, so it does not fall off unnoticed.
+     * The talk stores the word, not a reference to the list. A tag that was dropped from
+     * the settings is still offered here, ticked, so it does not fall off unnoticed — the
+     * boxes are the whole answer, and a word missing from them is a word thrown away.
      */
     @Test
-    void aWordThatLeftTheSettingsStaysOnTheEveningItAnnounced() throws Exception {
+    void aWordThatLeftTheSettingsStaysOnTheTalkItAnnounced() throws Exception {
         tags.add(Tag.named("Architektur"));
-        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withTags(List.of("Spring"))).id();
+        Long id = events.add(Event.draftFor(
+                aReadyTalk(speakerId).withTags(List.of("Spring")))).id();
 
         Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
                 .andReturn().getResponse().getContentAsString());
 
-        assertThat(page.select("#event-tags ul.tags li").eachText())
+        assertThat(page.select("#event-talks ul.tags li").eachText())
                 .containsExactly("Architektur", "Spring");
-        assertThat(page.select("#event-tags input[checked]").eachAttr("value"))
+        assertThat(page.select("#event-talks ul.tags input[checked]").eachAttr("value"))
                 .containsExactly("Spring");
         assertThat(events.byId(id).orElseThrow().tags()).containsExactly("Spring");
     }
 
     @Test
-    void withoutAnyKeywordTheTileSendsYouToTheSettings() throws Exception {
+    void withoutAnyKeywordTheTalkSendsYouToTheSettings() throws Exception {
         Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
 
         Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
                 .andReturn().getResponse().getContentAsString());
 
-        assertThat(page.select("#event-tags form")).isEmpty();
-        assertThat(page.selectFirst("#event-tags a.button").attr("href")).isEqualTo("/settings");
+        assertThat(page.select("#event-talks ul.tags")).isEmpty();
+        assertThat(page.select("#event-talks a[href=/settings]")).isNotEmpty();
+    }
+
+    /** Two talks, two lists: what one is about is not what the other is about. */
+    @Test
+    void eachTalkCarriesItsOwnWords() throws Exception {
+        tags.add(Tag.named("Spring"));
+        tags.add(Tag.named("Kotlin"));
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+        mvc.perform(post("/event/" + id + "/talk")
+                .param("speakerId", speakerId.toString())
+                .param("title", "Kotlin für Java-Leute")).andExpect(status().isOk());
+
+        mvc.perform(post("/event/" + id + "/talk/0").param("tag", "Spring"))
+                .andExpect(status().isOk());
+        mvc.perform(post("/event/" + id + "/talk/1").param("tag", "Kotlin"))
+                .andExpect(status().isOk());
+
+        Event evening = events.byId(id).orElseThrow();
+        assertThat(evening.talkAt(0).tags()).containsExactly("Spring");
+        assertThat(evening.talkAt(1).tags()).containsExactly("Kotlin");
+        assertThat(evening.tags()).containsExactly("Spring", "Kotlin");
     }
 
     // --- the biography an evening announced -------------------------------------------
@@ -1319,7 +1355,7 @@ class EventControllerTest {
     void theInvitationTextStandsOnThePageForTheButtonToCopy() throws Exception {
         Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
         events.changeTalk(id, 0, "Records in Java 25", "Warum Records mehr sind.",
-                LocalTime.of(19, 0), List.of("Architekt bei der Musterfirma"));
+                LocalTime.of(19, 0), List.of(), List.of("Architekt bei der Musterfirma"));
 
         Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
                 .andReturn().getResponse().getContentAsString());
@@ -1431,10 +1467,10 @@ class EventControllerTest {
         assertThat(withNone).doesNotContain("Musterweg 1");
     }
 
-    // --- the speakers of the evening, reachable from here ------------------------------
+    // --- the speakers of the evening, reachable from the facts -------------------------
 
     @Test
-    void theSpeakerTileLinksToEverybodyWhoSpeaks() throws Exception {
+    void theFactsLinkToEverybodyWhoSpeaks() throws Exception {
         Long anna = speakers.add(Speaker.of("Anna Albers", "anna@example.org")
                 .withContact("Nordsee GmbH", "anna@example.org", null)).id();
         Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
@@ -1442,15 +1478,13 @@ class EventControllerTest {
 
         Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
                 .andReturn().getResponse().getContentAsString());
-        Element tile = page.select("section.tile").stream()
-                .filter(one -> "Referenten".equals(one.selectFirst("h2").text()))
-                .findFirst().orElseThrow();
+        Element people = page.selectFirst("#event-basics ul.people");
 
-        assertThat(tile.select("li > a").eachAttr("href"))
+        assertThat(people.select("li > a").eachAttr("href"))
                 .containsExactly("/speaker/" + speakerId, "/speaker/" + anna);
-        assertThat(tile.select("li > a").eachText()).containsExactly("Max Muster", "Anna Albers");
-        assertThat(tile.text()).contains("Nordsee GmbH", "max@example.org");
-        assertThat(tile.select("a[href^=mailto:]").eachAttr("href"))
+        assertThat(people.select("li > a").eachText()).containsExactly("Max Muster", "Anna Albers");
+        assertThat(people.text()).contains("Nordsee GmbH", "max@example.org");
+        assertThat(people.select("a[href^=mailto:]").eachAttr("href"))
                 .contains("mailto:max@example.org", "mailto:anna@example.org");
     }
 
@@ -1462,16 +1496,14 @@ class EventControllerTest {
 
         Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
                 .andReturn().getResponse().getContentAsString());
-        Element tile = page.select("section.tile").stream()
-                .filter(one -> "Referenten".equals(one.selectFirst("h2").text()))
-                .findFirst().orElseThrow();
 
-        assertThat(tile.select("li")).hasSize(1);
+        assertThat(page.select("#event-basics ul.people li")).hasSize(1);
     }
 
     /**
-     * Two columns: the basics on the left, the planning with the keywords under it on the
-     * right, then venue and speakers side by side.
+     * Two columns: the basics on the left, the planning and the venue stacked on the right,
+     * then the talks and the history across the page. The keywords sit on the talk and the
+     * speakers among the basics, so neither has a tile any more.
      */
     @Test
     void theTilesAreInTheOrderThePlanningReadsThem() throws Exception {
@@ -1481,13 +1513,11 @@ class EventControllerTest {
                 .andReturn().getResponse().getContentAsString());
 
         assertThat(page.select("section.tile h2").eachText())
-                .containsExactly("Eckdaten", "Planung", "Tags", "Ort", "Referenten",
-                        "Vorträge", "Verlauf");
-        // Stretch is what makes venue and speakers end together, and the keywords close
-        // flush with the basics beside them.
+                .containsExactly("Eckdaten", "Planung", "Ort", "Vorträge", "Verlauf");
+        // Stretch is what makes the two on the right close flush with the basics beside them.
         assertThat(page.selectFirst("div.bento").className()).contains("stretch");
         assertThat(page.selectFirst("section.tile").className()).contains("rows-two");
-        assertThat(page.select("section.tile").get(2).className()).contains("column-right");
+        assertThat(page.select("section.tile").get(2).className()).contains("half");
     }
 
     // The history: one table, and nothing in it that somebody did not type.
@@ -1652,7 +1682,7 @@ class EventControllerTest {
         Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
                 .withMotto("Java-Herbst").withDate(EVENING)).id();
         events.changeTalk(id, 0, "Records in Java 25", "Warum Records mehr sind.",
-                LocalTime.of(19, 0), List.of("Architekt bei Hapag-Lloyd"));
+                LocalTime.of(19, 0), List.of(), List.of("Architekt bei Hapag-Lloyd"));
 
         String html = mvc.perform(get("/event").param("year", "").param("search", "hapag"))
                 .andReturn().getResponse().getContentAsString();
@@ -1677,8 +1707,8 @@ class EventControllerTest {
     @Test
     void theTagsOfferedAreTheListAndWhatTheEveningsCarry() throws Exception {
         tags.add(Tag.named("Noch ungenutzt"));
-        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Mit Spring")
-                .withTags(List.of("Spring")));
+        events.add(Event.draftFor(aReadyTalk(speakerId).withTags(List.of("Spring")))
+                .withMotto("Mit Spring"));
         events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Ohne"));
 
         Document page = Jsoup.parse(mvc.perform(get("/event").param("year", ""))
@@ -1695,8 +1725,8 @@ class EventControllerTest {
 
     @Test
     void oneTagNarrowsTheListAndIgnoresCase() throws Exception {
-        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Mit Spring")
-                .withTags(List.of("Spring")));
+        events.add(Event.draftFor(aReadyTalk(speakerId).withTags(List.of("Spring")))
+                .withMotto("Mit Spring"));
         events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Ohne"));
 
         Document page = Jsoup.parse(mvc.perform(get("/event").param("year", "")
@@ -1710,12 +1740,12 @@ class EventControllerTest {
     /** Several tags widen: an evening passes when it carries any one of them. */
     @Test
     void severalTagsLetThroughWhateverCarriesAnyOfThem() throws Exception {
-        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Mit Spring")
-                .withTags(List.of("Spring")));
-        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Mit Kotlin")
-                .withTags(List.of("Kotlin")));
-        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Mit Testing")
-                .withTags(List.of("Testing")));
+        events.add(Event.draftFor(aReadyTalk(speakerId).withTags(List.of("Spring")))
+                .withMotto("Mit Spring"));
+        events.add(Event.draftFor(aReadyTalk(speakerId).withTags(List.of("Kotlin")))
+                .withMotto("Mit Kotlin"));
+        events.add(Event.draftFor(aReadyTalk(speakerId).withTags(List.of("Testing")))
+                .withMotto("Mit Testing"));
 
         Document page = Jsoup.parse(mvc.perform(get("/event").param("year", "")
                         .param("tag", "Spring").param("tag", "Kotlin"))

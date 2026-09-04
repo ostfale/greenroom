@@ -124,7 +124,10 @@ Copied, not referenced:
 
 - the announced biography is copied onto the `Talk` when the speaker is put on it and is
   edited there; rewriting a `Speaker` bio leaves earlier evenings untouched
-- an `Event` stores the tag words it was given, not a reference to the list in the settings
+- a `Talk` stores the tag words it was ticked with, not a reference to the list in the
+  settings. They sit on the talk, not on the evening: a word says what is talked about,
+  and an evening with a Spring talk and a Kotlin talk is not an evening about both.
+  `Event.tags()` is the union of its talks', derived and never stored
 - a `Location` keeps every address it ever had; only the active flag moves. `capacity` sits
   on the `Address`, because the seat count of an old address is part of what that evening
   was

@@ -13,7 +13,6 @@ import java.util.Locale;
 import java.util.Objects;
 
 import static de.ostfale.greenroom.domain.Texts.optional;
-import static de.ostfale.greenroom.domain.Texts.required;
 
 /**
  * One evening. Never a "Meetup" — that word means meetup.com here.
@@ -52,8 +51,7 @@ public record Event(
         EventMode mode,
         Long locationId,
         Integer addressPosition,
-        List<Talk> talks,
-        List<String> tags) {
+        List<Talk> talks) {
 
     public Event {
         if (status == null) {
@@ -78,13 +76,12 @@ public record Event(
         moderator = optional(moderator);
         notes = optional(notes);
         talks = List.copyOf(talks);
-        tags = tags == null ? List.of() : List.copyOf(normalised(tags));
     }
 
     /** A topic: somebody we want to hear, and nothing settled yet. */
     public static Event draftFor(Talk talk) {
         return new Event(null, null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE,
-                null, null, List.of(talk), List.of());
+                null, null, List.of(talk));
     }
 
     /**
@@ -98,17 +95,17 @@ public record Event(
             throw new RuleViolated(Rule.EVENT_DOES_NOT_MOVE, status, target);
         }
         return new Event(id, date, motto, moderator, notes, target, mode, locationId,
-                addressPosition, talks, tags);
+                addressPosition, talks);
     }
 
     public Event withDate(LocalDate newDate) {
         return new Event(id, newDate, motto, moderator, notes, status, mode, locationId,
-                addressPosition, talks, tags);
+                addressPosition, talks);
     }
 
     public Event withMotto(String newMotto) {
         return new Event(id, date, newMotto, moderator, notes, status, mode, locationId,
-                addressPosition, talks, tags);
+                addressPosition, talks);
     }
 
     /**
@@ -117,18 +114,18 @@ public record Event(
      */
     public Event withModerator(String newModerator) {
         return new Event(id, date, motto, newModerator, notes, status, mode, locationId,
-                addressPosition, talks, tags);
+                addressPosition, talks);
     }
 
     /** Anything worth writing down that has no field of its own. */
     public Event withNotes(String newNotes) {
         return new Event(id, date, motto, moderator, newNotes, status, mode, locationId,
-                addressPosition, talks, tags);
+                addressPosition, talks);
     }
 
     public Event withMode(EventMode newMode) {
         return new Event(id, date, motto, moderator, notes, status, newMode, locationId,
-                addressPosition, talks, tags);
+                addressPosition, talks);
     }
 
     /**
@@ -138,7 +135,7 @@ public record Event(
     public Event withLocation(Long newLocationId) {
         Integer stays = Objects.equals(locationId, newLocationId) ? addressPosition : null;
         return new Event(id, date, motto, moderator, notes, status, mode, newLocationId,
-                stays, talks, tags);
+                stays, talks);
     }
 
     /**
@@ -146,12 +143,12 @@ public record Event(
      */
     public Event withAddressAt(Integer position) {
         return new Event(id, date, motto, moderator, notes, status, mode, locationId,
-                position, talks, tags);
+                position, talks);
     }
 
     public Event withTalks(List<Talk> newTalks) {
         return new Event(id, date, motto, moderator, notes, status, mode, locationId,
-                addressPosition, newTalks, tags);
+                addressPosition, newTalks);
     }
 
     public Event withAdditionalTalk(Talk talk) {
@@ -192,17 +189,24 @@ public record Event(
     }
 
     /**
-     * The keywords as they were picked from the list in the settings. Copied, not
-     * referenced: renaming or deleting a tag later must not rewrite what an evening was
-     * announced with — the same reason the speaker's biography is copied onto the talk.
+     * The words the evening is filed under: those of its talks, each once and in the order
+     * the talks stand in. Derived and never stored — a word says what is talked about, and
+     * it is the talk that is about something, so an evening carrying its own list beside
+     * them would be a second place to maintain and a second place to be wrong.
      */
-    public Event withTags(List<String> newTags) {
-        return new Event(id, date, motto, moderator, notes, status, mode, locationId,
-                addressPosition, talks, newTags);
+    public List<String> tags() {
+        List<String> words = new ArrayList<>();
+        talks.forEach(talk -> talk.tags().forEach(word -> {
+            if (words.stream().noneMatch(seen -> seen.equalsIgnoreCase(word))) {
+                words.add(word);
+            }
+        }));
+        return words;
     }
 
+    /** Whether any of its talks is filed under that word. */
     public boolean carries(String tag) {
-        return tags.stream().anyMatch(own -> own.equalsIgnoreCase(tag));
+        return talks.stream().anyMatch(talk -> talk.carries(tag));
     }
 
     /**
@@ -222,9 +226,9 @@ public record Event(
         String looked = words.strip().toLowerCase(Locale.ROOT);
         return holds(motto, looked)
                 || holds(notes, looked)
-                || tags.stream().anyMatch(tag -> holds(tag, looked))
                 || talks.stream().anyMatch(talk -> holds(talk.title(), looked)
                         || holds(talk.abstractText(), looked)
+                        || talk.tags().stream().anyMatch(tag -> holds(tag, looked))
                         || talk.speakers().stream()
                                 .anyMatch(announced -> holds(announced.announcedBio(), looked)));
     }
@@ -311,17 +315,5 @@ public record Event(
     /** Several talks make it a special day rather than the regular evening. */
     public boolean hasSeveralTalks() {
         return talks.size() > 1;
-    }
-
-    private static List<String> normalised(List<String> tags) {
-        List<String> kept = new ArrayList<>();
-        for (String tag : tags) {
-            String word = required(tag, Rule.TAG_NEEDS_A_WORD);
-            if (kept.stream().anyMatch(seen -> seen.equalsIgnoreCase(word))) {
-                throw new RuleViolated(Rule.TAG_TWICE_ON_EVENT, word);
-            }
-            kept.add(word);
-        }
-        return kept;
     }
 }

@@ -34,31 +34,9 @@
             <div th:replace="~{fragments/event-status :: event-status}"></div>
         </section>
 
-        <section class="tile column-right">
-            <h2>Tags</h2>
-            <div th:replace="~{fragments/event-tags :: event-tags}"></div>
-        </section>
-
         <section class="tile half">
             <h2>Ort</h2>
             <div th:replace="~{fragments/event-venue :: event-venue}"></div>
-        </section>
-
-        <!-- Not swapped by anything, so it stays in the page rather than in a fragment. -->
-        <section class="tile half">
-            <h2>Referenten</h2>
-            <ul class="plain">
-                <li th:each="person : ${eventSpeakers}">
-                    <a th:href="@{/speaker/{id}(id=${person.id})}"
-                       th:text="${person.name}">Max Muster</a>
-                    <p class="hint" th:if="${person.company}"
-                       th:text="${person.company}">Nordsee GmbH</p>
-                    <p class="hint">
-                        <a th:href="'mailto:' + ${person.email}"
-                           th:text="${person.email}">max@example.org</a>
-                    </p>
-                </li>
-            </ul>
         </section>
 
         <section class="tile">

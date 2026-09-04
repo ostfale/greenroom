@@ -62,10 +62,10 @@ class EventRepositoryTest {
 
     @Test
     void storesAndReadsBackAWholeEvening() {
-        Event saved = events.save(Event.draftFor(aReadyTalk(speakerId))
+        Event saved = events.save(Event.draftFor(aReadyTalk(speakerId)
+                        .withTags(List.of("Java", "Records")))
                 .withDate(EVENING)
                 .withMotto("Java-Herbst")
-                .withTags(List.of("Java", "Records"))
                 .withLocation(locationId)
                 .moveTo(EventStatus.DATE_CONFIRMED)
                 .moveTo(EventStatus.VENUE_CONFIRMED));
@@ -81,6 +81,7 @@ class EventRepositoryTest {
         assertThat(loaded.tags()).containsExactly("Java", "Records");
         assertThat(loaded.talks()).singleElement().satisfies(talk -> {
             assertThat(talk.id()).isNotNull();
+            assertThat(talk.tags()).containsExactly("Java", "Records");
             assertThat(talk.title()).isEqualTo("Records in Java 25");
             assertThat(talk.speakers()).singleElement().satisfies(speaker -> {
                 assertThat(speaker.speakerId()).isEqualTo(speakerId);
