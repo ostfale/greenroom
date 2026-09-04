@@ -176,11 +176,14 @@ History:
 ## Database
 
 - Migrations in `src/main/resources/db/migration`, named `V<n>__snake_case.sql`.
-- While in development there is one script, `V1__schema.sql`, holding the whole schema.
-  It is extended in place; no `V2`, `V3`, … is added. After a change the dev database is
-  thrown away (`docker compose down -v`) instead of migrated.
-- Once the application is in use on the Pi, this flips: never edit an applied migration,
-  add a new one.
+- The application runs on the Pi since 2026-09-04 and holds data that nobody enters a
+  second time. With that, `V1__schema.sql` is frozen: an applied migration is never edited
+  again. A change to the schema is a new script — `V2`, `V3`, … — and it has to carry the
+  rows that are already there.
+- Throwing the database away (`docker compose down -v`) is no longer how a schema change is
+  made. It stays a way to start the local database over, and the dev-only rebuild in
+  `DevFlywayConfiguration` stays as the net under it — but a checksum mismatch there now
+  says somebody edited an applied script, not that the model moved.
 - Tables and columns snake_case, table names singular.
 - Event dates are `date`, not timestamps. Application timezone is Europe/Berlin.
 

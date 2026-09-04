@@ -11,7 +11,7 @@
 
     <groupId>de.ostfale</groupId>
     <artifactId>greenroom</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>greenroom</name>
     <description>greenroom</description>
 

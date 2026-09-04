@@ -9,13 +9,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 /**
- * While the model is still moving, {@code V1__schema.sql} is edited in place, so its
- * checksum stops matching what the development database recorded. Rebuild the schema
- * instead of refusing to start.
+ * A script whose checksum no longer matches what the database recorded stops Flyway from
+ * starting. On the Pi that is the right answer; a development database is worth less than
+ * the time spent starting it again by hand, so here the schema is rebuilt instead.
  *
- * <p>Data entered locally is lost when that happens — but only then; an unchanged script
- * migrates as usual. Flyway 10 dropped {@code cleanOnValidationError}, which is why this
- * is a bean and not a property.
+ * <p>Data entered locally is lost when that happens — but only then; unchanged scripts
+ * migrate as usual. Since the schema went into use it should not happen at all: it says an
+ * applied script was edited, and that is a mistake rather than a step. Flyway 10 dropped
+ * {@code cleanOnValidationError}, which is why this is a bean and not a property.
  */
 @Configuration(proxyBeanMethods = false)
 @Profile("dev")

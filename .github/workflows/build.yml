@@ -73,6 +73,14 @@ jobs:
       - name: Package
         run: ./mvnw --batch-mode --no-transfer-progress -DskipTests package
 
+      # The version out of the pom, so that a number names an image and not only the
+      # banner. It only moves when somebody edits it, so between two bumps this tag
+      # points at whatever was pushed last, exactly like `latest`. The SHA tag is the
+      # one that names a single build.
+      - name: Read the version
+        id: pom
+        run: echo "version=$(./mvnw --batch-mode --quiet help:evaluate -Dexpression=project.version -DforceStdout)" >> "$GITHUB_OUTPUT"
+
       # No QEMU here: the Dockerfile has no RUN, so buildx assembles both architectures
       # from their base images without executing anything. Add QEMU if that ever changes.
       - name: Set up buildx
@@ -94,6 +102,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ steps.pom.outputs.version }}
             ghcr.io/${{ github.repository }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
