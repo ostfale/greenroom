@@ -415,6 +415,18 @@ class SpeakerControllerTest {
     }
 
     @Test
+    void aPictureForASpeakerThatIsGoneSaysSoInsteadOfFailing() throws Exception {
+        String fragment = mvc.perform(multipart("/speaker/{id}/photo", 999L)
+                        .file(new MockMultipartFile("photo", "max.png", "image/png", picture(80, 80))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("gibt es nicht mehr");
+        assertThat(speakers.photoOf(999L)).isEmpty();
+    }
+
+    @Test
     void anEmptyListSaysSoInsteadOfShowingAnEmptyTable() throws Exception {
         String html = mvc.perform(get("/speaker")).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();

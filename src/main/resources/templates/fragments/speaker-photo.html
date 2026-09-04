@@ -2,15 +2,16 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <div id="speaker-photo" th:fragment="speaker-photo" class="photo">
-    <img th:if="${hasPhoto}" class="portrait"
+    <!-- Deleted in another tab: the tile comes back with the sentence and without a form. -->
+    <img th:if="${speaker != null and hasPhoto}" class="portrait"
          th:src="@{/speaker/{id}/photo(id=${speaker.id},v=${#dates.createNow().time})}"
          th:alt="${speaker.name}">
-    <div th:unless="${hasPhoto}" class="portrait placeholder"
+    <div th:if="${speaker != null and !hasPhoto}" class="portrait placeholder"
          th:text="${#strings.substring(speaker.name, 0, 1)}">M</div>
 
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form method="post" enctype="multipart/form-data"
+    <form th:if="${speaker}" method="post" enctype="multipart/form-data"
           th:action="@{/speaker/{id}/photo(id=${speaker.id})}"
           th:hx-post="@{/speaker/{id}/photo(id=${speaker.id})}"
           hx-target="#speaker-photo"
