@@ -15,15 +15,7 @@ of an evening easier than a Markdown note would — that is the only benchmark.
   four different records, none of which is stored yet when the form is submitted.
 - **What is copied is not referenced.** Whatever an evening was announced with must stay
   what it was, however the underlying record changes later.
-- **What is a matter of judgement is shown, not refused.** A clash, a step the state
-  machine allows, a venue we gave up — the page says so, somebody decides. Refuse only what
-  would be nonsense.
-- **The tool holds what happened, it does not act.** No mail is sent from here and no line
-  is written by itself: the page opens the mail client with an address, and the history is
-  what somebody typed. An automatism that has to be understood before it is trusted costs
-  more than it saves.
-- When a rule here and a simpler solution collide, say so instead of following the rule
-  silently.
+- No code is shown in console
 
 ## Language
 

@@ -48,15 +48,18 @@ public class EventController {
     private final ManageTags tags;
     private final ErrorMessages errors;
     private final EventPage page;
+    private final ChosenAddress chosenAddress;
 
     public EventController(ManageEvents events, ManageSpeakers speakers, ManageLocations locations,
-                           ManageTags tags, ErrorMessages errors, EventPage page) {
+                           ManageTags tags, ErrorMessages errors, EventPage page,
+                           ChosenAddress chosenAddress) {
         this.events = events;
         this.speakers = speakers;
         this.locations = locations;
         this.tags = tags;
         this.errors = errors;
         this.page = page;
+        this.chosenAddress = chosenAddress;
     }
 
     @GetMapping
@@ -91,8 +94,8 @@ public class EventController {
     private static EventFilter narrowedTo(String search, boolean hideClosed, String year,
                                           String speakerId, String locationId,
                                           List<String> tag) {
-        return new EventFilter(search, hideClosed, yearOrThisOne(year), number(speakerId),
-                number(locationId), tag);
+        return new EventFilter(search, hideClosed, yearOrThisOne(year),
+                FormValues.filterNumber(speakerId), FormValues.filterNumber(locationId), tag);
     }
 
     /**
@@ -104,20 +107,8 @@ public class EventController {
         if (year == null) {
             return LocalDate.now().getYear();
         }
-        Long picked = number(year);
+        Long picked = FormValues.filterNumber(year);
         return picked == null ? null : picked.intValue();
-    }
-
-    /** What a select sends, or {@code null} when it was left on "alle". */
-    private static Long number(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return Long.valueOf(value.strip());
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 
     @GetMapping("/new")
@@ -249,7 +240,7 @@ public class EventController {
             // withLocation drops a pin that belonged to another place, so the address is
             // set after it and never before.
             events.change(known.withLocation(place)
-                    .withAddressAt(addressAt(place, addressPosition)));
+                    .withAddressAt(chosenAddress.of(place, addressPosition)));
         });
     }
 
@@ -266,18 +257,5 @@ public class EventController {
         // Another place means another list, so nothing is preselected in it.
         model.addAttribute("chosenAddress", null);
         return "fragments/event-venue :: venue-address";
-    }
-
-    /**
-     * Which of the venue's addresses. Loading the place is the half of the question this
-     * controller can answer; turning what the form sent into a position against it is
-     * {@link FormValues#addressAt}.
-     */
-    private Integer addressAt(Long place, String position) {
-        if (place == null || position == null || position.isBlank()) {
-            return null;
-        }
-        return FormValues.addressAt(locations.byId(place).orElseThrow(() ->
-                new RuleViolated(Rule.NOT_FOUND)), position);
     }
 }

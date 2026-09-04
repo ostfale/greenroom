@@ -3,7 +3,6 @@ package de.ostfale.greenroom.adapter.in.web;
 import de.ostfale.greenroom.domain.Rule;
 import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.events.EventMode;
-import de.ostfale.greenroom.domain.locations.Location;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -13,13 +12,14 @@ import java.time.format.DateTimeParseException;
  * Turning what a form sends into what a record accepts. An empty field is not an empty
  * value here but the absence of one, which is what the records expect.
  *
- * <p>Two forms build an evening out of the same fields — the one that starts a new one and
- * the one that writes down a past one — and read them the same way. They read them here,
- * so that a date, a mode or a picked address means one thing in this application and not
- * two that drift apart.
+ * <p>Every page reads its fields here, so that a date, a mode or a number of seats means
+ * one thing in this application and not one per form. Two forms build an evening out of
+ * the same fields — the one that starts a new one and the one that writes down a past one
+ * — and that is where reading them twice would drift apart first.
  *
- * <p>Nothing in here asks anybody anything: what has to be looked up first is handed in
- * already loaded. That keeps this a plain conversion, testable the way the records are.
+ * <p>Nothing in here asks anybody anything, which keeps it a plain conversion, testable
+ * the way the records are. A value that can only be checked against something stored is
+ * turned by whoever can look that something up: {@link ChosenAddress} is the one of those.
  */
 final class FormValues {
 
@@ -105,26 +105,34 @@ final class FormValues {
     }
 
     /**
-     * Which of that place's addresses was picked, checked against the place itself: a
-     * position that is not there is a stale page or a tampered form, and either way not an
-     * address. Asked here so it refuses on the form rather than on the page that reads it
-     * back.
-     *
-     * <p>Empty means the address the place has today. So does a form that names no place:
-     * a position points into one place's list, and at another the same number is another
-     * building.
+     * How many people fit in. Empty means nobody has counted; anything that is not a
+     * number is a mistake worth naming.
      */
-    static Integer addressAt(Location place, String value) {
-        if (place == null || value == null || value.isBlank()) {
+    static Integer seats(String value) {
+        if (value == null || value.isBlank()) {
             return null;
         }
-        int picked;
         try {
-            picked = Integer.parseInt(value.strip());
+            return Integer.valueOf(value.strip());
         } catch (NumberFormatException e) {
-            throw new RuleViolated(Rule.NO_ADDRESS_AT_POSITION, value);
+            throw new RuleViolated(Rule.CAPACITY_IS_A_NUMBER_OF_SEATS, value);
         }
-        place.addressAt(picked);
-        return picked;
+    }
+
+    /**
+     * What a filter sends, or {@code null} when the select was left on "alle". The one
+     * value here that refuses nothing: a filter nobody can read narrows the list by
+     * nothing, and a list somebody is looking through is not a form to be filled in
+     * correctly.
+     */
+    static Long filterNumber(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(value.strip());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }

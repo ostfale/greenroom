@@ -4,8 +4,11 @@ import de.ostfale.greenroom.application.port.out.LookUpAddress;
 import de.ostfale.greenroom.domain.locations.Address;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -17,8 +20,23 @@ import java.util.Optional;
  *
  * <p>Every failure is the same answer here: no position. A geocoder that cannot be reached
  * must not stop somebody from writing down where the next evening will be.
+ *
+ * <p>Which is why the timeouts matter more than they look. The lookup runs inside the
+ * request somebody's click started, on the thread that has to render the page afterwards.
+ * A service that answers slowly is not a failure the catch below would ever see: without a
+ * deadline the thread waits as long as the other side keeps the socket open, and the page
+ * never comes back. The deadline turns silence into the empty answer this class already
+ * knows how to give.
  */
 public class NominatimLookup implements LookUpAddress {
+
+    /**
+     * Long enough for a public service on a bad day, short enough that somebody who
+     * clicked a button gets their page back. Nothing depends on the answer: an address
+     * without a point is written down all the same and can be looked up again later.
+     */
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -26,7 +44,16 @@ public class NominatimLookup implements LookUpAddress {
 
     /** Its own client: the transport belongs to the adapter, not to whoever wires it. */
     public NominatimLookup(String baseUrl, String userAgent) {
+        this(baseUrl, userAgent, CONNECT_TIMEOUT, READ_TIMEOUT);
+    }
+
+    /** The same with deadlines of its own, so a test does not have to wait out the real ones. */
+    NominatimLookup(String baseUrl, String userAgent, Duration connectTimeout, Duration readTimeout) {
+        HttpClient http = HttpClient.newBuilder().connectTimeout(connectTimeout).build();
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(http);
+        factory.setReadTimeout(readTimeout);
         this.client = RestClient.builder()
+                .requestFactory(factory)
                 .baseUrl(baseUrl)
                 .defaultHeader("User-Agent", userAgent)
                 .build();
@@ -57,6 +84,7 @@ public class NominatimLookup implements LookUpAddress {
                     Double.parseDouble(String.valueOf(first.get("lon")))));
         } catch (RuntimeException e) {
             // Not being able to ask is the same as not being told: no map, nothing else.
+            // A deadline that ran out arrives here too, which is the whole point of having one.
             log.warn("NominatimLookup :: could not look up {}", written, e);
             return Optional.empty();
         }

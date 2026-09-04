@@ -70,7 +70,7 @@ public class LocationController {
             Location location = new Location(null, name, notes, true, List.of(), List.of(contact));
             if (!street.isBlank() || !postalCode.isBlank() || !city.isBlank()) {
                 location = location.movedTo(
-                        Address.at(street, postalCode, city).withCapacity(seats(capacity)));
+                        Address.at(street, postalCode, city).withCapacity(FormValues.seats(capacity)));
             } else if (!capacity.isBlank()) {
                 throw new RuleViolated(Rule.CAPACITY_BELONGS_TO_AN_ADDRESS);
             }
@@ -83,18 +83,6 @@ public class LocationController {
             model.addAttribute("submitted", submitted(name, street, postalCode, city, capacity,
                     notes, contactName, contactEmail, contactPhone));
             return "location/form";
-        }
-    }
-
-    /** Empty means "not counted"; anything that is not a number is a mistake worth naming. */
-    private static Integer seats(String capacity) {
-        if (capacity == null || capacity.isBlank()) {
-            return null;
-        }
-        try {
-            return Integer.valueOf(capacity.strip());
-        } catch (NumberFormatException e) {
-            throw new RuleViolated(Rule.CAPACITY_IS_A_NUMBER_OF_SEATS, capacity);
         }
     }
 
@@ -160,7 +148,7 @@ public class LocationController {
                              Model model) {
         try {
             show(model, locations.addAddress(id,
-                    Address.at(street, postalCode, city).withCapacity(seats(capacity)), moved));
+                    Address.at(street, postalCode, city).withCapacity(FormValues.seats(capacity)), moved));
         } catch (RuleViolated e) {
             model.addAttribute("error", errors.german(e));
             locations.byId(id).ifPresent(location -> show(model, location));

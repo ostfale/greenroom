@@ -55,13 +55,16 @@ public class PastEventController {
     private final ManageSpeakers speakers;
     private final ManageLocations locations;
     private final ErrorMessages errors;
+    private final ChosenAddress chosenAddress;
 
     public PastEventController(ManageEvents events, ManageSpeakers speakers,
-                               ManageLocations locations, ErrorMessages errors) {
+                               ManageLocations locations, ErrorMessages errors,
+                               ChosenAddress chosenAddress) {
         this.events = events;
         this.speakers = speakers;
         this.locations = locations;
         this.errors = errors;
+        this.chosenAddress = chosenAddress;
     }
 
     @GetMapping
@@ -92,7 +95,7 @@ public class PastEventController {
                     field(form, "abstractText"),
                     field(form, "announcedBio"),
                     place,
-                    addressAt(place, field(form, "addressPosition"))));
+                    chosenAddress.of(place, field(form, "addressPosition"))));
             return "redirect:/event";
         } catch (RuleViolated e) {
             // The records know the rules; the form only has to say so in German and keep
@@ -140,21 +143,6 @@ public class PastEventController {
             throw new RuleViolated(Rule.EVENT_IS_NOT_OVER, chosen);
         }
         return chosen;
-    }
-
-    /**
-     * Which of the venue's addresses the evening sat at. A place that moved keeps the old
-     * one, and an evening from before the move points at it rather than at today's.
-     *
-     * <p>Loading the place is the half of the question this controller can answer; turning
-     * what the form sent into a position against it is {@link FormValues#addressAt}.
-     */
-    private Integer addressAt(Long place, String position) {
-        if (place == null || position == null || position.isBlank()) {
-            return null;
-        }
-        return FormValues.addressAt(locations.byId(place).orElseThrow(() ->
-                new RuleViolated(Rule.NOT_FOUND)), position);
     }
 
     /**
