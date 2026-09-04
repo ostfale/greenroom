@@ -24,6 +24,7 @@
         <!-- plugins -->
         <versions-maven-plugin.version>2.21.0</versions-maven-plugin.version>
         <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
+        <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
 
         <!-- test -->
         <archunit-junit5.version>1.5.0</archunit-junit5.version>
@@ -166,6 +167,31 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>coverage</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>coverage-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <!--
+                    A report, not a gate: no check goal and no threshold. A number that has
+                    to stay green invites tests written for the number. This one is read
+                    when it is wanted and says nothing the rest of the time.
+                -->
             </plugin>
         </plugins>
     </build>
