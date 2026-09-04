@@ -16,6 +16,7 @@ import java.util.Map;
 
 import static de.ostfale.greenroom.Fixtures.aContact;
 import static de.ostfale.greenroom.Fixtures.aReadyTalk;
+import static de.ostfale.greenroom.Fixtures.aTalk;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Plain Java, no Spring: what goes into the file, and what a calendar may not be handed. */
@@ -155,6 +156,45 @@ class CalendarEntryTest {
         assertThat(Arrays.stream(file.split("\r\n")).map(line -> line.getBytes(StandardCharsets.UTF_8).length))
                 .allMatch(length -> length <= 75);
         assertThat(unfolded(file)).contains("SUMMARY:" + motto);
+    }
+
+    /** A topic that has a person but no title yet: the entry says who, not an empty dash. */
+    @Test
+    void aTalkWithoutATitleIsListedByItsSpeakerAlone() {
+        Event unnamed = anEvening().withTalks(List.of(aTalk(SPEAKER)));
+
+        assertThat(unfolded(CalendarEntry.of(unnamed, "Java-Herbst", null, NAMES, NOW)))
+                .contains("DESCRIPTION:Max Muster");
+    }
+
+    /**
+     * The names are looked up, and a speaker the caller did not hand over is not written
+     * as an empty string beside a dash.
+     */
+    @Test
+    void aTalkWhoseSpeakerIsUnknownIsListedByItsTitleAlone() {
+        String file = CalendarEntry.of(anEvening(), "Java-Herbst", null, Map.of(), NOW);
+
+        assertThat(unfolded(file)).contains("DESCRIPTION:Records in Java 25");
+        assertThat(unfolded(file)).doesNotContain("—");
+    }
+
+    /** Neither a title nor a name to show: the file goes out without a description. */
+    @Test
+    void anEveningWithNothingToSayAboutItsTalkCarriesNoDescription() {
+        Event bare = anEvening().withTalks(List.of(aTalk(SPEAKER)));
+
+        assertThat(CalendarEntry.of(bare, "Java-Herbst", null, Map.of(), NOW))
+                .doesNotContain("DESCRIPTION");
+    }
+
+    /** A place whose address nobody wrote down is still the place: its name goes in alone. */
+    @Test
+    void aVenueWithoutAnAddressIsJustItsName() {
+        Location place = Location.of("Musterfirma GmbH", aContact());
+
+        assertThat(lines(CalendarEntry.of(anEvening(), "Java-Herbst", place, NAMES, NOW)))
+                .contains("LOCATION:Musterfirma GmbH");
     }
 
     @Test

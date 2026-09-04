@@ -43,6 +43,41 @@ class EventTest {
         assertThat(event.tags()).isEmpty();
     }
 
+    /**
+     * The canonical constructor is what a stored row comes back through, so it refuses by
+     * name what the factories can never hand it.
+     */
+    @Test
+    void anEveningNeedsAStatusAModeAndATalk() {
+        assertThat(ruleBrokenBy(() -> new Event(1L, null, null, null, null,
+                null, EventMode.ONSITE, null, null, List.of(aReadyTalk(SPEAKER)), List.of())))
+                .isEqualTo(Rule.EVENT_NEEDS_A_STATUS);
+        assertThat(ruleBrokenBy(() -> new Event(1L, null, null, null, null,
+                EventStatus.DRAFT, null, null, null, List.of(aReadyTalk(SPEAKER)), List.of())))
+                .isEqualTo(Rule.EVENT_NEEDS_A_MODE);
+        assertThat(ruleBrokenBy(() -> new Event(1L, null, null, null, null,
+                EventStatus.DRAFT, EventMode.ONSITE, null, null, null, List.of())))
+                .isEqualTo(Rule.EVENT_NEEDS_ONE_TALK);
+    }
+
+    /** No keyword was written down: that is none, not a list that is missing. */
+    @Test
+    void anEveningWithoutKeywordsCarriesAnEmptyListRatherThanNone() {
+        Event read = new Event(1L, EVENING, null, null, null, EventStatus.DRAFT,
+                EventMode.ONSITE, null, null, List.of(aReadyTalk(SPEAKER)), null);
+
+        assertThat(read.tags()).isEmpty();
+    }
+
+    /** A filter standing on "alle" asks about nobody, and nobody speaks nowhere. */
+    @Test
+    void nobodyIsNoSpeakerAndNowhereIsNoPlace() {
+        Event evening = published();
+
+        assertThat(evening.isGivenBy(null)).isFalse();
+        assertThat(evening.isAt(null)).isFalse();
+    }
+
     @Test
     void anEveningNeedsAtLeastOneTalk() {
         assertThat(ruleBrokenBy(() -> new Event(null, null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE,

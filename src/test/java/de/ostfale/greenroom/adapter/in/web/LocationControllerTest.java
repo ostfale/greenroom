@@ -81,6 +81,43 @@ class LocationControllerTest {
         });
     }
 
+    /**
+     * A place that is known by its town and nothing else is still a place with an address.
+     * Whichever of the three fields was filled in is what makes one.
+     */
+    @Test
+    void aTownOnItsOwnIsAlreadyAnAddress() throws Exception {
+        mvc.perform(post("/location")
+                        .param("name", "Musterfirma GmbH")
+                        .param("street", "")
+                        .param("postalCode", "")
+                        .param("city", "Hamburg")
+                        .param("capacity", "")
+                        .param("notes", "")
+                        .param("contactName", "Max Muster")
+                        .param("contactEmail", "max@example.org")
+                        .param("contactPhone", ""))
+                .andExpect(redirectedUrl("/location"));
+
+        assertThat(locations.all()).singleElement().satisfies(stored ->
+                assertThat(stored.addressLine()).isEqualTo("Hamburg"));
+
+        mvc.perform(post("/location")
+                        .param("name", "Zweite Firma GmbH")
+                        .param("street", "")
+                        .param("postalCode", "20095")
+                        .param("city", "")
+                        .param("capacity", "")
+                        .param("notes", "")
+                        .param("contactName", "Max Muster")
+                        .param("contactEmail", "max@example.org")
+                        .param("contactPhone", ""))
+                .andExpect(redirectedUrl("/location"));
+
+        assertThat(locations.all()).hasSize(2)
+                .anySatisfy(stored -> assertThat(stored.addressLine()).isEqualTo("20095"));
+    }
+
     @Test
     void aLocationWithoutACapacityIsStoredWithoutOne() throws Exception {
         mvc.perform(post("/location")

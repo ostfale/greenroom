@@ -160,6 +160,19 @@ class LocationTest {
         assertThat(quiet.withAddressActive(0, true).activeAddresses()).hasSize(1);
     }
 
+    /** A position counts from zero, so anything below it points at nothing either. */
+    @Test
+    void aPositionBelowZeroPointsAtNothingAtAll() {
+        Location location = aLocation().movedTo(Address.at("Musterweg 1", "22179", "Hamburg"));
+
+        assertThat(ruleBrokenBy(() -> location.withAddressActive(-1, false)))
+                .isEqualTo(Rule.NO_ADDRESS_AT_POSITION);
+        assertThat(ruleBrokenBy(() -> location.addressAt(-1)))
+                .isEqualTo(Rule.NO_ADDRESS_AT_POSITION);
+        assertThat(ruleBrokenBy(() -> location.withContactRemoved(-1)))
+                .isEqualTo(Rule.NO_CONTACT_AT_POSITION);
+    }
+
     @Test
     void thereIsNoAddressAtAPositionThatDoesNotExist() {
         Location location = aLocation();
@@ -314,6 +327,28 @@ class LocationTest {
                 .isEqualTo(Rule.POSITION_OFF_THE_PLANET);
         assertThat(ruleBrokenBy(() -> Address.at("Musterweg 1", null, "Hamburg").at(53.55, 181.0)))
                 .isEqualTo(Rule.POSITION_OFF_THE_PLANET);
+        assertThat(ruleBrokenBy(() -> Address.at("Musterweg 1", null, "Hamburg").at(-91.0, 9.99)))
+                .isEqualTo(Rule.POSITION_OFF_THE_PLANET);
+        assertThat(ruleBrokenBy(() -> Address.at("Musterweg 1", null, "Hamburg").at(53.55, -181.0)))
+                .isEqualTo(Rule.POSITION_OFF_THE_PLANET);
+    }
+
+    /** A place known by its postcode alone is thin, but it is an address and it is kept. */
+    @Test
+    void aPostcodeOnItsOwnIsAlreadyAnAddress() {
+        assertThat(Address.at(null, "22179", null).line()).isEqualTo("22179");
+    }
+
+    /**
+     * A row that carries no addresses yet is a place without any, not a place with a
+     * missing list. The canonical constructor is what a stored row comes back through.
+     */
+    @Test
+    void aPlaceWithoutAnyAddressesHasAnEmptyListRatherThanNone() {
+        Location read = new Location(1L, "Musterfirma GmbH", null, true, null, List.of(aContact()));
+
+        assertThat(read.addresses()).isEmpty();
+        assertThat(read.currentAddress()).isNull();
     }
 
     @Test

@@ -8,6 +8,7 @@ import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventMode;
 import de.ostfale.greenroom.domain.events.EventStatus;
+import de.ostfale.greenroom.domain.locations.Address;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.BeforeEach;
@@ -206,6 +207,28 @@ class PastEventControllerTest {
 
         assertThat(Jsoup.parse(html).select("div.actions a").eachAttr("href"))
                 .contains("/event/past");
+    }
+
+    /**
+     * A backlog entry is written for a place as it was then, so the second select has to
+     * offer the addresses of the place the first one just picked. Only a place that had
+     * more than one has anything to ask about.
+     */
+    @Test
+    void pickingAPlaceFetchesTheAddressesItHasHad() throws Exception {
+        Long moved = locations.add(aLocation()
+                .movedTo(Address.at("Musterweg 1", "22179", "Hamburg"))
+                .movedTo(Address.at("Neuer Weg 2", "20095", "Hamburg"))).id();
+
+        assertThat(mvc.perform(get("/event/past/addresses").param("locationId", moved.toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString())
+                .contains("Musterweg 1").contains("Neuer Weg 2");
+
+        assertThat(mvc.perform(get("/event/past/addresses").param("locationId", ""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString())
+                .doesNotContain("Musterweg 1");
     }
 
     /** Everything filled in, unless the test says otherwise. */

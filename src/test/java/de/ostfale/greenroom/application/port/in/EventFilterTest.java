@@ -144,6 +144,19 @@ class EventFilterTest {
         assertThat(both.matches(tagged.withLocation(9L))).isFalse();
     }
 
+    /**
+     * The page offers the way back only when something is narrowed, so every field has to
+     * count on its own — the list opens on a year, and that year is a filter like any other.
+     */
+    @Test
+    void everyFieldCountsAsNarrowedOnItsOwn() {
+        assertThat(new EventFilter("arc42", false, null, null, null, List.of()).isSet()).isTrue();
+        assertThat(new EventFilter(null, false, 2026, null, null, List.of()).isSet()).isTrue();
+        assertThat(new EventFilter(null, false, null, MAX, null, List.of()).isSet()).isTrue();
+        assertThat(new EventFilter(null, false, null, null, PLACE, List.of()).isSet()).isTrue();
+        assertThat(new EventFilter(null, false, null, null, null, List.of("Spring")).isSet()).isTrue();
+    }
+
     @Test
     void hidingWhatIsOverIsJustAnotherField() {
         EventFilter open = new EventFilter(null, true, null, null, null, List.of());

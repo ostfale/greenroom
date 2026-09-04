@@ -1332,6 +1332,51 @@ class EventControllerTest {
                 .selectFirst("a[href$=/ical]").text()).isEqualTo("Termin exportieren");
     }
 
+    /** Deleted in another tab while the link was still on the page. */
+    @Test
+    void aCalendarForAnEveningThatIsGoneIsNotFound() throws Exception {
+        mvc.perform(get("/event/999/ical")).andExpect(status().isNotFound());
+    }
+
+    /**
+     * An evening is called by its motto, otherwise by the title of its talk. A topic that
+     * has neither yet still goes into a calendar — under a name the file supplies.
+     */
+    @Test
+    void anEveningWithoutANameOfItsOwnIsExportedUnderOne() throws Exception {
+        Long id = events.add(Event.draftFor(aTalk(speakerId)).withDate(EVENING)).id();
+
+        assertThat(mvc.perform(get("/event/" + id + "/ical"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString())
+                .contains("SUMMARY:Ohne Titel");
+    }
+
+    /**
+     * The second select depends on the first, so picking a place fetches its addresses on
+     * their own. Picking none leaves nothing to choose from. A place that only ever had
+     * one address has nothing to ask about, which is why this one moved.
+     */
+    @Test
+    void pickingAPlaceFetchesTheAddressesToChooseFrom() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
+        Long place = locations.add(aLocation()
+                .movedTo(anAddress())
+                .movedTo(Address.at("Neuer Weg 2", "20095", "Hamburg"))).id();
+
+        String withPlace = mvc.perform(get("/event/" + id + "/addresses")
+                        .param("locationId", place.toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertThat(withPlace).contains("Musterweg 1");
+
+        String withNone = mvc.perform(get("/event/" + id + "/addresses")
+                        .param("locationId", ""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertThat(withNone).doesNotContain("Musterweg 1");
+    }
+
     // --- the speakers of the evening, reachable from here ------------------------------
 
     @Test

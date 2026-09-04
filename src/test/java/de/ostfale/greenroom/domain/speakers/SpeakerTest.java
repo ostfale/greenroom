@@ -55,6 +55,9 @@ class SpeakerTest {
     @Test
     void linksAreNeverNullAndNeverSharedWithTheCaller() {
         assertThat(Speaker.of("Max Muster", "max@example.org").links()).isEmpty();
+        // A stored row with nothing beside it comes back through the canonical constructor.
+        assertThat(new Speaker(1L, "Max Muster", null, "max@example.org", null, null, null, null)
+                .links()).isEmpty();
 
         List<SpeakerLink> mutable = new ArrayList<>(List.of(SpeakerLink.of("https://example.org")));
         Speaker speaker = Speaker.of("Max Muster", "max@example.org").withLinks(mutable);
