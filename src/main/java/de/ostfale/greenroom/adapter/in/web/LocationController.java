@@ -118,9 +118,7 @@ public class LocationController {
             Location asked = locations.locate(id, position);
             // Asked and not told is worth saying, or the button looks broken.
             if (!asked.addresses().get(position).isLocated()) {
-                model.addAttribute("error",
-                        "Zu dieser Adresse hat OpenStreetMap keinen Punkt geliefert. "
-                                + "Meist fehlt die Hausnummer oder die Stadt.");
+                model.addAttribute("error", errors.text("location.address.notFound"));
             }
         } catch (RuleViolated e) {
             model.addAttribute("error", errors.german(e));

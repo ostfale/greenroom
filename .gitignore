@@ -1,7 +1,7 @@
 HELP.md
 target/
 
-### Secrets — the mail password lives here on the Pi, never in the repository
+### Secrets — the database password lives here on the Pi, never in the repository
 .env
 *.env
 !.env.example

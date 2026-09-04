@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.application.port.in;
 
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
@@ -42,9 +43,10 @@ public interface ManageEvents {
      * {@link #change} does, so the guard runs against the status that is stored: the page
      * says where it wants to go, never which status the evening already has.
      *
-     * @throws IllegalStateException    if the state machine does not allow the step
-     * @throws IllegalArgumentException if the new status wants something the evening has
+     * @throws RuleViolated             if the state machine does not allow the step, or
+     *                                  if the new status wants something the evening has
      *                                  not got — a date, a venue, publishable talks
+     * @throws IllegalArgumentException if there is no evening with that id
      */
     Event moveTo(Long eventId, EventStatus target);
 
@@ -73,8 +75,7 @@ public interface ManageEvents {
      * <p>The speaker is found by address or created: somebody who spoke before is not
      * written down a second time.
      *
-     * @throws de.ostfale.greenroom.domain.RuleViolated if the evening does not carry what
-     *                                                  the chosen status promises
+     * @throws RuleViolated if the evening does not carry what the chosen status promises
      */
     Event enterPast(PastEvening past);
 
@@ -87,9 +88,10 @@ public interface ManageEvents {
      * is ignored, because a stale page is worth less than what is stored. Which people give
      * the talk is not the form's to change.
      *
-     * @throws IllegalArgumentException if there is no talk at that position, or if the
+     * @throws RuleViolated             if there is no talk at that position, or if the
      *                                  evening is already announced and the change would
      *                                  leave a talk without a title or an abstract
+     * @throws IllegalArgumentException if there is no evening with that id
      */
     Event changeTalk(Long eventId, int position, String title, String abstractText,
                      LocalTime startsAt, List<String> announcedBios);
@@ -97,8 +99,9 @@ public interface ManageEvents {
     /**
      * Drops the talk at that position.
      *
-     * @throws IllegalArgumentException if it was the last one — an evening without a talk
+     * @throws RuleViolated             if it was the last one — an evening without a talk
      *                                  is not an evening
+     * @throws IllegalArgumentException if there is no evening with that id
      */
     Event removeTalk(Long eventId, int position);
 }

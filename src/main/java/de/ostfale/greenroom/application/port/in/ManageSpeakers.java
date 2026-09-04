@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.application.port.in;
 
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.speakers.Speaker;
 import de.ostfale.greenroom.domain.speakers.SpeakerPhoto;
 
@@ -35,8 +36,8 @@ public interface ManageSpeakers {
     /**
      * Removes a speaker and the picture with them.
      *
-     * @throws IllegalStateException if they are announced on a talk — that evening still
-     *                               points at them
+     * @throws RuleViolated if they are announced on a talk — that evening still points
+     *                      at them
      */
     void remove(Long id);
 

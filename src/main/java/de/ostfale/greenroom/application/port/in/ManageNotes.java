@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.application.port.in;
 
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.notes.Note;
 
 import java.util.List;
@@ -18,7 +19,7 @@ public interface ManageNotes {
      * Writes a note down and stamps it with the moment. Two texts rather than the
      * aggregate, because the stamp is not the caller's to make.
      *
-     * @throws IllegalArgumentException if there is no title
+     * @throws RuleViolated if there is no title
      */
     Note add(String title, String text);
 
@@ -28,7 +29,7 @@ public interface ManageNotes {
      * Puts a thought right. The stamp stays what it was — it says when the note was
      * written, not when it was last touched.
      *
-     * @throws IllegalArgumentException if there is no such note, or no title
+     * @throws RuleViolated if there is no such note, or no title
      */
     Note change(Long id, String title, String text);
 

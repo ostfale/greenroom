@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.application.port.in;
 
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.locations.Address;
 import de.ostfale.greenroom.domain.locations.ContactPerson;
 import de.ostfale.greenroom.domain.locations.Location;
@@ -34,7 +35,8 @@ public interface ManageLocations {
      * addresses that were written down before anybody asked — and for a second try when
      * the lookup was unreachable.
      *
-     * @throws IllegalArgumentException if there is no address at that position
+     * @throws RuleViolated             if there is no address at that position
+     * @throws IllegalArgumentException if there is no location with that id
      */
     Location locate(Long locationId, int position);
 
@@ -49,8 +51,8 @@ public interface ManageLocations {
     Location changeContact(Long locationId, int position, ContactPerson contact);
 
     /**
-     * @throws IllegalArgumentException if it was the last contact person — every location
-     *                                  keeps somebody to ask
+     * @throws RuleViolated if it was the last contact person — every location keeps
+     *                      somebody to ask
      */
     Location removeContact(Long locationId, int position);
 }

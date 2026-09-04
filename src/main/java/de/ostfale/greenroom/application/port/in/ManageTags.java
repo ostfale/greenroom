@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.application.port.in;
 
+import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.tags.Tag;
 
 import java.util.List;
@@ -15,8 +16,7 @@ public interface ManageTags {
     /**
      * Stores a tag that has no id yet.
      *
-     * @throws IllegalArgumentException if that word is already on the list, however it was
-     *                                  spelled
+     * @throws RuleViolated if that word is already on the list, however it was spelled
      */
     Tag add(Tag tag);
 
@@ -24,7 +24,8 @@ public interface ManageTags {
      * Renames the tag. What an evening was announced with does not move with it: the event
      * keeps the word it was given, not a reference to this list.
      *
-     * @throws IllegalArgumentException if another tag already carries that word
+     * @throws RuleViolated if there is no such tag, or if another one already carries
+     *                      that word
      */
     Tag rename(Long id, String name);
 
