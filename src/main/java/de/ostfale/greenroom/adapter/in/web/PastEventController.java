@@ -81,17 +81,18 @@ public class PastEventController {
     public String enter(@RequestParam Map<String, String> sent, Model model) {
         Map<String, String> form = every(sent);
         try {
+            Long place = FormValues.locationId(field(form, "locationId"));
             events.enterPast(new PastEvening(
                     FormValues.date(field(form, "date")),
                     FormValues.time(field(form, "startsAt")),
-                    heldAs(field(form, "mode")),
+                    FormValues.mode(field(form, "mode")),
                     ended(field(form, "status")),
-                    chosen(field(form, "speakerId")),
+                    FormValues.speakerId(field(form, "speakerId")),
                     field(form, "title"),
                     field(form, "abstractText"),
                     field(form, "announcedBio"),
-                    venue(field(form, "locationId")),
-                    addressAt(venue(field(form, "locationId")), field(form, "addressPosition"))));
+                    place,
+                    addressAt(place, field(form, "addressPosition"))));
             return "redirect:/event";
         } catch (RuleViolated e) {
             // The records know the rules; the form only has to say so in German and keep
@@ -112,7 +113,7 @@ public class PastEventController {
      */
     @GetMapping("/bio")
     public String bioOf(@RequestParam(defaultValue = "") String speakerId, Model model) {
-        model.addAttribute("announcedBio", speakers.byId(chosenOrNone(speakerId))
+        model.addAttribute("announcedBio", speakers.byId(FormValues.speakerIdOrNone(speakerId))
                 .map(Speaker::bio)
                 .orElse(""));
         return "event/past :: announced-bio";
@@ -129,18 +130,6 @@ public class PastEventController {
         return complete;
     }
 
-    /** Empty is the usual answer: most evenings were on site. */
-    private static EventMode heldAs(String mode) {
-        if (mode == null || mode.isBlank()) {
-            return EventMode.ONSITE;
-        }
-        try {
-            return EventMode.valueOf(mode.strip());
-        } catch (IllegalArgumentException e) {
-            throw new RuleViolated(Rule.EVENT_NEEDS_A_MODE, mode);
-        }
-    }
-
     /** How it ended. Empty means it took place, which is what a backlog is mostly made of. */
     private static EventStatus ended(String status) {
         if (status == null || status.isBlank()) {
@@ -153,43 +142,19 @@ public class PastEventController {
         return chosen;
     }
 
-    /** The person who spoke. Not optional: an evening without one is not an evening. */
-    private static Long chosen(String speakerId) {
-        Long picked = chosenOrNone(speakerId);
-        if (picked == null) {
-            throw new RuleViolated(Rule.NO_SPEAKER_CHOSEN);
-        }
-        return picked;
-    }
-
-    private static Long chosenOrNone(String speakerId) {
-        if (speakerId == null || speakerId.isBlank()) {
-            return null;
-        }
-        try {
-            return Long.valueOf(speakerId.strip());
-        } catch (NumberFormatException e) {
-            throw new RuleViolated(Rule.NO_SPEAKER_CHOSEN);
-        }
-    }
-
     /**
      * Which of the venue's addresses the evening sat at. A place that moved keeps the old
      * one, and an evening from before the move points at it rather than at today's.
+     *
+     * <p>Loading the place is the half of the question this controller can answer; turning
+     * what the form sent into a position against it is {@link FormValues#addressAt}.
      */
     private Integer addressAt(Long place, String position) {
         if (place == null || position == null || position.isBlank()) {
             return null;
         }
-        int picked;
-        try {
-            picked = Integer.parseInt(position.strip());
-        } catch (NumberFormatException e) {
-            throw new RuleViolated(Rule.NO_ADDRESS_AT_POSITION, position);
-        }
-        locations.byId(place).orElseThrow(() -> new RuleViolated(Rule.NOT_FOUND))
-                .addressAt(picked);
-        return picked;
+        return FormValues.addressAt(locations.byId(place).orElseThrow(() ->
+                new RuleViolated(Rule.NOT_FOUND)), position);
     }
 
     /**
@@ -198,22 +163,10 @@ public class PastEventController {
      */
     @GetMapping("/addresses")
     public String addressesOf(@RequestParam(defaultValue = "") String locationId, Model model) {
-        Long place = venue(locationId);
+        Long place = FormValues.locationId(locationId);
         model.addAttribute("place", place == null ? null : locations.byId(place).orElse(null));
         model.addAttribute("submitted", Map.of("addressPosition", ""));
         return "event/past :: venue-address";
-    }
-
-    /** Empty means the place was not written down; the evening then cannot be DONE. */
-    private static Long venue(String locationId) {
-        if (locationId == null || locationId.isBlank()) {
-            return null;
-        }
-        try {
-            return Long.valueOf(locationId.strip());
-        } catch (NumberFormatException e) {
-            throw new RuleViolated(Rule.NO_LOCATION_CHOSEN);
-        }
     }
 
     private void fill(Model model, Map<String, String> submitted) {
@@ -224,7 +177,7 @@ public class PastEventController {
         model.addAttribute("endings", ENDINGS);
         model.addAttribute("announcedBio", submitted.get("announcedBio"));
         // The address select needs the place that is picked; on a fresh form there is none.
-        Long place = venue(submitted.get("locationId"));
+        Long place = FormValues.locationId(submitted.get("locationId"));
         model.addAttribute("place", place == null ? null : locations.byId(place).orElse(null));
     }
 }
