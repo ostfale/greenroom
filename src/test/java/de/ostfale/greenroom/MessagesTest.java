@@ -40,6 +40,10 @@ class MessagesTest {
     void everyEnumShownOnAPageHasAGermanWord() {
         assertThat(EventStatus.values()).allSatisfy(status ->
                 assertThat(TEXTS).containsKey("event.status." + status));
+        // The state as a word and the step that reaches it as a verb are two texts, and a
+        // button that got only the first one says the state is already reached.
+        assertThat(EventStatus.values()).allSatisfy(status ->
+                assertThat(TEXTS).containsKey("event.action." + status));
         assertThat(EventMode.values()).allSatisfy(mode ->
                 assertThat(TEXTS).containsKey("event.mode." + mode));
         assertThat(NextStep.values()).allSatisfy(step ->

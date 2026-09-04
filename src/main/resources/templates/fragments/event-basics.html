@@ -13,7 +13,7 @@
         ><span th:unless="${i.last}">, </span></span>
     </p>
 
-    <form method="post" th:action="@{/event/{id}(id=${event.id})}"
+    <form class="guarded" method="post" th:action="@{/event/{id}(id=${event.id})}"
           th:hx-post="@{/event/{id}(id=${event.id})}"
           hx-target="#event-basics"
           hx-swap="outerHTML">
@@ -52,7 +52,7 @@
         </label>
 
         <div class="actions">
-            <button type="submit">Änderungen speichern</button>
+            <button type="submit" disabled>Änderungen speichern</button>
         </div>
     </form>
 </div>

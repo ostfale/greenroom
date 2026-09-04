@@ -5,29 +5,45 @@
 <div id="event-status" th:fragment="event-status">
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <div class="steps">
-        <span class="progress"
-              th:classappend="${event.status.name() == 'POSTPONED'} ? 'postponed'
-                            : (${event.status.name() == 'CANCELLED'} ? 'cancelled' : '')">
-            <i th:each="step : ${#numbers.sequence(1, 4)}"
-               th:classappend="${step <= event.status.plannedSteps()} ? 'done'"></i>
-        </span>
-        <span class="label" th:text="#{'event.status.' + ${event.status}}">Thema</span>
-    </div>
+    <p class="state">
+        <span class="badge label"
+              th:classappend="${event.status.name() == 'POSTPONED'} ? 'warn'
+                            : (${event.status.name() == 'CANCELLED'} ? 'stop' : '')"
+              th:text="#{'event.status.' + ${event.status}}">Thema</span>
+    </p>
+
+    <!-- The four confirmations an evening collects, each by its own name and each ticked
+         off or not. Four bars say how far it has come without saying how far *what*, and
+         on the tile that decides the next hand that is the half that counts. -->
+    <ol class="track">
+        <li th:each="milestone : ${milestones}"
+            th:classappend="${milestone.plannedSteps() <= event.status.plannedSteps()} ? 'done'
+                          : (${!event.status.isClosed()
+                              and milestone.plannedSteps() == event.status.plannedSteps() + 1} ? 'next' : '')">
+            <span class="mark" aria-hidden="true"></span>
+            <span class="name" th:text="#{'event.status.' + ${milestone}}">Termin bestätigt</span>
+        </li>
+    </ol>
 
     <p class="hint" th:if="${#lists.isEmpty(transitions)}">
         Von hier führt kein Schritt mehr weiter.
     </p>
 
-    <p class="caption" th:unless="${#lists.isEmpty(transitions)}">Nächster Schritt</p>
+    <p class="caption" th:unless="${#lists.isEmpty(transitions)}">Mögliche Schritte</p>
 
+    <!-- The button says what pressing it does, never what is already true: the checklist
+         above owns the states, these own the verbs. The step that carries the planning
+         forward stands first and alone in the strong colour. -->
     <div class="actions" th:unless="${#lists.isEmpty(transitions)}">
         <button th:each="target : ${transitions}" type="button"
-                th:classappend="${target.name() == 'CANCELLED'} ? 'danger'"
+                th:classappend="${target.name() == 'CANCELLED'} ? 'danger'
+                              : (${event.status.carriesOnTo(target)} ? '' : 'secondary')"
                 th:hx-post="@{/event/{id}/status(id=${event.id},target=${target})}"
                 hx-target="#event-status"
                 hx-swap="outerHTML"
-                th:text="#{'event.status.' + ${target}}">Termin bestätigt</button>
+                th:text="${target.isBehind(event.status)}
+                         ? #{event.action.back(${#messages.msg('event.status.' + target)})}
+                         : #{'event.action.' + ${target}}">Termin bestätigen</button>
     </div>
 </div>
 </body>

@@ -278,6 +278,71 @@ h1 {
     white-space: nowrap;
 }
 
+/* The same four steps on the evening's own page, where there is room to name them. A row
+   of bars says how far the planning has come without saying how far *what*, and on the
+   tile that decides the next hand that is the half that counts. So they are a checklist:
+   ticked off, due, or still ahead. */
+.state {
+    margin: 0 0 1rem;
+}
+
+.track {
+    display: grid;
+    gap: .4375rem;
+    margin: 0 0 .25rem;
+    padding: 0;
+    list-style: none;
+}
+
+.track li {
+    display: grid;
+    grid-template-columns: 1.0625rem 1fr;
+    align-items: center;
+    gap: .625rem;
+}
+
+.track .name {
+    color: var(--muted);
+    font: 500 .75rem/1.3 var(--mono);
+}
+
+/* Not written but drawn, so it is a mark and not a word among words. */
+.track .mark {
+    display: grid;
+    place-items: center;
+    width: 1.0625rem;
+    height: 1.0625rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: #fff;
+    font: 700 .625rem/1 var(--sans);
+}
+
+.track li.done .mark {
+    background: var(--green);
+    border-color: var(--green);
+}
+
+.track li.done .mark::before {
+    content: "\2713";
+}
+
+.track li.done .name {
+    color: var(--ink);
+}
+
+/* The one that is due: an open ring in the strong colour, and the only name in the ink
+   weight the eye stops at. */
+.track li.next .mark {
+    border: 2px solid var(--green);
+}
+
+.track li.next .name {
+    color: var(--ink);
+    font-weight: 600;
+}
+
 /* --- tables ----------------------------------------------------------------------- */
 
 .card {
@@ -368,6 +433,11 @@ tr.closed td {
 .badge.warn {
     background: var(--amber-soft);
     color: var(--amber);
+}
+
+.badge.stop {
+    background: var(--red-soft);
+    color: var(--red);
 }
 
 /* --- forms ------------------------------------------------------------------------ */
@@ -595,6 +665,27 @@ button.link:hover {
 button.badge:hover {
     color: #fff;
     background: var(--green);
+}
+
+/* A step that carries the planning nowhere — back to a state already left, or the evening
+   put aside. Offered, but not the one the eye lands on. */
+button.secondary {
+    color: var(--muted);
+    background: var(--ground);
+}
+
+button.secondary:hover {
+    color: var(--ink);
+    background: var(--line);
+}
+
+/* A save that has nothing to save yet. Without it the button is lit from the moment the
+   page loads and says nothing about whether it was pressed. */
+button[disabled],
+button[disabled]:hover {
+    color: var(--muted);
+    background: var(--line);
+    cursor: default;
 }
 
 button.danger {

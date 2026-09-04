@@ -9,7 +9,7 @@
         <p><a class="button" th:href="@{/location/new}">Ort anlegen</a></p>
     </div>
 
-    <form th:unless="${#lists.isEmpty(locations)}" method="post"
+    <form class="guarded" th:unless="${#lists.isEmpty(locations)}" method="post"
           th:action="@{/event/{id}/location(id=${event.id})}"
           th:hx-post="@{/event/{id}/location(id=${event.id})}"
           hx-target="#event-venue"
@@ -31,7 +31,7 @@
         <div th:replace="~{fragments/event-venue :: venue-address}"></div>
 
         <div class="actions">
-            <button type="submit">Ort übernehmen</button>
+            <button type="submit" disabled>Ort übernehmen</button>
         </div>
     </form>
 

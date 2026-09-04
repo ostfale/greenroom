@@ -1,6 +1,7 @@
 package de.ostfale.greenroom.domain.events;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -26,12 +27,54 @@ public enum EventStatus {
     }
 
     /**
-     * The steps allowed from here, in the order the states are declared — the same rule as
-     * {@link #canMoveTo}, read as a list so a page can offer exactly those and nothing
-     * else. Empty once the evening is closed.
+     * The steps allowed from here — the same rule as {@link #canMoveTo}, read as a list so
+     * a page can offer exactly those and nothing else. The one that carries the planning
+     * forward comes first and the ones that put it aside or take it back after it; within
+     * each group the states stay in the order they are declared. A page offers them in
+     * that order, so the step somebody usually wants is the first one they see. Empty once
+     * the evening is closed.
      */
     public List<EventStatus> allowedTargets() {
-        return Arrays.stream(values()).filter(this::canMoveTo).toList();
+        return Arrays.stream(values())
+                .filter(this::canMoveTo)
+                .sorted(Comparator.comparing(target -> !carriesOnTo(target)))
+                .toList();
+    }
+
+    /**
+     * The way an evening goes, as against the two states it can be put into from anywhere.
+     * Postponed and cancelled are not further along than anything and not behind it either
+     * — they are beside the track, which is why they count no step.
+     */
+    public boolean isOnTheTrack() {
+        return this != POSTPONED && this != CANCELLED;
+    }
+
+    /**
+     * True where the step to {@code target} carries the planning on, as against putting
+     * the evening aside or taking it back. The page offers this one first and in the
+     * strong colour: it is the step somebody usually means.
+     */
+    public boolean carriesOnTo(EventStatus target) {
+        return canMoveTo(target) && target.isOnTheTrack() && target.plannedSteps() > plannedSteps();
+    }
+
+    /**
+     * True where this state was already behind {@code other} — a step to it undoes a
+     * confirmation, and a page has to say so rather than offer it like the next one.
+     */
+    public boolean isBehind(EventStatus other) {
+        return isOnTheTrack() && other.isOnTheTrack() && plannedSteps() < other.plannedSteps();
+    }
+
+    /**
+     * The four confirmations an evening collects, in the order it collects them. The
+     * counterpart to {@link #plannedSteps()}: that one counts how many are behind us, this
+     * one says what they were, so a page can name the steps instead of drawing four
+     * anonymous bars.
+     */
+    public static List<EventStatus> milestones() {
+        return List.of(DATE_CONFIRMED, VENUE_CONFIRMED, PUBLISHED, DONE);
     }
 
     /**

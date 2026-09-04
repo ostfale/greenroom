@@ -113,6 +113,29 @@ class EventStatusTest {
                 .containsExactly(VENUE_CONFIRMED, POSTPONED, CANCELLED);
     }
 
+    /**
+     * The step that carries the planning on comes first, wherever the state it leads to
+     * happens to stand in the enum. Both of these read wrong the other way round: a page
+     * that offers "back to the date" before "announce it" puts the rare hand first.
+     */
+    @Test
+    void theStepForwardIsOfferedBeforeTheOnesThatAreNot() {
+        assertThat(VENUE_CONFIRMED.allowedTargets())
+                .containsExactly(PUBLISHED, DATE_CONFIRMED, POSTPONED, CANCELLED);
+        assertThat(PUBLISHED.allowedTargets())
+                .containsExactly(DONE, POSTPONED, CANCELLED);
+    }
+
+    /** What the page ticks off, and it is the four states that count a step. */
+    @Test
+    void theMilestonesAreTheStatesThatCountAStep() {
+        assertThat(EventStatus.milestones())
+                .containsExactly(DATE_CONFIRMED, VENUE_CONFIRMED, PUBLISHED, DONE);
+        assertThat(EventStatus.milestones())
+                .extracting(EventStatus::plannedSteps)
+                .containsExactly(1, 2, 3, 4);
+    }
+
     private static Set<EventStatus> allowedFrom(EventStatus status) {
         return Arrays.stream(EventStatus.values())
                 .filter(status::canMoveTo)

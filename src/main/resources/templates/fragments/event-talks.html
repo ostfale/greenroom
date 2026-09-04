@@ -4,7 +4,7 @@
 <div id="event-talks" class="stack" th:fragment="event-talks">
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form class="boxed" method="post"
+    <form class="boxed guarded" method="post"
           th:each="talk, i : ${event.talks}"
           th:action="@{/event/{id}/talk/{pos}(id=${event.id},pos=${i.index})}"
           th:hx-post="@{/event/{id}/talk/{pos}(id=${event.id},pos=${i.index})}"
@@ -35,7 +35,7 @@
         </label>
 
         <div class="actions">
-            <button type="submit">Vortrag speichern</button>
+            <button type="submit" disabled>Vortrag speichern</button>
             <button type="button" class="danger" th:if="${event.hasSeveralTalks()}"
                     th:hx-post="@{/event/{id}/talk/{pos}/remove(id=${event.id},pos=${i.index})}"
                     hx-target="#event-talks"

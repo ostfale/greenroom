@@ -1,4 +1,4 @@
-/* The only script in the application, and it does one thing.
+/* The only script in the application, and it does very little.
  *
  * After a form was sent, the disclosure it sits in should fold away and the fields should
  * empty — but only if the answer did not carry a complaint. When it did, what was typed
@@ -41,4 +41,23 @@ function confirmCopy(button) {
     const label = button.textContent;
     button.textContent = button.dataset.copied;
     setTimeout(() => (button.textContent = label), 1500);
+}
+
+/* A save button that is still lit after saving cannot say whether it was pressed, and a
+ * change made afterwards looks saved because the page looks the same. So the forms marked
+ * `guarded` come out of the template with their save switched off: the first change to a
+ * field switches it on, and the answer htmx swaps back in brings a dark one with it.
+ *
+ * Delegated from the document, because those forms are replaced whole and a listener bound
+ * to one of them would be thrown away with it.
+ */
+document.addEventListener("input", unlockSaving);
+document.addEventListener("change", unlockSaving);
+
+function unlockSaving(event) {
+    const field = event.target;
+    const form = field.closest ? field.closest("form.guarded") : null;
+    if (form) {
+        form.querySelectorAll("button[type=submit]").forEach(button => (button.disabled = false));
+    }
 }

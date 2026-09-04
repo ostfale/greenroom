@@ -10,6 +10,7 @@ import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.activities.ActivityKind;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventMode;
+import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.TalkSpeaker;
 import de.ostfale.greenroom.domain.locations.Location;
 import de.ostfale.greenroom.domain.speakers.Speaker;
@@ -83,6 +84,7 @@ class EventPage {
         List<Location> places = locations.all();
         model.addAttribute("event", event);
         model.addAttribute("transitions", event.status().allowedTargets());
+        model.addAttribute("milestones", EventStatus.milestones());
         model.addAttribute("modes", EventMode.values());
         // Only what may still be chosen — plus the place this evening already sits at, so
         // an evening at a venue we gave up still shows it rather than losing it silently.

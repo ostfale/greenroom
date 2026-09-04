@@ -356,7 +356,61 @@ class EventControllerTest {
         String html = mvc.perform(get("/event/" + id)).andReturn().getResponse().getContentAsString();
 
         assertThat(Jsoup.parse(html).select("#event-status .actions button").eachText())
-                .containsExactly("Ort bestätigt", "Verschoben", "Abgesagt");
+                .containsExactly("Ort bestätigen", "Verschieben", "Absagen");
+    }
+
+    /**
+     * The tile says the state in one place and offers the steps in another, and the two
+     * speak differently: what is behind us is named and ticked off, what is ahead is a
+     * verb on a button. A button reading "Termin bestätigt" is why this test exists.
+     */
+    @Test
+    void theStatusTileTicksOffWhatIsBehindAndPutsAVerbOnWhatIsAhead() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withDate(EVENING)
+                .moveTo(EventStatus.DATE_CONFIRMED)).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-status .track li .name").eachText())
+                .containsExactly("Termin bestätigt", "Ort bestätigt", "Veröffentlicht", "Erledigt");
+        assertThat(page.select("#event-status .track li.done .name").eachText())
+                .containsExactly("Termin bestätigt");
+        assertThat(page.select("#event-status .track li.next .name").eachText())
+                .containsExactly("Ort bestätigt");
+        assertThat(page.select("#event-status .actions button").eachText())
+                .doesNotContain("Termin bestätigt");
+    }
+
+    /** A step that leads back to a state already left says so, instead of inviting it. */
+    @Test
+    void aStepBackwardsIsNamedAsOne() throws Exception {
+        Long locationId = locations.add(aLocation().movedTo(anAddress())).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withDate(EVENING)
+                .withLocation(locationId)
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .moveTo(EventStatus.VENUE_CONFIRMED)).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-status .actions button").eachText())
+                .containsExactly("Veröffentlichen", "Zurück zu Termin bestätigt",
+                        "Verschieben", "Absagen");
+    }
+
+    /** Nothing changed yet, so nothing to press — the save waits for the first keystroke. */
+    @Test
+    void theSaveButtonsOnTheDetailPageStartOff() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("form.guarded")).isNotEmpty();
+        assertThat(page.select("form.guarded button[type=submit]:not([disabled])")).isEmpty();
     }
 
     @Test
