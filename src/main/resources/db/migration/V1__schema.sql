@@ -101,6 +101,12 @@ create table event
     tags        text[] not null default '{}'
 );
 
+create index event_location on event (location_id);
+
+comment on index event_location is
+    'For the check when a location is deleted: without it every event is read to find out
+     whether one still points at the place.';
+
 comment on column event.address_position is
     'Which of the location''s addresses this evening was at, by position. Null means the one
      it has today. A place that moved keeps the old address, and an evening from before the
@@ -142,6 +148,11 @@ create table talk_speaker
     announced_bio text,
     primary key (talk, talk_key)
 );
+
+create index talk_speaker_speaker on talk_speaker (speaker_id);
+
+comment on index talk_speaker_speaker is
+    'The index behind the rule below: the refusal to delete a speaker is a lookup here.';
 
 comment on column talk_speaker.speaker_id is
     'No cascade on purpose: a speaker who once gave a talk cannot be deleted.';
