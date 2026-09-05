@@ -24,6 +24,18 @@ management:
     health:
       show-details: always
 
+logging:
+  # The console keeps every level: that is what `docker logs` shows and what Alloy hands
+  # to Loki. The file keeps the warnings alone, and only where one is named at all —
+  # LOGGING_FILE_NAME is set on the Pi and nowhere else, so a build and a test write none.
+  threshold:
+    file: WARN
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 90
+      total-size-cap: 200MB
+
 greenroom:
   geo:
     # Off unless asked for. OpenStreetMap's search needs no key but does ask for an

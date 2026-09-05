@@ -1,0 +1,45 @@
+# Loki as a single binary on a filesystem: no object store, no ring, no cluster. For the
+# logs of two containers on one machine, anything else would be scaffolding.
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  # Loki's own logs are not what we came for.
+  log_level: warn
+
+common:
+  path_prefix: /loki
+  instance_addr: 127.0.0.1
+  replication_factor: 1
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  # Ninety days of logs. On an SSD that is a few hundred megabytes at this volume.
+  retention_period: 90d
+  allow_structured_metadata: true
+  volume_enabled: true
+
+compactor:
+  working_directory: /loki/compactor
+  # Without this the retention above is a number nobody acts on.
+  retention_enabled: true
+  delete_request_store: filesystem
+
+analytics:
+  reporting_enabled: false

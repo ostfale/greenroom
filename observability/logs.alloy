@@ -1,0 +1,80 @@
+// Container logs to Loki. Alloy, not Promtail: that one is retired.
+//
+// Two pipelines, because the application's console is JSON and the database's is not.
+// Running the JSON stage over Postgres lines would parse nothing and complain about it
+// once per line, so the containers are told apart by the compose service they belong to.
+
+discovery.docker "containers" {
+	host             = "unix:///var/run/docker.sock"
+	refresh_interval = "15s"
+}
+
+discovery.relabel "app" {
+	targets = discovery.docker.containers.targets
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		regex         = "app"
+		action        = "keep"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "service"
+	}
+}
+
+discovery.relabel "rest" {
+	targets = discovery.docker.containers.targets
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		regex         = "app"
+		action        = "drop"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "service"
+	}
+}
+
+loki.source.docker "app" {
+	host       = "unix:///var/run/docker.sock"
+	targets    = discovery.relabel.app.output
+	labels     = {host = constants.hostname}
+	forward_to = [loki.process.spring.receiver]
+}
+
+loki.source.docker "rest" {
+	host       = "unix:///var/run/docker.sock"
+	targets    = discovery.relabel.rest.output
+	labels     = {host = constants.hostname}
+	forward_to = [loki.write.local.receiver]
+}
+
+// The fields Spring Boot's logstash format writes. A stacktrace arrives as one event
+// this way instead of as fifty lines that have to be glued back together.
+loki.process "spring" {
+	stage.json {
+		expressions = {
+			level  = "level",
+			logger = "logger_name",
+		}
+	}
+
+	// Only the level becomes a label — a logger name is a filter, not an index.
+	stage.labels {
+		values = {
+			level = "level",
+		}
+	}
+
+	forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}

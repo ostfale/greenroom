@@ -1,0 +1,19 @@
+# Provisioned, so the first start needs no clicking. Both are reached by compose name.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      # The scrape interval from prometheus.yml. Grafana draws no finer than the data is.
+      timeInterval: 15s
+
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100

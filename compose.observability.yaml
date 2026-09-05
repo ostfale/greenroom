@@ -1,0 +1,106 @@
+# Observability beside the application, in the same compose project:
+#
+#     docker compose -f compose.pi.yaml -f compose.observability.yaml pull
+#     docker compose -f compose.pi.yaml -f compose.observability.yaml up -d
+#
+# Both files, always together — a `up -d` with only the first one would take the four
+# services here for leftovers and offer to remove them. Whoever does not want any of this
+# leaves the second file away and loses nothing but the graphs.
+#
+# One compose project means one network, so Prometheus reaches the application at
+# `app:8382` and nothing here needs a published port to be scraped.
+services:
+  # Structured console logs, but only while somebody collects them. Without this file the
+  # application logs plain text, which is what a `docker logs` is easier to read as.
+  app:
+    environment:
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: logstash
+
+  prometheus:
+    image: prom/prometheus:v3.14.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      # A year. The Pi boots from an SSD, so the write load of a 15s scrape is no concern,
+      # and a year is what makes "the evening it got slow" findable.
+      - --storage.tsdb.retention.time=365d
+      - --web.enable-lifecycle
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    extra_hosts:
+      # How a container reaches the node exporter, which runs on the host's network.
+      - "host.docker.internal:host-gateway"
+    ports:
+      # Not needed by Grafana, which goes by compose name. It is here for the one question
+      # this UI answers faster than any dashboard: is that target being scraped at all.
+      - "9090:9090"
+
+  # The Pi itself: CPU, temperature, memory, disks, network. On the host's network and PID
+  # namespace, because the numbers are supposed to be the host's and not a container's.
+  # The consequence is a port 9100 open on the home network — the same trust this whole
+  # application is built on.
+  node-exporter:
+    image: prom/node-exporter:v1.12.1
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run/credentials/.+|var/lib/docker/.+)($$|/)
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro,rslave
+
+  loki:
+    image: grafana/loki:3.6.16
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki.yaml
+    volumes:
+      - ./observability/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki-data:/loki
+
+  # Reads the container logs off the docker socket and hands them to Loki. Root, and the
+  # socket read-only: it is the only way to read what docker wrote, and it writes nothing.
+  alloy:
+    image: grafana/alloy:v1.19.2
+    restart: unless-stopped
+    user: root
+    command:
+      - run
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
+      - /etc/alloy/logs.alloy
+    volumes:
+      - ./observability/logs.alloy:/etc/alloy/logs.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy/data
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:13.2.1
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set it in .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./observability/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+
+volumes:
+  prometheus-data:
+  loki-data:
+  alloy-data:
+  grafana-data:

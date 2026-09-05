@@ -7,8 +7,9 @@ FROM eclipse-temurin:25-jre
 COPY --chown=1000:1000 target/greenroom-*.jar /app/greenroom.jar
 
 # A numeric user, so the image needs no RUN at all — and without a RUN, buildx assembles
-# both architectures from their base images without emulating anything. The application
-# writes nothing to disk: everything it keeps is in Postgres.
+# both architectures from their base images without emulating anything. What the
+# application keeps is in Postgres; the one thing it writes is the warning log, and only
+# where LOGGING_FILE_NAME names a mounted directory that user 1000 may write to.
 USER 1000:1000
 
 # The application, and the actuator under /mgmt.

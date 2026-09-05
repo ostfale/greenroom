@@ -1,0 +1,24 @@
+# Three things are scraped: the application through its actuator, the Pi through the
+# node exporter, and Prometheus itself. Nothing here is discovered — on one machine with
+# three targets a written list is shorter than the mechanism that would find them.
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  # The application. Micrometer is already in the jar and the endpoint is already exposed;
+  # this is the whole of what was missing.
+  - job_name: greenroom
+    metrics_path: /mgmt/prometheus
+    static_configs:
+      - targets: [ "app:8382" ]
+
+  # The Pi. The exporter runs in the host's network namespace, so it is not reachable by a
+  # compose name — host-gateway is the address of the host from inside the network.
+  - job_name: node
+    static_configs:
+      - targets: [ "host.docker.internal:9100" ]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: [ "localhost:9090" ]
