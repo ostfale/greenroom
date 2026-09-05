@@ -1,11 +1,12 @@
-# Observability beside the application, in the same compose project:
+# Observability beside the application, in the same compose project. Both files belong to
+# every command — a `up -d` with only the first one would take the four services here for
+# leftovers and offer to remove them — which is what the .env says once and for all:
 #
-#     docker compose -f compose.pi.yaml -f compose.observability.yaml pull
-#     docker compose -f compose.pi.yaml -f compose.observability.yaml up -d
+#     COMPOSE_FILE=compose.pi.yaml:compose.observability.yaml
 #
-# Both files, always together — a `up -d` with only the first one would take the four
-# services here for leftovers and offer to remove them. Whoever does not want any of this
-# leaves the second file away and loses nothing but the graphs.
+# After that it is `docker compose pull` and `docker compose up -d`, with no -f to forget.
+# Whoever does not want any of this names only the first file there and loses nothing but
+# the graphs.
 #
 # One compose project means one network, so Prometheus reaches the application at
 # `app:8382` and nothing here needs a published port to be scraped.

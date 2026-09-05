@@ -57,10 +57,11 @@ Every push to `main` runs the tests and then builds a container image for `linux
 commit. The jar is built on the runner and only copied into the image — a Raspberry Pi has
 better things to do than compile Spring Boot.
 
-The Pi pulls. Copy `compose.pi.yaml` and `.env.example` there, fill in the `.env`, and:
+The Pi pulls. Copy `compose.pi.yaml` and `.env.example` there and fill in the `.env`; its
+`COMPOSE_FILE` says which files this installation is made of, so the commands need no `-f`:
 
-    docker compose -f compose.pi.yaml pull
-    docker compose -f compose.pi.yaml up -d
+    docker compose pull
+    docker compose up -d
 
 That last step is the one GitHub cannot do: the Pi sits in a home network and nothing from
 outside reaches it. Either run those two lines when a change should go live, or let
@@ -79,17 +80,16 @@ port to the outside would turn it into the wrong one.
 The application already carries the metrics: Micrometer is in the jar and the actuator
 exposes `/mgmt/prometheus`. What `compose.observability.yaml` adds is everybody who reads
 them — Prometheus for the numbers, a node exporter for the Pi, Loki and Grafana Alloy for
-the logs, and Grafana in front of both. It is a second file over the first, so the two are
-named together:
+the logs, and Grafana in front of both. It is a second file over the first, and both belong
+to every command — also to `down` and `logs`, because a `up -d` with only the first one
+takes the four extra services for leftovers. The `.env` says that once:
 
-    docker compose -f compose.pi.yaml -f compose.observability.yaml pull
-    docker compose -f compose.pi.yaml -f compose.observability.yaml up -d
+    COMPOSE_FILE=compose.pi.yaml:compose.observability.yaml
 
-Both files in every command, also in `down` and `logs`: a `up -d` with only the first one
-takes the four extra services for leftovers. Copy `compose.observability.yaml` and the
-`observability/` directory to the Pi beside `compose.pi.yaml`, put a
-`GRAFANA_ADMIN_PASSWORD` in the `.env` and make the log directory once, `mkdir -p logs` —
-a bind mount docker has to create itself belongs to root, and the container is user 1000.
+Beside that line: copy `compose.observability.yaml` and the `observability/` directory to
+the Pi next to `compose.pi.yaml`, put a `GRAFANA_ADMIN_PASSWORD` in the `.env`, and make
+the log directory once, `mkdir -p logs` — a bind mount docker has to create itself belongs
+to root, and the container is user 1000.
 
 Grafana is on port 3000, user `admin`, with Prometheus and Loki already wired up. It
 brings no dashboards; the two that fit are imported by ID from grafana.com: **1860** for

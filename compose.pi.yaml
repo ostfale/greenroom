@@ -4,8 +4,8 @@
 #     docker compose -f compose.pi.yaml pull
 #     docker compose -f compose.pi.yaml up -d
 #
-# Where compose.observability.yaml runs along, both files are named in every command —
-# see the header there.
+# Where compose.observability.yaml runs along, COMPOSE_FILE in the .env names both and the
+# two commands above lose their -f — see the header there.
 #
 # The image is built by GitHub Actions on every push to main and is public, so pulling it
 # needs no login. Another group can take this file as it is and point GREENROOM_IMAGE at
