@@ -13,11 +13,10 @@ scrape_configs:
     static_configs:
       - targets: [ "app:8382" ]
 
-  # The Pi. The exporter runs in the host's network namespace, so it is not reachable by a
-  # compose name — host-gateway is the address of the host from inside the network.
+  # The Pi, read by the node exporter out of the host's /proc and /sys.
   - job_name: node
     static_configs:
-      - targets: [ "host.docker.internal:9100" ]
+      - targets: [ "node-exporter:9100" ]
 
   - job_name: prometheus
     static_configs:

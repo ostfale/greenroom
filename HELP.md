@@ -101,10 +101,10 @@ Prometheus keeps a year, Loki ninety days. Both write to a docker volume, which 
 is the SSD.
 
 Two ports are open that were not before: 3000 for Grafana and 9090 for Prometheus, whose
-own page is the fastest answer to whether a target is being scraped at all. The node
-exporter runs in the host's network namespace — otherwise it would measure the container
-instead of the Pi — and answers on 9100 without asking who is calling. On the home network
-that is the same trust the application is built on. Off the internet, all of it.
+own page is the fastest answer to whether a target is being scraped at all. Everything
+else talks inside the compose network — the node exporter included, which reads the Pi out
+of the host's `/proc` and `/sys` rather than out of its network namespace. Interface
+throughput is the one number that costs: it is the container's. Off the internet, all of it.
 
 ### The warning log
 

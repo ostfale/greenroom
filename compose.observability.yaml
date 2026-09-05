@@ -30,22 +30,22 @@ services:
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
-    extra_hosts:
-      # How a container reaches the node exporter, which runs on the host's network.
-      - "host.docker.internal:host-gateway"
     ports:
       # Not needed by Grafana, which goes by compose name. It is here for the one question
       # this UI answers faster than any dashboard: is that target being scraped at all.
       - "9090:9090"
 
-  # The Pi itself: CPU, temperature, memory, disks, network. On the host's network and PID
-  # namespace, because the numbers are supposed to be the host's and not a container's.
-  # The consequence is a port 9100 open on the home network — the same trust this whole
-  # application is built on.
+  # The Pi itself: CPU, temperature, memory, disks, load. The numbers come out of the
+  # host's /proc and /sys, mounted below, not out of the container.
+  #
+  # It sits in the compose network like everything else, so Prometheus reaches it by name.
+  # The obvious alternative — the host's network namespace — would also give the host's
+  # network counters, but then Prometheus has to reach back out of the compose network to
+  # a host address, which this Pi does not allow, and port 9100 would stand open on the
+  # home network. Interface throughput is what that costs; everything else is the Pi's.
   node-exporter:
     image: prom/node-exporter:v1.12.1
     restart: unless-stopped
-    network_mode: host
     pid: host
     command:
       - --path.procfs=/host/proc
