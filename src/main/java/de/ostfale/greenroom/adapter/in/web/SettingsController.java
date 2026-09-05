@@ -4,6 +4,7 @@ import de.ostfale.greenroom.application.port.in.ManageTags;
 import de.ostfale.greenroom.domain.Rule;
 import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.tags.Tag;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,16 +26,18 @@ public class SettingsController {
 
     private final ManageTags tags;
     private final ErrorMessages errors;
+    private final String version;
 
-    public SettingsController(ManageTags tags, ErrorMessages errors) {
+    public SettingsController(ManageTags tags, ErrorMessages errors,
+                              @Value("${spring.application.version}") String version) {
         this.tags = tags;
         this.errors = errors;
+        this.version = version;
     }
 
     @GetMapping
     public String settings(Model model) {
-        model.addAttribute("tags", tags.all());
-        return "settings/index";
+        return page(model);
     }
 
     /** The same route for htmx: the bare list, which is also what "Abbrechen" asks for. */
@@ -51,8 +54,7 @@ public class SettingsController {
         } catch (RuleViolated e) {
             model.addAttribute("error", errors.german(e));
             model.addAttribute("submittedName", name);
-            model.addAttribute("tags", tags.all());
-            return "settings/index";
+            return page(model);
         }
     }
 
@@ -103,6 +105,17 @@ public class SettingsController {
     public String removeTag(@PathVariable Long id, Model model) {
         tags.remove(id);
         return list(model);
+    }
+
+    /**
+     * The whole page. The version is the one the jar was built as — Maven writes it into
+     * application.yml, so the tile answers with what is actually running and not with what
+     * somebody last typed into a template.
+     */
+    private String page(Model model) {
+        model.addAttribute("tags", tags.all());
+        model.addAttribute("version", version);
+        return "settings/index";
     }
 
     private String list(Model model) {

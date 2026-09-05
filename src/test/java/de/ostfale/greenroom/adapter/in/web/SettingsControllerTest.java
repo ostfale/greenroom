@@ -274,4 +274,30 @@ class SettingsControllerTest {
         assertThat(Jsoup.parseBodyFragment(fragment).select("#tag-list ul.tags li").eachText())
                 .containsExactly("Spring");
     }
+
+    @Test
+    void theSettingsPageSaysWhichVersionIsAnsweringAndWhoToAsk() throws Exception {
+        String html = mvc.perform(get("/settings")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document page = Jsoup.parse(html);
+        assertThat(page.selectFirst("#about p").text())
+                .matches("greenroom Version \\d+\\.\\d+\\.\\d+");
+        assertThat(page.selectFirst("#about a[href^=mailto:]").attr("href"))
+                .isEqualTo("mailto:info@uwe-sauerbrei.de");
+    }
+
+    /** The refusal renders the whole page again, and the tile is part of it. */
+    @Test
+    void aRefusedTagLeavesTheVersionOnThePage() throws Exception {
+        tags.add(Tag.named("Spring"));
+
+        String html = mvc.perform(post("/settings/tag").param("name", "spring"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parse(html).selectFirst("#about p").text())
+                .startsWith("greenroom Version ");
+    }
+
 }

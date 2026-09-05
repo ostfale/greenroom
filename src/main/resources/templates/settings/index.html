@@ -31,6 +31,17 @@
 
             <div th:replace="~{fragments/tag-list :: tag-list}"></div>
         </section>
+
+        <section class="tile half" id="about">
+            <h2>Über</h2>
+            <p>
+                greenroom Version <span th:text="${version}">1.1.0</span>
+            </p>
+            <p class="hint">
+                Entwickelt von Uwe Sauerbrei. Kontakt:
+                <a href="mailto:info@uwe-sauerbrei.de">info@uwe-sauerbrei.de</a>
+            </p>
+        </section>
     </div>
 </main>
 </body>
