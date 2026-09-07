@@ -11,7 +11,7 @@
 
     <groupId>de.ostfale</groupId>
     <artifactId>greenroom</artifactId>
-    <version>1.1.4</version>
+    <version>1.1.5</version>
     <name>greenroom</name>
     <description>greenroom</description>
 
@@ -138,6 +138,17 @@
                         <profile>dev</profile>
                     </profiles>
                 </configuration>
+                <executions>
+                    <!-- Writes the version and the moment of the build into the jar, so that
+                         /mgmt/info can say what is running. On the Pi the image tag moves
+                         under `latest`, and a log line at startup is gone by the time
+                         somebody asks. -->
+                    <execution>
+                        <goals>
+                            <goal>build-info</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

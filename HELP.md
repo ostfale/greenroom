@@ -53,9 +53,12 @@ Without it nothing is looked up and no map is shown — which is also the state 
 ## Deployment
 
 Every push to `main` runs the tests and then builds a container image for `linux/amd64` and
-`linux/arm64` and pushes it to `ghcr.io/ostfale/greenroom`, tagged `latest` and with the
-commit. The jar is built on the runner and only copied into the image — a Raspberry Pi has
-better things to do than compile Spring Boot.
+`linux/arm64` and pushes it to `ghcr.io/ostfale/greenroom`, tagged `latest`, with the
+version out of the pom and with the commit. The version tag only moves when somebody edits
+the pom, so between two bumps it points at whatever was pushed last, exactly like `latest`
+— the commit tag is the one that names a single build. The jar is built on the runner and
+only copied into the image — a Raspberry Pi has better things to do than compile Spring
+Boot.
 
 The Pi pulls. Copy `compose.pi.yaml` and `.env.example` there and fill in the `.env`; its
 `COMPOSE_FILE` says which files this installation is made of, so the commands need no `-f`:
@@ -66,6 +69,17 @@ The Pi pulls. Copy `compose.pi.yaml` and `.env.example` there and fill in the `.
 That last step is the one GitHub cannot do: the Pi sits in a home network and nothing from
 outside reaches it. Either run those two lines when a change should go live, or let
 something on the Pi do it on a timer.
+
+### What is running there
+
+`/mgmt/info` on the management port names the version and the moment the jar was built.
+The `build-info` goal of the Boot plugin writes both into the jar, so the answer travels
+with the image instead of standing in a log line that has long scrolled past. Two builds
+of the same version are told apart by the time.
+
+That is the question after a `docker compose pull`: `latest` moves, and the startup log
+says nothing about which build it landed on. `VersionIsReadableTest` keeps the three parts
+of it together — the goal in the pom, the contributor, and `info` on the exposure list.
 
 The image is public, so pulling it needs no login. Another group can take `compose.pi.yaml`
 as it is and point `GREENROOM_IMAGE` at a build of their own — everything that is specific
