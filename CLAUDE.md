@@ -130,7 +130,10 @@ Copied, not referenced:
   `Event.tags()` is the union of its talks', derived and never stored
 - a `Location` keeps every address it ever had; only the active flag moves. `capacity` sits
   on the `Address`, because the seat count of an old address is part of what that evening
-  was
+  was. It is the one field on a stored address that may be put right afterwards, on a
+  retired one too: the number was counted by hand and is often written down late. That is
+  not the address being rewritten — street, town and position stay what they were, so what
+  an `Event` points at still points at where it was
 - an `Event` says which of its venue's addresses it was at, by position, and that is the
   one place this project references what it elsewhere copies. An address here is never
   rewritten and never dropped — only flagged inactive — so pointing at one is as stable as

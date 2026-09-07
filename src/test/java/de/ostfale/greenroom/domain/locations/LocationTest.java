@@ -179,6 +179,46 @@ class LocationTest {
 
         assertThat(ruleBrokenBy(() -> location.withAddressActive(0, false)))
                 .isEqualTo(Rule.NO_ADDRESS_AT_POSITION);
+        assertThat(ruleBrokenBy(() -> location.withCapacityAt(0, 60)))
+                .isEqualTo(Rule.NO_ADDRESS_AT_POSITION);
+    }
+
+    /** Somebody counted late. The address itself is not touched by it. */
+    @Test
+    void theSeatCountCanBeWrittenDownAfterwardsAndTakenAwayAgain() {
+        Location location = aLocation().withAddress("Musterweg 1", "22179", "Hamburg");
+        assertThat(location.currentCapacity()).isNull();
+
+        Location counted = location.withCapacityAt(0, 60);
+        assertThat(counted.currentCapacity()).isEqualTo(60);
+        assertThat(counted.addressLine()).isEqualTo("Musterweg 1, 22179 Hamburg");
+        assertThat(counted.addresses().getFirst().active()).isTrue();
+
+        assertThat(counted.withCapacityAt(0, null).currentCapacity()).isNull();
+    }
+
+    /** A retired address keeps its seat count correctable — a typo stays a typo otherwise. */
+    @Test
+    void theSeatCountOfARetiredAddressCanBePutRight() {
+        Location location = aLocation()
+                .withAddress("Musterweg 1", "22179", "Hamburg")
+                .movedTo(Address.at("Neuer Weg 2", "20095", "Hamburg").withCapacity(120));
+
+        Location corrected = location.withCapacityAt(0, 45);
+
+        assertThat(corrected.addresses().getFirst().capacity()).isEqualTo(45);
+        assertThat(corrected.addresses().getFirst().active()).isFalse();
+        assertThat(corrected.currentCapacity()).isEqualTo(120);
+    }
+
+    @Test
+    void aSeatCountIsANumberOfSeats() {
+        Location location = aLocation().withAddress("Musterweg 1", "22179", "Hamburg");
+
+        assertThat(ruleBrokenBy(() -> location.withCapacityAt(0, 0)))
+                .isEqualTo(Rule.CAPACITY_IS_A_NUMBER_OF_SEATS);
+        assertThat(ruleBrokenBy(() -> location.withCapacityAt(0, -5)))
+                .isEqualTo(Rule.CAPACITY_IS_A_NUMBER_OF_SEATS);
     }
 
     // --- keeping the contacts up to date ---------------------------------------------

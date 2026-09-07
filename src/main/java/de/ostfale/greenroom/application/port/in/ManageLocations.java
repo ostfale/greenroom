@@ -46,6 +46,16 @@ public interface ManageLocations {
     /** Turns the address at that position on or off. */
     Location setAddressActive(Long locationId, int position, boolean active);
 
+    /**
+     * Writes down how many fit in at that address, on a retired one too — the seat count
+     * was counted by hand and stays correctable. {@code null} says nobody has counted.
+     *
+     * @throws RuleViolated             if there is no address at that position, or the
+     *                                  number is not a count of seats
+     * @throws IllegalArgumentException if there is no location with that id
+     */
+    Location setAddressCapacity(Long locationId, int position, Integer capacity);
+
     Location addContact(Long locationId, ContactPerson contact);
 
     Location changeContact(Long locationId, int position, ContactPerson contact);

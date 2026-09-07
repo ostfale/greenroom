@@ -366,6 +366,72 @@ class LocationControllerTest {
     }
 
     @Test
+    void theSeatCountIsWrittenDownAfterwardsAndReachesTheSummaryTile() throws Exception {
+        Long id = locations.add(aLocation()
+                .withAddress("Musterweg 1", "22179", "Hamburg")).id();
+
+        String fragment = mvc.perform(post("/location/{id}/address/{position}/capacity", id, 0)
+                        .param("capacity", "60")
+                        .header("HX-Request", "true"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(locations.byId(id).orElseThrow().currentCapacity()).isEqualTo(60);
+
+        Document parsed = Jsoup.parseBodyFragment(fragment);
+        assertThat(parsed.selectFirst("#address-list input[name=capacity]").attr("value"))
+                .isEqualTo("60");
+        assertThat(parsed.selectFirst("#location-summary").select("dd").get(1).text())
+                .isEqualTo("60");
+    }
+
+    /** An empty field is nobody having counted, not a refusal. */
+    @Test
+    void anEmptySeatCountTakesTheNumberAwayAgain() throws Exception {
+        Long id = locations.add(aLocation()
+                .movedTo(Address.at("Musterweg 1", "22179", "Hamburg").withCapacity(60))).id();
+
+        mvc.perform(post("/location/{id}/address/{position}/capacity", id, 0)
+                        .param("capacity", ""))
+                .andExpect(status().isOk());
+
+        assertThat(locations.byId(id).orElseThrow().currentCapacity()).isNull();
+    }
+
+    /** The address itself stays what it was — only the number somebody counted moves. */
+    @Test
+    void aRetiredAddressKeepsItsSeatCountCorrectable() throws Exception {
+        Long id = locations.add(Location.of("Kuehne + Nagel", aContact())
+                .withAddress("Grosser Grasbrook 11", "20457", "Hamburg")
+                .movedTo(Address.at("Neuer Weg 2", "20095", "Hamburg").withCapacity(120))).id();
+
+        mvc.perform(post("/location/{id}/address/{position}/capacity", id, 0)
+                        .param("capacity", "45"))
+                .andExpect(status().isOk());
+
+        Location stored = locations.byId(id).orElseThrow();
+        assertThat(stored.addresses().getFirst().capacity()).isEqualTo(45);
+        assertThat(stored.addresses().getFirst().line())
+                .isEqualTo("Grosser Grasbrook 11, 20457 Hamburg");
+        assertThat(stored.addresses().getFirst().active()).isFalse();
+        assertThat(stored.currentCapacity()).isEqualTo(120);
+    }
+
+    @Test
+    void aSeatCountThatIsNoNumberSaysSoAndChangesNothing() throws Exception {
+        Long id = locations.add(aLocation()
+                .movedTo(Address.at("Musterweg 1", "22179", "Hamburg").withCapacity(60))).id();
+
+        String fragment = mvc.perform(post("/location/{id}/address/{position}/capacity", id, 0)
+                        .param("capacity", "viele"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error")).isNotNull();
+        assertThat(locations.byId(id).orElseThrow().currentCapacity()).isEqualTo(60);
+    }
+
+    @Test
     void theListLinksToTheDetailPage() throws Exception {
         Long id = locations.add(aLocation()).id();
 

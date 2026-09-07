@@ -81,12 +81,24 @@ public record Location(
 
     /** Turns the address at that position on or off. */
     public Location withAddressActive(int position, boolean active) {
-        if (position < 0 || position >= addresses.size()) {
-            throw new RuleViolated(Rule.NO_ADDRESS_AT_POSITION, position);
-        }
+        Address address = addresses.get(reachable(position));
         List<Address> changed = new ArrayList<>(addresses);
-        Address address = changed.get(position);
         changed.set(position, active ? address.activated() : address.deactivated());
+        return withAddresses(changed);
+    }
+
+    /**
+     * How many fit in at that address. Somebody counted late, or miscounted — the seat
+     * count is written down by hand and stays correctable, on a retired address too.
+     *
+     * <p>This is not the address being rewritten: street, town and position stay what they
+     * were, so an evening that points here still points at where it was. Null takes the
+     * count away again, back to nobody having counted.
+     */
+    public Location withCapacityAt(int position, Integer capacity) {
+        Address address = addresses.get(reachable(position));
+        List<Address> changed = new ArrayList<>(addresses);
+        changed.set(position, address.withCapacity(capacity));
         return withAddresses(changed);
     }
 
@@ -161,13 +173,14 @@ public record Location(
      * @throws RuleViolated if there is no address at that position
      */
     public Address addressAt(Integer position) {
-        if (position == null) {
-            return currentAddress();
-        }
+        return position == null ? currentAddress() : addresses.get(reachable(position));
+    }
+
+    private int reachable(int position) {
         if (position < 0 || position >= addresses.size()) {
             throw new RuleViolated(Rule.NO_ADDRESS_AT_POSITION, position);
         }
-        return addresses.get(position);
+        return position;
     }
 
     /** Whether the place offers several at once, so an evening has to name the one it used. */

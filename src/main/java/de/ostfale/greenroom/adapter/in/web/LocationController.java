@@ -165,6 +165,24 @@ public class LocationController {
         return "fragments/address-list :: address-list-and-summary";
     }
 
+    /**
+     * How many fit in there, written down afterwards. The seat count is the one thing on a
+     * stored address that may be put right — an empty field says nobody has counted.
+     */
+    @PostMapping("/{id}/address/{position}/capacity")
+    public String setAddressCapacity(@PathVariable Long id,
+                                     @PathVariable int position,
+                                     @RequestParam(defaultValue = "") String capacity,
+                                     Model model) {
+        try {
+            show(model, locations.setAddressCapacity(id, position, FormValues.seats(capacity)));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
+            locations.byId(id).ifPresent(location -> show(model, location));
+        }
+        return "fragments/address-list :: address-list-and-summary";
+    }
+
     @PostMapping("/{id}/contact")
     public String addContact(@PathVariable Long id,
                              @RequestParam(defaultValue = "") String contactName,

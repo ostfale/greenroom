@@ -102,6 +102,11 @@ public class LocationService implements ManageLocations {
     }
 
     @Override
+    public Location setAddressCapacity(Long locationId, int position, Integer capacity) {
+        return locationRepository.save(known(locationId).withCapacityAt(position, capacity));
+    }
+
+    @Override
     public Location addContact(Long locationId, ContactPerson contact) {
         return locationRepository.save(known(locationId).withAdditionalContact(contact));
     }

@@ -17,7 +17,20 @@
         <tbody>
         <tr th:each="address, i : ${location.addresses}" th:classappend="${!address.active} ? 'closed'">
             <td th:text="${address.line()}">Musterweg 1, 22179 Hamburg</td>
-            <td class="data" th:text="${address.capacity} != null ? ${address.capacity} + ' Plätze' : '—'">—</td>
+            <!-- The seat count is the one thing on a stored address that may be put right:
+                 it was counted by hand, the address itself stays what it was. -->
+            <td class="data">
+                <form class="seats" method="post"
+                      th:action="@{/location/{id}/address/{pos}/capacity(id=${location.id},pos=${i.index})}"
+                      th:hx-post="@{/location/{id}/address/{pos}/capacity(id=${location.id},pos=${i.index})}"
+                      hx-target="#address-list"
+                      hx-swap="outerHTML">
+                    <input type="number" name="capacity" min="1" placeholder="—"
+                           aria-label="Plätze" th:value="${address.capacity}">
+                    <span>Plätze</span>
+                    <button type="submit" class="link">Speichern</button>
+                </form>
+            </td>
             <td>
                 <span class="badge" th:classappend="${!address.active} ? 'quiet'"
                       th:text="${address.active} ? 'aktiv' : 'ehemalig'">aktiv</span>
