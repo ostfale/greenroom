@@ -35,7 +35,7 @@ public class LocationService implements ManageLocations {
     @Override
     @Transactional(readOnly = true)
     public List<Location> all() {
-        var foundLocations = locationRepository.findAllByOrderByNameAsc();
+        var foundLocations = Names.sorted(locationRepository.findAllByOrderByNameAsc(), Location::name);
         log.debug("LocationService :: all locations {}", foundLocations);
         return foundLocations;
     }
@@ -43,7 +43,9 @@ public class LocationService implements ManageLocations {
     @Override
     @Transactional(readOnly = true)
     public List<Location> matching(String fragment) {
-        return fragment == null || fragment.isBlank() ? all() : locationRepository.search(fragment.strip());
+        return fragment == null || fragment.isBlank()
+                ? all()
+                : Names.sorted(locationRepository.search(fragment.strip()), Location::name);
     }
 
     @Override

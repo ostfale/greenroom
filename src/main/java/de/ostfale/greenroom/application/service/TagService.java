@@ -24,7 +24,7 @@ public class TagService implements ManageTags {
     @Override
     @Transactional(readOnly = true)
     public List<Tag> all() {
-        return tagRepository.findAllByOrderByNameAsc();
+        return Names.sorted(tagRepository.findAllByOrderByNameAsc(), Tag::name);
     }
 
     @Override

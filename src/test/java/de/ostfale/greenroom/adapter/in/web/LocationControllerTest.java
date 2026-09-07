@@ -431,6 +431,23 @@ class LocationControllerTest {
         assertThat(locations.byId(id).orElseThrow().currentCapacity()).isEqualTo(60);
     }
 
+    /**
+     * The database sorts by bytes and put every small first letter behind every capital
+     * one, so `adesso` stood behind `Tchibo`. The list is read by a person, not by a byte.
+     */
+    @Test
+    void theListIgnoresCapitalsWhenItSortsTheNames() throws Exception {
+        locations.add(Location.of("Tchibo", aContact()));
+        locations.add(Location.of("adesso", aContact()));
+        locations.add(Location.of("Körber", aContact()));
+        locations.add(Location.of("brainbits", aContact()));
+
+        String html = mvc.perform(get("/location")).andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parse(html).select("#location-table tbody tr td:first-child").eachText())
+                .containsExactly("adesso", "brainbits", "Körber", "Tchibo");
+    }
+
     @Test
     void theListLinksToTheDetailPage() throws Exception {
         Long id = locations.add(aLocation()).id();

@@ -103,7 +103,7 @@ public class SpeakerService implements ManageSpeakers {
     @Override
     @Transactional(readOnly = true)
     public List<Speaker> all() {
-        var allSpeaker = speakerRepository.findAllByOrderByNameAsc();
+        var allSpeaker = Names.sorted(speakerRepository.findAllByOrderByNameAsc(), Speaker::name);
         log.debug("SpeakerService :: all speakers {}", allSpeaker);
         return allSpeaker;
     }
@@ -111,7 +111,9 @@ public class SpeakerService implements ManageSpeakers {
     @Override
     @Transactional(readOnly = true)
     public List<Speaker> matching(String fragment) {
-        return fragment == null || fragment.isBlank() ? all() : speakerRepository.search(fragment.strip());
+        return fragment == null || fragment.isBlank()
+                ? all()
+                : Names.sorted(speakerRepository.search(fragment.strip()), Speaker::name);
     }
 
     @Override
