@@ -4,7 +4,7 @@
 <div id="speaker-links" th:fragment="speaker-links">
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form class="inline boxed" method="post"
+    <form class="inline boxed guarded" method="post"
           th:each="link, i : ${speaker.links}"
           th:action="@{/speaker/{id}/link/{pos}(id=${speaker.id},pos=${i.index})}"
           th:hx-post="@{/speaker/{id}/link/{pos}(id=${speaker.id},pos=${i.index})}"
@@ -20,7 +20,7 @@
         <label>Beschriftung
             <input type="text" name="label" placeholder="Blog" th:value="${link.label}">
         </label>
-        <button type="submit">Speichern</button>
+        <button type="submit" disabled>Speichern</button>
         <button type="button" class="link"
                 th:hx-post="@{/speaker/{id}/link/{pos}/remove(id=${speaker.id},pos=${i.index})}"
                 hx-target="#speaker-links"
@@ -28,7 +28,7 @@
     </form>
 
     <!-- Stays empty after every save: the answer is this fragment rendered anew. -->
-    <form class="inline" method="post"
+    <form class="inline guarded" method="post"
           th:action="@{/speaker/{id}/link(id=${speaker.id})}"
           th:hx-post="@{/speaker/{id}/link(id=${speaker.id})}"
           hx-target="#speaker-links"
@@ -39,7 +39,7 @@
         <label>Beschriftung
             <input type="text" name="label" placeholder="Blog">
         </label>
-        <button type="submit">Link hinzufügen</button>
+        <button type="submit" disabled>Link hinzufügen</button>
     </form>
 </div>
 </body>

@@ -16,7 +16,7 @@
         <p><a class="button" th:href="@{/speaker/new}">Referent anlegen</a></p>
     </div>
 
-    <form class="sheet wide" th:unless="${#lists.isEmpty(speakers)}"
+    <form class="sheet wide guarded" th:unless="${#lists.isEmpty(speakers)}"
           method="post" th:action="@{/event/past}">
         <p class="hint">
             Für die Abende, die schon gelaufen sind. Wie sie damals zustande kamen, wird
@@ -126,7 +126,7 @@
         </p>
 
         <div class="actions">
-            <button type="submit">Abend übernehmen</button>
+            <button type="submit" disabled>Abend übernehmen</button>
             <a th:href="@{/event}">Abbrechen</a>
         </div>
     </form>

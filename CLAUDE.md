@@ -137,6 +137,9 @@ The hexagon is about direction of dependency, not about purity:
 - Full page and fragment share one route; the fragment is selected by `headers = "HX-Request"`
   on its own mapping — no extra library.
 - Fragments live in `templates/fragments` and are named after what they replace.
+- A form that writes carries `guarded` and its submit button comes out of the template
+  `disabled`: the first change to a field switches it on, so a lit button means unsaved.
+  `SaveButtonsTest` fails on a form that forgets it.
 - htmx is vendored in `static/vendor`: no CDN, no npm, no build step.
 - No JavaScript framework, no inline script blocks beyond a few lines. A control the browser
   does not have — a dropdown with several choices, a form that folds away — is a `details`

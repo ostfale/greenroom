@@ -17,7 +17,7 @@
                 Kleinschreibung spielt keine Rolle: dasselbe Wort gibt es nur einmal.
             </p>
 
-            <form class="inline boxed new" method="post" th:action="@{/settings/tag}"
+            <form class="inline boxed new guarded" method="post" th:action="@{/settings/tag}"
                   th:hx-post="@{/settings/tag}"
                   hx-target="#tag-list"
                   hx-swap="outerHTML"
@@ -26,7 +26,7 @@
                     <input type="text" name="name" required placeholder="Spring"
                            th:value="${submittedName}">
                 </label>
-                <button type="submit">Hinzufügen</button>
+                <button type="submit" disabled>Hinzufügen</button>
             </form>
 
             <div th:replace="~{fragments/tag-list :: tag-list}"></div>

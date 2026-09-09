@@ -48,16 +48,31 @@ function confirmCopy(button) {
  * `guarded` come out of the template with their save switched off: the first change to a
  * field switches it on, and the answer htmx swaps back in brings a dark one with it.
  *
+ * A form that empties itself instead of being swapped goes back to having nothing to save,
+ * so its reset switches the button off again.
+ *
  * Delegated from the document, because those forms are replaced whole and a listener bound
  * to one of them would be thrown away with it.
  */
 document.addEventListener("input", unlockSaving);
 document.addEventListener("change", unlockSaving);
+document.addEventListener("reset", lockSaving);
 
 function unlockSaving(event) {
     const field = event.target;
     const form = field.closest ? field.closest("form.guarded") : null;
     if (form) {
-        form.querySelectorAll("button[type=submit]").forEach(button => (button.disabled = false));
+        switchSaving(form, false);
     }
+}
+
+function lockSaving(event) {
+    const form = event.target;
+    if (form.matches && form.matches("form.guarded")) {
+        switchSaving(form, true);
+    }
+}
+
+function switchSaving(form, off) {
+    form.querySelectorAll("button[type=submit]").forEach(button => (button.disabled = off));
 }

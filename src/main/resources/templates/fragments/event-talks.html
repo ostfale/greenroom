@@ -76,7 +76,7 @@
     <!-- A second voice is the exception, so the fields wait to be asked for. -->
     <details class="reveal">
         <summary>Weiterer Vortrag</summary>
-        <form class="boxed new" method="post"
+        <form class="boxed new guarded" method="post"
               th:action="@{/event/{id}/talk(id=${event.id})}"
               th:hx-post="@{/event/{id}/talk(id=${event.id})}"
               hx-target="#event-talks"
@@ -96,7 +96,7 @@
             <label>Beginn
                 <input type="time" name="startsAt" class="narrow" value="20:00">
             </label>
-            <button type="submit">Vortrag hinzufügen</button>
+            <button type="submit" disabled>Vortrag hinzufügen</button>
         </form>
     </details>
 </div>

@@ -20,7 +20,7 @@
       The same shape as the filter row over the event list.
     -->
     <div class="stack">
-        <form class="inline" method="post" th:action="@{/note}"
+        <form class="inline guarded" method="post" th:action="@{/note}"
               th:hx-post="@{/note}"
               hx-target="#note-board"
               hx-swap="outerHTML"
@@ -32,7 +32,7 @@
             <label>Notiz
                 <input type="text" name="text" th:value="${submittedText}">
             </label>
-            <button type="submit">Notieren</button>
+            <button type="submit" disabled>Notieren</button>
         </form>
 
         <div th:replace="~{fragments/note-board :: note-board}"></div>

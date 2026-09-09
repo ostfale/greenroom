@@ -5,7 +5,7 @@
 <div id="tag-editor" th:fragment="tag-editor">
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form class="inline boxed" th:if="${tagId}" method="post"
+    <form class="inline boxed guarded" th:if="${tagId}" method="post"
           th:action="@{/settings/tag/{id}(id=${tagId})}"
           th:hx-post="@{/settings/tag/{id}(id=${tagId})}"
           hx-target="#tag-list"
@@ -13,7 +13,7 @@
         <label>Tag
             <input type="text" name="name" required th:value="${tagName}" autofocus>
         </label>
-        <button type="submit">Speichern</button>
+        <button type="submit" disabled>Speichern</button>
         <button type="button" class="link"
                 th:hx-post="@{/settings/tag/{id}/remove(id=${tagId})}"
                 hx-target="#tag-list"

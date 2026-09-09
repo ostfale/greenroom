@@ -9,7 +9,8 @@
 
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form class="sheet wide" method="post" enctype="multipart/form-data" th:action="@{/speaker}">
+    <form class="sheet wide guarded" method="post" enctype="multipart/form-data"
+          th:action="@{/speaker}">
         <div class="row even">
             <label>Name
                 <input type="text" name="name" required autofocus th:value="${submitted.name}">
@@ -42,7 +43,7 @@
         </label>
 
         <div class="actions">
-            <button type="submit">Speichern</button>
+            <button type="submit" disabled>Speichern</button>
             <a th:href="@{/speaker}">Abbrechen</a>
         </div>
     </form>

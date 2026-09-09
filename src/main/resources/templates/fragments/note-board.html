@@ -40,7 +40,7 @@
     <p class="hint"
        th:text="${#temporals.format(note.writtenAt, 'dd.MM.yyyy HH:mm')}">02.09.2026 09:14</p>
 
-    <form method="post" th:action="@{/note/{id}(id=${note.id})}"
+    <form class="guarded" method="post" th:action="@{/note/{id}(id=${note.id})}"
           th:hx-post="@{/note/{id}(id=${note.id})}"
           hx-target="closest .tile" hx-swap="outerHTML">
         <label>Stichwort
@@ -51,7 +51,7 @@
         </label>
 
         <div class="actions">
-            <button type="submit">Speichern</button>
+            <button type="submit" disabled>Speichern</button>
             <button type="button" class="link"
                     th:hx-get="@{/note/{id}(id=${note.id})}"
                     hx-target="closest .tile" hx-swap="outerHTML">Abbrechen</button>

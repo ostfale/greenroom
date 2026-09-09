@@ -10,7 +10,7 @@
 <div id="location-fields" th:fragment="location-fields">
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form method="post" th:action="@{/location/{id}(id=${location.id})}"
+    <form class="guarded" method="post" th:action="@{/location/{id}(id=${location.id})}"
           th:hx-post="@{/location/{id}(id=${location.id})}"
           hx-target="#location-fields"
           hx-swap="outerHTML">
@@ -38,7 +38,7 @@
         </label>
 
         <div class="actions">
-            <button type="submit">Änderungen speichern</button>
+            <button type="submit" disabled>Änderungen speichern</button>
         </div>
     </form>
 </div>

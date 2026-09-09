@@ -14,7 +14,8 @@
         <p><a class="button" th:href="@{/speaker/new}">Referent anlegen</a></p>
     </div>
 
-    <form class="sheet" th:unless="${#lists.isEmpty(speakers)}" method="post" th:action="@{/event}">
+    <form class="sheet guarded" th:unless="${#lists.isEmpty(speakers)}" method="post"
+          th:action="@{/event}">
         <label>Referent
             <select name="speakerId" required autofocus>
                 <option value="">Bitte auswählen</option>
@@ -39,7 +40,7 @@
         </p>
 
         <div class="actions">
-            <button type="submit">Speichern</button>
+            <button type="submit" disabled>Speichern</button>
             <a th:href="@{/event}">Abbrechen</a>
         </div>
     </form>

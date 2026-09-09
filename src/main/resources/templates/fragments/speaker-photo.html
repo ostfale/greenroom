@@ -11,7 +11,7 @@
 
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form th:if="${speaker}" method="post" enctype="multipart/form-data"
+    <form class="guarded" th:if="${speaker}" method="post" enctype="multipart/form-data"
           th:action="@{/speaker/{id}/photo(id=${speaker.id})}"
           th:hx-post="@{/speaker/{id}/photo(id=${speaker.id})}"
           hx-target="#speaker-photo"
@@ -21,7 +21,7 @@
             <input type="file" name="photo" accept="image/jpeg,image/png,image/webp,image/gif" required>
         </label>
         <div class="actions">
-            <button type="submit">Hochladen</button>
+            <button type="submit" disabled>Hochladen</button>
             <button type="button" class="link" th:if="${hasPhoto}"
                     th:hx-post="@{/speaker/{id}/photo/remove(id=${speaker.id})}"
                     hx-target="#speaker-photo"

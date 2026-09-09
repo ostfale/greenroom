@@ -184,6 +184,12 @@ h1 {
     grid-column: span 3;
 }
 
+/* Below a quarter-wide tile: takes the columns of the tile beside it, so the two share a
+   left edge and end together instead of starting under the narrow one. */
+.tile.from-two {
+    grid-column: 2 / span 3;
+}
+
 .tile.rows-two {
     grid-row: span 2;
 }
@@ -747,6 +753,14 @@ button[disabled]:hover {
     cursor: default;
 }
 
+/* The same off, in the shape of a text link: no fill under a word that sits in a line of
+   other words — it simply stops being underlined and reads as label. */
+button.link[disabled],
+button.link[disabled]:hover {
+    background: none;
+    text-decoration: none;
+}
+
 button.danger {
     color: var(--red);
     background: var(--red-soft);
@@ -1080,7 +1094,8 @@ ul.tags .toggle {
         flex: 1 1 10rem;
     }
 
-    .tile.three {
+    .tile.three,
+    .tile.from-two {
         grid-column: span 2;
     }
 
@@ -1095,7 +1110,7 @@ ul.tags .toggle {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .tile, .tile.half, .tile.quarter, .tile.three {
+    .tile, .tile.half, .tile.quarter, .tile.three, .tile.from-two {
         grid-column: span 1;
     }
 

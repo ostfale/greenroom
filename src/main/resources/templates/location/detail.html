@@ -35,7 +35,7 @@
                  somebody asks for them. -->
             <details class="reveal">
             <summary>Weitere Adresse</summary>
-            <form class="inline boxed new" method="post"
+            <form class="inline boxed new guarded" method="post"
                   th:action="@{/location/{id}/address(id=${location.id})}"
                   th:hx-post="@{/location/{id}/address(id=${location.id})}"
                   hx-target="#address-list"
@@ -57,7 +57,7 @@
                     <input type="checkbox" name="moved" value="true">
                     Umgezogen
                 </label>
-                <button type="submit">Adresse hinzufügen</button>
+                <button type="submit" disabled>Adresse hinzufügen</button>
             </form>
             </details>
         </section>
@@ -81,7 +81,7 @@
             <!-- Like the addresses: the button stays, the fields wait to be asked for. -->
             <details class="reveal">
             <summary>Weiterer Ansprechpartner</summary>
-            <form class="inline boxed new" method="post"
+            <form class="inline boxed new guarded" method="post"
                   th:action="@{/location/{id}/contact(id=${location.id})}"
                   th:hx-post="@{/location/{id}/contact(id=${location.id})}"
                   hx-target="#contact-list"
@@ -96,7 +96,7 @@
                 <label>Telefon
                     <input type="tel" name="contactPhone">
                 </label>
-                <button type="submit">Ansprechpartner hinzufügen</button>
+                <button type="submit" disabled>Ansprechpartner hinzufügen</button>
             </form>
             </details>
         </section>

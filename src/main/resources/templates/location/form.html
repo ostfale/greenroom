@@ -9,7 +9,7 @@
 
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
-    <form class="sheet wide" method="post" th:action="@{/location}">
+    <form class="sheet wide guarded" method="post" th:action="@{/location}">
         <label>Name
             <input type="text" name="name" required autofocus th:value="${submitted.name}">
         </label>
@@ -55,7 +55,7 @@
         </fieldset>
 
         <div class="actions">
-            <button type="submit">Speichern</button>
+            <button type="submit" disabled>Speichern</button>
             <a th:href="@{/location}">Abbrechen</a>
         </div>
     </form>

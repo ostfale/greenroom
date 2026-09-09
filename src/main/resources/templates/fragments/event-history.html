@@ -23,7 +23,7 @@
     <!-- Append-only: what is written stays. A line that was wrong is answered by the next. -->
     <details class="reveal">
         <summary>Eintrag festhalten</summary>
-        <form class="inline boxed new" method="post"
+        <form class="inline boxed new guarded" method="post"
               th:action="@{/event/{id}/activity(id=${event.id})}"
               th:hx-post="@{/event/{id}/activity(id=${event.id})}"
               hx-target="#event-history"
@@ -42,7 +42,7 @@
                 <input type="text" name="what" required
                        placeholder="Termin angefragt, Antwort steht noch aus">
             </label>
-            <button type="submit">Festhalten</button>
+            <button type="submit" disabled>Festhalten</button>
         </form>
     </details>
 </div>
