@@ -727,6 +727,29 @@ class EventControllerTest {
                 .containsExactly(anna);
     }
 
+    /**
+     * What a talk is about is usually known when it is written down, and typing it into a
+     * second form afterwards is a detour. The form takes the abstract along.
+     */
+    @Test
+    void aFurtherTalkBringsItsAbstractAlong() throws Exception {
+        Long anna = speakerOf("Anna Albers");
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/talk")
+                        .param("speakerId", anna.toString())
+                        .param("title", "Virtual Threads")
+                        .param("abstractText", "Was sie sind und wann sie helfen."))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(events.byId(id).orElseThrow().talkAt(1).abstractText())
+                .isEqualTo("Was sie sind und wann sie helfen.");
+        assertThat(Jsoup.parseBodyFragment(fragment)
+                .select("#event-talks textarea[name=abstractText]").eachText())
+                .contains("Was sie sind und wann sie helfen.");
+    }
+
     @Test
     void aTalkWithoutASpeakerIsRefused() throws Exception {
         Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();

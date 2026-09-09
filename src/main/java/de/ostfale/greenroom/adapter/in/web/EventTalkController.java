@@ -39,11 +39,13 @@ public class EventTalkController {
     public String add(@PathVariable Long id,
                       @RequestParam(defaultValue = "") String speakerId,
                       @RequestParam(defaultValue = "") String title,
+                      @RequestParam(defaultValue = "") String abstractText,
                       @RequestParam(defaultValue = "") String startsAt,
                       Model model) {
         return page.afterChanging(id, model, TILE, () ->
                 events.addTalk(id, Talk.by(page.announced(speakerId))
                         .withTitle(title)
+                        .withAbstract(abstractText)
                         .withStartsAt(FormValues.time(startsAt))));
     }
 
