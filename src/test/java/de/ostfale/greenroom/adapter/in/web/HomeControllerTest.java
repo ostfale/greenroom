@@ -68,8 +68,8 @@ class HomeControllerTest {
 
         assertThat(page.selectFirst("h1").text()).isEqualTo("Übersicht");
         assertThat(page.select("section.tile h2").eachText())
-                .containsExactly("Der nächste Abend", "Weiter geplant", "Themen ohne Termin",
-                        "Wo wir schon waren", "Wen wir schon hatten", "Zahlen");
+                .containsExactly("Zahlen", "Der nächste Abend", "Weiter geplant",
+                        "Themen ohne Termin", "Wo wir schon waren", "Wen wir schon hatten");
     }
 
     @Test
@@ -126,9 +126,9 @@ class HomeControllerTest {
 
         Document page = overview();
 
-        assertThat(page.select("section.tile").get(3).select("tbody tr td").eachText())
-                .containsSequence("Musterfirma GmbH", "2", "2025");
         assertThat(page.select("section.tile").get(4).select("tbody tr td").eachText())
+                .containsSequence("Musterfirma GmbH", "2", "2025");
+        assertThat(page.select("section.tile").get(5).select("tbody tr td").eachText())
                 .containsSequence("Max Muster", "2", "2025");
     }
 

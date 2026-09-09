@@ -11,6 +11,24 @@
     </div>
 
     <div class="bento">
+        <!-- Steht oben, weil diese Kachel als einzige immer gleich hoch ist: was darunter
+             kommt, wächst und schrumpft mit den Daten, und der Kopf der Seite nicht mit. -->
+        <section class="tile" th:with="counts=${dashboard.counts}">
+            <h2>Zahlen</h2>
+            <ul class="tally">
+                <li><span class="data" th:text="${counts.events}">129</span> Events</li>
+                <li><span class="data" th:text="${counts.thisYear}">4</span> dieses Jahr</li>
+                <li><span class="data" th:text="${counts.done}">121</span> erledigt</li>
+                <li><span class="data" th:text="${counts.speakers}">47</span> Referenten</li>
+                <li>
+                    <span class="data" th:text="${counts.locationsInUse}">6</span> von
+                    <span class="data" th:text="${counts.locations}">8</span> Orten aktiv
+                </li>
+                <li><span class="data" th:text="${counts.tags}">12</span> Tags</li>
+                <li><span class="data" th:text="${counts.notes}">5</span> Notizen</li>
+            </ul>
+        </section>
+
         <section class="tile half">
             <h2>Der nächste Abend</h2>
 
@@ -118,22 +136,6 @@
                 </tr>
                 </tbody>
             </table>
-        </section>
-
-        <section class="tile" th:with="counts=${dashboard.counts}">
-            <h2>Zahlen</h2>
-            <ul class="tally">
-                <li><span class="data" th:text="${counts.events}">129</span> Events</li>
-                <li><span class="data" th:text="${counts.thisYear}">4</span> dieses Jahr</li>
-                <li><span class="data" th:text="${counts.done}">121</span> erledigt</li>
-                <li><span class="data" th:text="${counts.speakers}">47</span> Referenten</li>
-                <li>
-                    <span class="data" th:text="${counts.locationsInUse}">6</span> von
-                    <span class="data" th:text="${counts.locations}">8</span> Orten aktiv
-                </li>
-                <li><span class="data" th:text="${counts.tags}">12</span> Tags</li>
-                <li><span class="data" th:text="${counts.notes}">5</span> Notizen</li>
-            </ul>
         </section>
     </div>
 </main>
