@@ -192,7 +192,8 @@ class EventControllerTest {
 
         Document page = Jsoup.parse(html);
         assertThat(page.select("#event-table tbody tr td").eachText())
-                .containsExactly("24.09.2026", "Java-Herbst", "Ort bestätigt", "Musterfirma GmbH", "1");
+                .containsExactly("24.09.2026", "Max Muster", "Java-Herbst", "Ort bestätigt",
+                        "Musterfirma GmbH");
     }
 
     @Test
@@ -203,7 +204,7 @@ class EventControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         assertThat(Jsoup.parse(html).select("#event-table tbody tr td").eachText())
-                .containsExactly("—", "Ohne Titel", "Thema", "—", "1");
+                .containsExactly("—", "Max Muster", "Ohne Titel", "Thema", "—");
     }
 
     @Test
@@ -212,12 +213,12 @@ class EventControllerTest {
         events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Abgesagt").moveTo(EventStatus.CANCELLED));
 
         String all = mvc.perform(get("/event").param("year", "")).andReturn().getResponse().getContentAsString();
-        assertThat(Jsoup.parse(all).select("#event-table tbody tr td:nth-child(2)").eachText())
+        assertThat(Jsoup.parse(all).select("#event-table tbody tr td:nth-child(3)").eachText())
                 .containsExactlyInAnyOrder("Noch offen", "Abgesagt");
 
         String open = mvc.perform(get("/event").param("year", "").param("hideClosed", "true"))
                 .andReturn().getResponse().getContentAsString();
-        assertThat(Jsoup.parse(open).select("#event-table tbody tr td:nth-child(2)").eachText())
+        assertThat(Jsoup.parse(open).select("#event-table tbody tr td:nth-child(3)").eachText())
                 .containsExactly("Noch offen");
     }
 
@@ -250,8 +251,41 @@ class EventControllerTest {
 
         String html = mvc.perform(get("/event").param("year", "")).andReturn().getResponse().getContentAsString();
 
-        assertThat(Jsoup.parse(html).select("#event-table tbody tr td:nth-child(2)").eachText())
+        assertThat(Jsoup.parse(html).select("#event-table tbody tr td:nth-child(3)").eachText())
                 .containsExactly("Neu", "Alt", "Ohne Termin");
+    }
+
+    /**
+     * Who speaks is what one remembers an evening by, so the list names the person instead
+     * of counting the talks. More than one person is the exception and gets the first of
+     * them; the others are one click away.
+     */
+    @Test
+    void theListNamesWhoSpeaksAndSaysWhenThereAreMore() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING));
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withAdditionalTalk(aTalk(speakerOf("Anna Albers")))
+                .withDate(EVENING.minusMonths(1)));
+
+        String html = mvc.perform(get("/event").param("year", "")).andReturn().getResponse()
+                .getContentAsString();
+
+        assertThat(Jsoup.parse(html).select("#event-table tbody tr td:nth-child(2)").eachText())
+                .containsExactly("Max Muster", "Max Muster u.a.");
+    }
+
+    /** Twice on the same evening is still one person, so nothing says there are more. */
+    @Test
+    void somebodyWithTwoTalksIsNotSeveralSpeakers() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withAdditionalTalk(aTalk(speakerId))
+                .withDate(EVENING));
+
+        String html = mvc.perform(get("/event").param("year", "")).andReturn().getResponse()
+                .getContentAsString();
+
+        assertThat(Jsoup.parse(html).selectFirst("#event-table tbody tr td:nth-child(2)").text())
+                .isEqualTo("Max Muster");
     }
 
     // --- the evening itself ---------------------------------------------------------
@@ -1195,7 +1229,7 @@ class EventControllerTest {
 
         String html = mvc.perform(get("/event")).andReturn().getResponse().getContentAsString();
 
-        assertThat(Jsoup.parse(html).select("#event-table tbody tr td:nth-child(3)").eachText())
+        assertThat(Jsoup.parse(html).select("#event-table tbody tr td:nth-child(4)").eachText())
                 .containsExactly("Erledigt");
     }
 
@@ -1603,7 +1637,7 @@ class EventControllerTest {
         Document page = Jsoup.parse(mvc.perform(get("/event").param("year", "2025"))
                 .andReturn().getResponse().getContentAsString());
 
-        assertThat(page.select("#event-table tbody tr td:nth-child(2)").eachText())
+        assertThat(page.select("#event-table tbody tr td:nth-child(3)").eachText())
                 .containsExactly("Letztes Jahr");
     }
 
@@ -1635,7 +1669,7 @@ class EventControllerTest {
         Document page = Jsoup.parse(mvc.perform(get("/event"))
                 .andReturn().getResponse().getContentAsString());
 
-        assertThat(page.select("#event-table tbody tr td:nth-child(2)").eachText())
+        assertThat(page.select("#event-table tbody tr td:nth-child(3)").eachText())
                 .containsExactly("Dieses Jahr");
         assertThat(page.selectFirst("select[name=year] option[selected]").text())
                 .isEqualTo("Dieses Jahr (" + thisYear + ")");
@@ -1662,7 +1696,7 @@ class EventControllerTest {
                         .param("speakerId", anna.toString()))
                 .andReturn().getResponse().getContentAsString());
 
-        assertThat(page.select("#event-table tbody tr td:nth-child(2)").eachText())
+        assertThat(page.select("#event-table tbody tr td:nth-child(3)").eachText())
                 .containsExactly("Von Anna");
     }
 
@@ -1677,7 +1711,7 @@ class EventControllerTest {
                         .param("locationId", place.toString()))
                 .andReturn().getResponse().getContentAsString());
 
-        assertThat(page.select("#event-table tbody tr td:nth-child(2)").eachText())
+        assertThat(page.select("#event-table tbody tr td:nth-child(3)").eachText())
                 .containsExactly("Bei der Musterfirma");
     }
 
@@ -1695,7 +1729,7 @@ class EventControllerTest {
         String html = mvc.perform(get("/event").param("year", "").param("search", "arc42"))
                 .andReturn().getResponse().getContentAsString();
 
-        assertThat(Jsoup.parse(html).select("#event-table tbody tr td:nth-child(2)").eachText())
+        assertThat(Jsoup.parse(html).select("#event-table tbody tr td:nth-child(3)").eachText())
                 .containsExactly("Alles über arc42");
     }
 
@@ -1756,7 +1790,7 @@ class EventControllerTest {
                         .param("tag", "spring"))
                 .andReturn().getResponse().getContentAsString());
 
-        assertThat(page.select("#event-table tbody tr td:nth-child(2)").eachText())
+        assertThat(page.select("#event-table tbody tr td:nth-child(3)").eachText())
                 .containsExactly("Mit Spring");
     }
 
@@ -1774,7 +1808,7 @@ class EventControllerTest {
                         .param("tag", "Spring").param("tag", "Kotlin"))
                 .andReturn().getResponse().getContentAsString());
 
-        assertThat(page.select("#event-table tbody tr td:nth-child(2)").eachText())
+        assertThat(page.select("#event-table tbody tr td:nth-child(3)").eachText())
                 .containsExactlyInAnyOrder("Mit Spring", "Mit Kotlin");
         assertThat(page.select("form.filters input[name=tag][checked]").eachAttr("value"))
                 .containsExactlyInAnyOrder("Spring", "Kotlin");
@@ -1796,7 +1830,7 @@ class EventControllerTest {
                         .param("speakerId", anna.toString()))
                 .andReturn().getResponse().getContentAsString());
 
-        assertThat(page.select("#event-table tbody tr td:nth-child(2)").eachText())
+        assertThat(page.select("#event-table tbody tr td:nth-child(3)").eachText())
                 .containsExactly("Anna 2026");
     }
 

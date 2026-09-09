@@ -10,15 +10,20 @@
         <thead th:unless="${#lists.isEmpty(events)}">
         <tr>
             <th>Datum</th>
+            <th>Referent</th>
             <th>Event</th>
             <th>Planung</th>
             <th>Ort</th>
-            <th>Vorträge</th>
         </tr>
         </thead>
         <tbody>
         <tr th:each="event : ${events}" th:classappend="${event.status.isClosed()} ? 'closed'">
             <td class="data" th:text="${event.date} != null ? ${#temporals.format(event.date, 'dd.MM.yyyy')} : '—'">—</td>
+            <!-- Who speaks says more about an evening than how many talks it holds. One
+                 name is the usual case; the rest of them are behind the link. -->
+            <td th:with="people=${event.speakerIds()}"
+                th:text="${(speakerNames[people[0]] ?: '—')
+                        + (#lists.size(people) > 1 ? ' u.a.' : '')}">Max Muster</td>
             <td><a th:href="@{/event/{id}(id=${event.id})}"
                    th:text="${event.displayName()} ?: 'Ohne Titel'">Ohne Titel</a></td>
             <td>
@@ -33,7 +38,6 @@
                 </div>
             </td>
             <td th:text="${event.locationId} != null ? ${locationNames[event.locationId]} : '—'">—</td>
-            <td class="data" th:text="${#lists.size(event.talks)}">1</td>
         </tr>
         </tbody>
     </table>

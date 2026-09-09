@@ -11,6 +11,7 @@ import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
 import de.ostfale.greenroom.domain.locations.Location;
+import de.ostfale.greenroom.domain.speakers.Speaker;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -161,6 +162,9 @@ public class EventController {
         model.addAttribute("tagChoices", tagFilterChoices(all));
         model.addAttribute("locationNames", locations.all().stream()
                 .collect(Collectors.toMap(Location::id, Location::name)));
+        // The list names who speaks, and an evening carries the people by id alone.
+        model.addAttribute("speakerNames", speakers.all().stream()
+                .collect(Collectors.toMap(Speaker::id, Speaker::name)));
     }
 
     /**

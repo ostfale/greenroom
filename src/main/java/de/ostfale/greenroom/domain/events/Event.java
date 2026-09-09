@@ -204,6 +204,19 @@ public record Event(
         return words;
     }
 
+    /**
+     * Everybody who takes the floor this evening, in the order the talks put them and each
+     * counted once — somebody who gives two talks is still one person on the list. Derived
+     * like the tags: who speaks is a property of the talk.
+     */
+    public List<Long> speakerIds() {
+        return talks.stream()
+                .flatMap(talk -> talk.speakers().stream())
+                .map(TalkSpeaker::speakerId)
+                .distinct()
+                .toList();
+    }
+
     /** Whether any of its talks is filed under that word. */
     public boolean carries(String tag) {
         return talks.stream().anyMatch(talk -> talk.carries(tag));
