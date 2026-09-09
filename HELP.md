@@ -13,11 +13,17 @@ in `CLAUDE.md`.
 The tests bring their own PostgreSQL through Testcontainers, so nothing but Docker has to
 be installed. Every push and pull request runs `mvn verify` on GitHub.
 
-Running from the build activates the `dev` profile, which lets Flyway rebuild the schema
-after `V1__schema.sql` was edited, turns the Thymeleaf cache off and serves the static
-files from the source tree. While the model is still moving, that one migration script is
-extended in place rather than followed by a `V2`; after editing it, throw the development
-database away with `docker compose down -v`.
+Running from the build activates the `dev` profile — never on the Pi, where the application
+runs without one. It lets `DevFlywayConfiguration` drop and rebuild the schema when a
+migration changed, turns the Thymeleaf cache off and serves the static files from the source
+tree.
+
+Since the Pi went live on 2026-09-04 the application holds data that nobody enters a second
+time, and with that `V1__schema.sql` is frozen: a schema change is a new script — `V2`,
+`V3`, … — that carries the rows already there. Throwing the development database away with
+`docker compose down -v` is no longer how a schema change is made; it stays a way to start
+the local database over, and the dev-only rebuild is the net under it. A checksum mismatch
+there now says somebody edited an applied script, not that the model moved.
 
 ## Operation
 

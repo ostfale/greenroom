@@ -1,56 +1,70 @@
 # greenroom
 
 Planning tool for the Java User Group Hamburg. Single user, runs in a container on a
-Raspberry Pi 5 in a home network. No authentication by design.
+Raspberry Pi 5 in a home network, no authentication by design. What the application does is
+in `README.md`, how it is built, run, deployed and watched in `HELP.md`. This file holds
+only what someone working on the code has to decide differently because of it.
 
-It replaces an Obsidian vault. Every feature has to earn its place by making the planning
-of an evening easier than a Markdown note would — that is the only benchmark.
+## The terminal
+
+No source code in the transcript. That is not a rule about the shell — it is a rule about
+what reaches the terminal, and every tool is bound by it:
+
+- **Answers carry no code blocks.** Not a snippet, not a shell command to type by hand, not
+  a commit message printed for approval, not a diff. Describe what a change does and point
+  at the place — `LocationService.java:37`. Where a procedure is written down, name the file
+  that holds it instead of copying the commands out of it.
+- **Reading is narrow.** `Read` takes `offset` and `limit` and covers the passage that is
+  being changed, not the whole file out of habit. `Grep` answers with file names or counts;
+  content mode needs a pattern narrow enough that the answer is a line, and a context window
+  around a hit drags a block along — so no `-A`, `-B`, `-C` unless the block is the answer.
+- **Commands spill no source.** No `cat`, no heredoc, no `sed -n`, no unfiltered `git diff`.
+  A check is reduced to its answer: a count, a name, a status, a line number.
+- **Writing is narrow too.** A change is made as small edits anchored on what is already
+  there, not by rewriting a file whole — a full rewrite pushes every line of it through the
+  transcript, and that a file is Markdown makes no difference. Where a rewrite really is the
+  only way, say so first and let me decide.
+
+This outranks any session default that prefers the shell for file work or asks for wide
+reads. When a session brings such a default, this rule wins in both directions.
 
 ## Principles
 
 - **KISS.** One user, one machine, a few hundred rows. Do not build for scale, for
   multi-tenancy or for a persistence swap that will never happen.
 - **DRY.** One field list per concept. No parallel model that exists only to be mapped.
-  The one command record is `PastEvening`, and it earns its place: its fields belong to
-  four different records, none of which is stored yet when the form is submitted.
 - **What is copied is not referenced.** Whatever an evening was announced with must stay
   what it was, however the underlying record changes later.
-- No code is shown in console
+- Every feature has to earn its place by making the planning of an evening easier than a
+  Markdown note would — that is the only benchmark.
 
 ## Language
 
-- Code, identifiers, comments, commit messages, log messages: English.
-- UI texts and Thymeleaf templates: German. The German lives in the template — a service
-  never builds a sentence.
-- A refusal is a name, not a sentence. The records throw `RuleViolated(Rule.X)`, and the
-  German for it stands in `messages.properties` under `rule.X`. The web adapter looks it
-  up in one place, `ErrorMessages`, so no controller decides what a refusal means and no
-  code reads an exception message back. `MessagesTest` fails on a rule without a text and
-  on a text without a rule; the ArchUnit rule `domainRefusesByName` keeps the domain from
-  going back to prose. The services keep their own `IllegalArgumentException` guards —
-  "already stored" is a programming error, not something a page explains.
 - Talk to me in German.
-- Commit messages: a subject line, then dashed bullets. No prose paragraphs — one point
-  per bullet, and only what a reader of the diff cannot see for themselves.
+- Code, identifiers, comments, commit messages, log messages: English. UI texts: German,
+  and the German lives in the template — a service never builds a sentence.
+- A refusal is a name, not a sentence. The records throw `RuleViolated(Rule.X)` and the
+  German stands in `messages.properties` under `rule.X`, looked up in one place,
+  `ErrorMessages`. `MessagesTest` fails on a rule without a text and on a text without a
+  rule; the ArchUnit rule `domainRefusesByName` keeps the domain out of prose. The services
+  keep their `IllegalArgumentException` guards — "already stored" is a programming error.
+- In the German UI an `Event` is called "Event", not "Abend", and a `Tag` is called "Tag",
+  not "Schlagwort".
+- Commit messages: a subject line, then dashed bullets — one point per bullet, and only what
+  a reader of the diff cannot see. Commit directly on `main`, and only when asked to.
 
-## Stack
+## Ubiquitous language
 
-- Java 25, Spring Boot 4.x, Maven
-- PostgreSQL, Spring Data JDBC, Flyway — no JPA, no Hibernate
-- Thymeleaf + htmx; htmx is vendored in static/vendor, no CDN, no npm, no build step
-- Logback, JUnit 5, Testcontainers, ArchUnit
-- No Lombok. Records and explicit constructors instead.
+`Event` one evening — never "Meetup", that word means meetup.com here. `Talk` one
+presentation inside an Event (1..n). `motto` the optional name of an evening. `Activity` one
+line of the history: a mail went out, or one came back. `Note` a slip in the box, an idea
+belonging to nothing. `NextStep` the one thing an evening waits for — read off the record,
+never stored, and not a second state machine beside `EventStatus`: that one says how far the
+planning has come, this one what the next hand has to do. `Speaker`, `Location`,
+`ContactPerson`, `Tag`.
 
-## Commands
-
-- `mvn verify` — build and all tests
-- `mvn spring-boot:run` — starts Postgres via compose automatically, profile `dev`
-- `docker compose up -d db` — database only
-
-The `dev` profile is activated by the Boot Maven plugin, not by `application.yml`: on the
-Pi the application runs without a profile. It lets Flyway drop and rebuild the schema when
-`V1__schema.sql` changed, turns the Thymeleaf cache off and serves the static files from
-the source tree. Never activate it there.
+An `Event` has no title. Its display name is the `motto` if one is set, otherwise the title
+of its single talk.
 
 ## Architecture: ports and adapters
 
@@ -61,134 +75,55 @@ the source tree. Never activate it there.
     └── config
 
 The hexagon is about direction of dependency, not about purity:
-
-- The domain classes **are** the persistence model. They carry Spring Data mapping
-  annotations (`@Id`, `@Table`, `@Column`, `@MappedCollection`) directly. No second set of
-  records in the adapter, no mappers.
-- What the domain must stay free of is framework *behaviour*: no `@Controller`,
-  no `@Service`, no `@Transactional`, nothing from `org.springframework.web` or Thymeleaf.
-  State transitions and invariants are plain Java and testable without a context.
-- There is no `out.persistence`. The outgoing ports are Spring Data interfaces and Spring
-  Data implements them; a hand-written adapter would hold nothing but delegation. The
-  consequence is that swapping the database means rewriting the ports, not an adapter —
-  accepted knowingly, because that swap is not going to happen.
-- `outgoingPortsAreInterfaces` is about the ports themselves. A record that crosses a port
+- The domain classes **are** the persistence model and carry the Spring Data mapping
+  annotations directly. No second set of records in the adapter, no mappers.
+- What the domain stays free of is framework *behaviour*: no `@Controller`, no `@Service`,
+  no `@Transactional`, nothing from `org.springframework.web` or Thymeleaf.
+- There is no `out.persistence`. The outgoing ports are Spring Data interfaces, so swapping
+  the database means rewriting the ports — accepted knowingly. A record that crosses a port
   and the failure a port declares live in `port.out` too and are not ports.
-- ArchUnit enforces this in `ArchitectureTest`. The rules encode decisions, so a failing
-  rule usually means the design drifted — fix the design. Changing a rule is allowed when
-  the *decision* changed, and then only together with a note here.
+- `ArchitectureTest` encodes these decisions. A failing rule usually means the design
+  drifted — fix the design. Changing a rule is allowed when the *decision* changed, and then
+  only together with a note here.
 
-## Ubiquitous language
+## Domain rules
 
-Use these names — they come from the domain, not from the framework:
-
-- `Event` — one evening. Never call it "Meetup": that word means meetup.com here.
-- `Talk` — one presentation inside an Event (1..n).
-- `motto` — optional name for an evening, used when it carries several talks.
-- `Activity` — one line of the history: a mail went out, or one came back.
-- `Note` — a slip in the box: an idea with a stamp, belonging to nothing.
-- `NextStep` — the one thing an evening is waiting for. Read off the record, not stored,
-  and asked for by the overview alone. Not a second state machine beside `EventStatus`:
-  that one says how far the planning has come, this one what the next hand has to do.
-- `Speaker`, `Location`, `ContactPerson`, `Tag`
-
-The `Event` has no title. Its display name is the `motto` if one is set, otherwise the
-title of its single talk. With one talk nothing is maintained twice; with several the
-evening gets a name of its own.
-
-In the German UI an `Event` is called "Event", not "Abend", and a `Tag` is called "Tag",
-not "Schlagwort" — one concept, one word, and it is the one the domain uses.
-
-Everything in the source tree is English: package names, class names, enum constants,
-method names, table and column names, migration file names. German appears only in
-UI texts, in Thymeleaf templates and in the data itself.
-
-## Domain model
-
-Shape:
-
-- an `Event` has at least one `Talk`, and a `Talk` at least one `Speaker` — from the moment
-  it is created, in every state. A talk is found by approaching a person, so it comes into
-  being with its speaker. There is no topic without a person
-- an `Event` has exactly one `Location`, a `Location` at least one `ContactPerson`
-- a `ContactPerson` and a `Speaker` each have at least an email address
-- a `Talk` has no duration, and an `Event` carries a `moderator` as a name and nothing
-  else — not a reference to anybody
-- a `Talk` carries the hour it begins at, and the `Event` does not: with one talk the
-  evening starts when it does, with three they start one after another. `Event.startsAt()`
-  is the earliest of them, derived and never stored. A new talk begins at `Talk.USUALLY`,
-  which is the hour a JUG evening begins at; the field may be emptied, for the years
-  nobody wrote a time down
-
-Copied, not referenced:
-
-- the announced biography is copied onto the `Talk` when the speaker is put on it and is
-  edited there; rewriting a `Speaker` bio leaves earlier evenings untouched
-- a `Talk` stores the tag words it was ticked with, not a reference to the list in the
-  settings. They sit on the talk, not on the evening: a word says what is talked about,
-  and an evening with a Spring talk and a Kotlin talk is not an evening about both.
-  `Event.tags()` is the union of its talks', derived and never stored
-- a `Location` keeps every address it ever had; only the active flag moves. `capacity` sits
-  on the `Address`, because the seat count of an old address is part of what that evening
-  was. It is the one field on a stored address that may be put right afterwards, on a
-  retired one too: the number was counted by hand and is often written down late. That is
-  not the address being rewritten — street, town and position stay what they were, so what
-  an `Event` points at still points at where it was
-- an `Event` says which of its venue's addresses it was at, by position, and that is the
-  one place this project references what it elsewhere copies. An address here is never
-  rewritten and never dropped — only flagged inactive — so pointing at one is as stable as
-  copying it, and the old address is written down once at the place instead of once per
-  evening. Empty means the address the place has today, which is what a planned evening
-  wants: it moves along when the venue does
-- a place may have several addresses in use at once — two lecture halls picked by
-  availability. There is no "current" one then, so the page asks which it was instead of
-  letting the first in the list answer for all of them
-- the position sits on the `Address`, for the reason the seat count does: an old address
-  points at where that evening was. It is looked up once from the written address and kept;
-  where nobody can place it there is none, and the page shows no map. Not being found is a
-  property of a thin address, never a reason to refuse writing it down
-- `Location.inUse` is not `Address.active`. The address flag says where they are now, this
-  one whether we still go there at all. A place we gave up keeps its evenings, its
-  addresses and its contacts; it is only no longer offered when an evening looks for a
-  venue — unless that evening already sits there. It reads as "Aktiv" on the page: the
-  German word for the address flag would be the same one, which is why the field is not
-  called `active`
-
-Asking:
-
-- the speaker is asked about the date first, and only once everybody has said yes are the
-  venues asked, one after another. That order is how the evening is planned, not something
-  the tool tracks: it knows no inquiry and no outcome
-- writing is done in the mail client. The page carries the address — the speakers of the
-  evening, the contacts at the venue — and a `mailto:` link opens it. What is written
-  there is nobody's business here, and no draft is composed for it
-- what came of it is one line in the history, typed by hand
-
-History:
-
-- an `Activity` is a mail that went out or one that came back, on a day, in whatever words
-  describe it. Nothing else: a state the evening already carries is not written here a
-  second time, and a thought that is not an event of the evening is a `Note`
-- nothing appends a line by itself. The history is exactly what somebody typed
-- an `Activity` is never edited or deleted. The record has no `with…` method and its port
-  declares no way to; the only deletion is the cascade when the evening goes
-- a `Note` is the opposite and points at nothing: it records what was thought, not what
-  happened, so it may be changed and thrown away. Its stamp says when it was written and
-  does not move when it is put right
+- An `Event` has at least one `Talk` and a `Talk` at least one `Speaker`, from the moment it
+  is created, in every state: there is no topic without a person. An `Event` has exactly one
+  `Location`, a `Location` at least one `ContactPerson`, and a `ContactPerson` and a
+  `Speaker` each at least an email address.
+- A `Talk` has no duration; an `Event` carries its `moderator` as a name and nothing else.
+- The `Talk` carries the hour it begins at, not the `Event`. `Event.startsAt()` is the
+  earliest of them, derived and never stored. A new talk begins at `Talk.USUALLY`; the field
+  may be emptied, for the years nobody wrote a time down.
+- The announced biography is copied onto the `Talk` and edited there. The tag words sit on
+  the `Talk`, not on the evening; `Event.tags()` is the union, derived and never stored.
+- A `Location` keeps every address it ever had — only `Address.active` moves, nothing is
+  rewritten or dropped. `capacity` and the position sit on the `Address`, because they are
+  part of what that evening was; `capacity` is the one field on a stored address that may be
+  put right afterwards, on a retired one too. Where an address cannot be placed there is no
+  position and the page shows no map — never a reason to refuse writing it down.
+- An `Event` says which of its venue's addresses it was at, by position, and that is the one
+  place this project references what it elsewhere copies. Empty means the address the place
+  has today, which is what a planned evening wants.
+- `Location.inUse` ("Aktiv") is not `Address.active`: the address flag says where they are
+  now, this one whether we still go there at all. A place given up keeps its evenings and is
+  only no longer offered when an evening looks for a venue — unless it already sits there.
+- An `Activity` is never edited or deleted; the record has no `with…` method and its port
+  declares no way to. The only deletion is the cascade when the evening goes. A `Note` is the
+  opposite: it may be changed and thrown away, and its stamp does not move when it is.
+- Nothing appends a line by itself — the history is exactly what somebody typed. The tool
+  knows no inquiry and no outcome: writing is done in the mail client, the page only carries
+  the addresses as `mailto:` links, and no draft is composed here.
 
 ## Database
 
 - Migrations in `src/main/resources/db/migration`, named `V<n>__snake_case.sql`.
-- The application runs on the Pi since 2026-09-04 and holds data that nobody enters a
-  second time. With that, `V1__schema.sql` is frozen: an applied migration is never edited
-  again. A change to the schema is a new script — `V2`, `V3`, … — and it has to carry the
-  rows that are already there.
-- Throwing the database away (`docker compose down -v`) is no longer how a schema change is
-  made. It stays a way to start the local database over, and the dev-only rebuild in
-  `DevFlywayConfiguration` stays as the net under it — but a checksum mismatch there now
-  says somebody edited an applied script, not that the model moved.
-- Tables and columns snake_case, table names singular.
-- Event dates are `date`, not timestamps. Application timezone is Europe/Berlin.
+- The application holds data that nobody enters a second time, so an applied migration is
+  never edited again. A schema change is a new script and has to carry the rows that are
+  already there. A checksum mismatch says somebody edited an applied script.
+- Tables and columns snake_case, table names singular. Event dates are `date`, not
+  timestamps; application timezone is Europe/Berlin.
 
 ## Tests
 
@@ -202,6 +137,7 @@ History:
 - Full page and fragment share one route, the fragment selected by `headers = "HX-Request"`
   on its own mapping — no extra library.
 - Fragments live in `templates/fragments` and are named after what they replace.
-- No JavaScript framework, no inline script blocks beyond a few lines. A control the
-  browser does not have — a dropdown with several choices, a form that folds away — is a
-  `details` with checkboxes, not a library.
+- htmx is vendored in `static/vendor`: no CDN, no npm, no build step.
+- No JavaScript framework, no inline script blocks beyond a few lines. A control the browser
+  does not have — a dropdown with several choices, a form that folds away — is a `details`
+  with checkboxes, not a library.
