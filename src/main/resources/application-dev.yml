@@ -15,3 +15,8 @@ spring:
       static-locations: file:src/main/resources/static/,classpath:/static/
       cache:
         period: 0
+
+logging:
+  level:
+    # What the application itself says, in full. Everything else stays at INFO.
+    de.ostfale.greenroom: DEBUG

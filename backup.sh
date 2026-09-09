@@ -10,16 +10,26 @@
 # Set up once on the Pi, beside compose.pi.yaml:
 #
 #     ssh-keygen -t ed25519 -C greenroom-backup     # deposit the public key at HiDrive
+#     git ls-remote <user>@git.hidrive.strato.com:users/<user>/greenroom-backup.git
 #     mkdir backup && git -C backup init
 #     git -C backup remote add origin \
 #         <user>@git.hidrive.strato.com:users/<user>/greenroom-backup.git
+#     git -C backup config user.name greenroom
+#     git -C backup config user.email <address>
+#
+# The ls-remote is the probe, and it comes before the rest because it needs none of it: an
+# answer of nothing at all means the key was taken and the path holds a bare repository,
+# which is what an untouched backup repository looks like. It is also where the host key is
+# confirmed once — a question cron cannot answer, and an unasked one it would hang on. The
+# path carries no leading slash. The identity is not optional either: a Pi that has never
+# committed anything has none, and git refuses the commit in the small hours.
 #
 # The repository must not sit in an end-to-end encrypted folder: the server would see
 # nothing but opaque blocks, and a bare repository has to be readable to be a repository.
 #
-# Then nightly, from cron:
+# Then nightly, from cron, into a log the cron user may write — /var/log is root's:
 #
-#     0 3 * * *  /opt/greenroom/backup.sh >> /var/log/greenroom-backup.log 2>&1
+#     0 3 * * *  $HOME/greenroom/backup.sh >> $HOME/greenroom/logs/backup.log 2>&1
 #
 set -eu
 
