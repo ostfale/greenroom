@@ -279,6 +279,32 @@ class SpeakerControllerTest {
                 .contains("Link");
     }
 
+    /**
+     * Most speakers have one link at most. An empty row below the one they have is a field
+     * nobody asked for, so the fields wait behind their summary and only stand open while
+     * there is no link at all.
+     */
+    @Test
+    void theFieldsForANewLinkStandOpenOnlyWhileThereIsNone() throws Exception {
+        Long id = speakers.add(aSpeaker()).id();
+
+        String empty = mvc.perform(get("/speaker/" + id))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parse(empty).selectFirst("#speaker-links details").hasAttr("open"))
+                .isTrue();
+
+        String withALink = mvc.perform(post("/speaker/{id}/link", id)
+                        .param("url", "www.max-muster.de")
+                        .param("label", "")
+                        .header("HX-Request", "true"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(withALink).selectFirst("#speaker-links details")
+                .hasAttr("open")).isFalse();
+    }
+
     /** The list could write to them and their own page could not. Now both can. */
     @Test
     void theDetailPageOpensAMailToThePerson() throws Exception {

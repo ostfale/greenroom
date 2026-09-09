@@ -27,7 +27,10 @@
                 hx-swap="outerHTML">Entfernen</button>
     </form>
 
-    <!-- Stays empty after every save: the answer is this fragment rendered anew. -->
+    <!-- Most speakers have one link at most, so the fields only stand open while there is
+         none. Stays empty after every save: the answer is this fragment rendered anew. -->
+    <details class="reveal" th:open="${speaker.links.isEmpty()}">
+    <summary th:text="${speaker.links.isEmpty()} ? 'Link' : 'Weiterer Link'">Link</summary>
     <form class="inline guarded" method="post"
           th:action="@{/speaker/{id}/link(id=${speaker.id})}"
           th:hx-post="@{/speaker/{id}/link(id=${speaker.id})}"
@@ -41,6 +44,7 @@
         </label>
         <button type="submit" disabled>Link hinzufügen</button>
     </form>
+    </details>
 </div>
 </body>
 </html>
