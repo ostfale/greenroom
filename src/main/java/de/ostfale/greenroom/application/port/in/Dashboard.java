@@ -19,8 +19,8 @@ import java.util.List;
  * @param open     the other dated evenings still being planned, soonest first
  * @param topics   evenings that have no date yet — the ones waiting for a slot
  * @param counts   how much of everything there is
- * @param venues   where the evenings were held, the most used first
- * @param speakers who gave them, the most often first
+ * @param venues   where the evenings were held, the most used first, at most ten
+ * @param speakers who gave them, the most talks first, at most ten
  */
 public record Dashboard(
         Upcoming next,
@@ -49,9 +49,9 @@ public record Dashboard(
     }
 
     /**
-     * How often a place hosted or a person spoke, and when that last was. {@code last} is
-     * null while none of those evenings carries a date.
+     * How often a place hosted or how many talks a person gave, and when that last was.
+     * {@code last} is null while none of those evenings carries a date.
      */
-    public record Tally(Long id, String name, long evenings, LocalDate last) {
+    public record Tally(Long id, String name, long times, LocalDate last) {
     }
 }

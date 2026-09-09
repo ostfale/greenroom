@@ -9,6 +9,8 @@ import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.in.ManageTags;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
+import de.ostfale.greenroom.domain.locations.Location;
+import de.ostfale.greenroom.domain.speakers.Speaker;
 import de.ostfale.greenroom.domain.tags.Tag;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -19,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 
+import static de.ostfale.greenroom.Fixtures.aContact;
 import static de.ostfale.greenroom.Fixtures.aLocation;
 import static de.ostfale.greenroom.Fixtures.aReadyTalk;
 import static de.ostfale.greenroom.Fixtures.aSpeaker;
@@ -69,7 +72,7 @@ class HomeControllerTest {
         assertThat(page.selectFirst("h1").text()).isEqualTo("Übersicht");
         assertThat(page.select("section.tile h2").eachText())
                 .containsExactly("Zahlen", "Der nächste Abend", "Weiter geplant",
-                        "Themen ohne Termin", "Wo wir schon waren", "Wen wir schon hatten");
+                        "Themen ohne Termin", "Top Ten Location", "Top Ten Speaker");
     }
 
     @Test
@@ -130,6 +133,36 @@ class HomeControllerTest {
                 .containsSequence("Musterfirma GmbH", "2", "2025");
         assertThat(page.select("section.tile").get(5).select("tbody tr td").eachText())
                 .containsSequence("Max Muster", "2", "2025");
+    }
+
+    /** The place counts evenings, the person counts talks — two on one night are two. */
+    @Test
+    void aSecondTalkOnTheSameEveningCountsForTheSpeakerButNotForThePlace() throws Exception {
+        events.add(done(LocalDate.of(2025, 9, 11)).withAdditionalTalk(aReadyTalk(speakerId)));
+
+        Document page = overview();
+
+        assertThat(page.select("section.tile").get(4).select("tbody tr td").eachText())
+                .containsSequence("Musterfirma GmbH", "1", "2025");
+        assertThat(page.select("section.tile").get(5).select("tbody tr td").eachText())
+                .containsSequence("Max Muster", "2", "2025");
+    }
+
+    /** Ten is where a ranking stops being a glance. */
+    @Test
+    void bothRankingsStopAtTen() throws Exception {
+        for (int number = 1; number <= 11; number++) {
+            Long another = locations.add(Location.of("Musterhalle " + number, aContact())).id();
+            Long someone = speakers.add(Speaker.of("Muster " + number, number + "@example.org")).id();
+            events.add(Event.draftFor(aReadyTalk(someone))
+                    .withDate(LocalDate.of(2025, 1, number))
+                    .withLocation(another));
+        }
+
+        Document page = overview();
+
+        assertThat(page.select("section.tile").get(4).select("tbody tr")).hasSize(10);
+        assertThat(page.select("section.tile").get(5).select("tbody tr")).hasSize(10);
     }
 
     @Test

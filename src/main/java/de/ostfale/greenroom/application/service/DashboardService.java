@@ -89,36 +89,45 @@ public class DashboardService implements ShowDashboard {
     /** The places that hosted at least one evening. A place we never went to is no tally. */
     private List<Dashboard.Tally> whereWeHaveBeen(List<Event> all) {
         return locations.findAll().stream()
-                .map(place -> tally(place.id(), place.name(),
-                        all.stream().filter(event -> event.isAt(place.id())).toList()))
-                .filter(tally -> tally.evenings() > 0)
+                .map(place -> {
+                    List<Event> there = all.stream()
+                            .filter(event -> event.isAt(place.id())).toList();
+                    return tally(place.id(), place.name(), there.size(), there);
+                })
+                .filter(tally -> tally.times() > 0)
                 .sorted(byHowOftenAndHowRecently())
                 .limit(MOST)
                 .toList();
     }
 
+    /** Counted in talks, not in evenings: two talks on one night are two. */
     private List<Dashboard.Tally> whoWeHaveHad(List<Event> all) {
         return speakers.findAll().stream()
-                .map(person -> tally(person.id(), person.name(),
-                        all.stream().filter(event -> event.isGivenBy(person.id())).toList()))
-                .filter(tally -> tally.evenings() > 0)
+                .map(person -> {
+                    List<Event> given = all.stream()
+                            .filter(event -> event.isGivenBy(person.id())).toList();
+                    long talks = given.stream()
+                            .mapToLong(event -> event.talksBy(person.id())).sum();
+                    return tally(person.id(), person.name(), talks, given);
+                })
+                .filter(tally -> tally.times() > 0)
                 .sorted(byHowOftenAndHowRecently())
                 .limit(MOST)
                 .toList();
     }
 
-    private static Dashboard.Tally tally(Long id, String name, List<Event> evenings) {
+    private static Dashboard.Tally tally(Long id, String name, long times, List<Event> evenings) {
         LocalDate last = evenings.stream()
                 .map(Event::date)
                 .filter(Objects::nonNull)
                 .max(Comparator.naturalOrder())
                 .orElse(null);
-        return new Dashboard.Tally(id, name, evenings.size(), last);
+        return new Dashboard.Tally(id, name, times, last);
     }
 
     /** Most often first; among equals the one we were at last, and then by name. */
     private static Comparator<Dashboard.Tally> byHowOftenAndHowRecently() {
-        return Comparator.comparingLong(Dashboard.Tally::evenings).reversed()
+        return Comparator.comparingLong(Dashboard.Tally::times).reversed()
                 .thenComparing(Dashboard.Tally::last,
                         Comparator.nullsLast(Comparator.reverseOrder()))
                 .thenComparing(Dashboard.Tally::name);

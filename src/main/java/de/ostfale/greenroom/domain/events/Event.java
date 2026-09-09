@@ -244,8 +244,18 @@ public record Event(
 
     /** Whether that person speaks here, on whichever of the talks. */
     public boolean isGivenBy(Long speaker) {
-        return speaker != null && talks.stream().anyMatch(talk -> talk.speakers().stream()
-                .anyMatch(announced -> speaker.equals(announced.speakerId())));
+        return talksBy(speaker) > 0;
+    }
+
+    /**
+     * How many of the talks that person gives. Usually one, and an evening where somebody
+     * takes the floor twice counts twice — the tally is about talks, not about appearances.
+     */
+    public long talksBy(Long speaker) {
+        return speaker == null ? 0 : talks.stream()
+                .filter(talk -> talk.speakers().stream()
+                        .anyMatch(announced -> speaker.equals(announced.speakerId())))
+                .count();
     }
 
     public boolean isAt(Long place) {

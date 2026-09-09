@@ -67,6 +67,19 @@ class EventTest {
 
         assertThat(evening.isGivenBy(null)).isFalse();
         assertThat(evening.isAt(null)).isFalse();
+        assertThat(evening.talksBy(null)).isZero();
+    }
+
+    /** The ranking counts talks, so somebody who takes the floor twice counts twice. */
+    @Test
+    void anEveningKnowsHowManyTalksSomebodyGives() {
+        Event evening = Event.draftFor(aReadyTalk(SPEAKER))
+                .withAdditionalTalk(aReadyTalk(SPEAKER))
+                .withAdditionalTalk(aReadyTalk(999L));
+
+        assertThat(evening.talksBy(SPEAKER)).isEqualTo(2);
+        assertThat(evening.talksBy(999L)).isEqualTo(1);
+        assertThat(evening.talksBy(4711L)).isZero();
     }
 
     @Test

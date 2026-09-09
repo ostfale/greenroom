@@ -194,6 +194,12 @@ h1 {
     grid-row: span 2;
 }
 
+/* The two rankings are read against each other, so they are one shape: same width from the
+   column span, same height from here, however many names each of them happens to hold. */
+.tile.top-ten {
+    align-self: stretch;
+}
+
 /* A caption inside a tile: says what the block under it is, in the language the field
    labels speak. Not a heading — there is one of those per tile already. */
 .caption {

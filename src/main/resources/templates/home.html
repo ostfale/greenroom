@@ -98,8 +98,8 @@
             </ul>
         </section>
 
-        <section class="tile quarter">
-            <h2>Wo wir schon waren</h2>
+        <section class="tile quarter top-ten">
+            <h2>Top Ten Location</h2>
 
             <p class="hint" th:if="${#lists.isEmpty(dashboard.venues)}">Noch nirgends.</p>
 
@@ -110,7 +110,7 @@
                         <a th:href="@{/location/{id}(id=${place.id})}"
                            th:text="${place.name}">Musterfirma GmbH</a>
                     </td>
-                    <td class="data" th:text="${place.evenings}">6</td>
+                    <td class="data" th:text="${place.times}">6</td>
                     <td class="data hint"
                         th:text="${place.last} != null ? ${#temporals.format(place.last, 'yyyy')} : '—'">2024</td>
                 </tr>
@@ -118,8 +118,8 @@
             </table>
         </section>
 
-        <section class="tile quarter">
-            <h2>Wen wir schon hatten</h2>
+        <section class="tile quarter top-ten">
+            <h2>Top Ten Speaker</h2>
 
             <p class="hint" th:if="${#lists.isEmpty(dashboard.speakers)}">Noch niemanden.</p>
 
@@ -130,7 +130,7 @@
                         <a th:href="@{/speaker/{id}(id=${person.id})}"
                            th:text="${person.name}">Max Muster</a>
                     </td>
-                    <td class="data" th:text="${person.evenings}">3</td>
+                    <td class="data" th:text="${person.times}">3</td>
                     <td class="data hint"
                         th:text="${person.last} != null ? ${#temporals.format(person.last, 'yyyy')} : '—'">2025</td>
                 </tr>
