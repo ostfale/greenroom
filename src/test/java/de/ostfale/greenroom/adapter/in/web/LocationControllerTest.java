@@ -56,6 +56,7 @@ class LocationControllerTest {
     void theFormPostsANewLocationWithItsContactIntoTheDatabase() throws Exception {
         mvc.perform(post("/location")
                         .param("name", "Musterfirma GmbH")
+                        .param("website", "www.musterfirma.de")
                         .param("street", "Musterweg 1")
                         .param("postalCode", "22179")
                         .param("city", "Hamburg")
@@ -73,12 +74,40 @@ class LocationControllerTest {
             assertThat(stored.addresses()).singleElement()
                     .satisfies(address -> assertThat(address.active()).isTrue());
             assertThat(stored.currentCapacity()).isEqualTo(80);
+            assertThat(stored.website()).isEqualTo("https://www.musterfirma.de");
             assertThat(stored.contacts()).singleElement().satisfies(contact -> {
                 assertThat(contact.name()).isEqualTo("Max Muster");
                 assertThat(contact.email()).isEqualTo("max@example.org");
                 assertThat(contact.phone()).isNull();
             });
         });
+    }
+
+    /**
+     * The website is edited in the fields tile and read in the summary tile, so the answer
+     * to saving carries both — otherwise the link beside the address stays what it was.
+     */
+    @Test
+    void theWebsiteIsSavedWithTheFieldsAndComesBackAsALink() throws Exception {
+        Long id = locations.add(aLocation()).id();
+
+        String fragment = mvc.perform(post("/location/{id}", id)
+                        .param("name", "Musterfirma GmbH")
+                        .param("website", "www.musterfirma.de")
+                        .param("notes", "")
+                        .param("inUse", "true")
+                        .header("HX-Request", "true"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(locations.byId(id).orElseThrow().website())
+                .isEqualTo("https://www.musterfirma.de");
+
+        Document parsed = Jsoup.parseBodyFragment(fragment);
+        assertThat(parsed.selectFirst("#location-fields input[name=website]").attr("value"))
+                .isEqualTo("https://www.musterfirma.de");
+        assertThat(parsed.selectFirst("#location-summary a").attr("href"))
+                .isEqualTo("https://www.musterfirma.de");
     }
 
     /**

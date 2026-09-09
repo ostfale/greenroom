@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="speaker-links" th:fragment="speaker-links">
+    <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
+
+    <form class="inline boxed" method="post"
+          th:each="link, i : ${speaker.links}"
+          th:action="@{/speaker/{id}/link/{pos}(id=${speaker.id},pos=${i.index})}"
+          th:hx-post="@{/speaker/{id}/link/{pos}(id=${speaker.id},pos=${i.index})}"
+          hx-target="#speaker-links"
+          hx-swap="outerHTML">
+        <label>
+            <span class="captioned">Adresse
+                <a th:href="${link.url}" target="_blank" rel="noreferrer"
+                   title="Diese Seite öffnen">Öffnen</a>
+            </span>
+            <input type="text" name="url" required th:value="${link.url}">
+        </label>
+        <label>Beschriftung
+            <input type="text" name="label" placeholder="Blog" th:value="${link.label}">
+        </label>
+        <button type="submit">Speichern</button>
+        <button type="button" class="link"
+                th:hx-post="@{/speaker/{id}/link/{pos}/remove(id=${speaker.id},pos=${i.index})}"
+                hx-target="#speaker-links"
+                hx-swap="outerHTML">Entfernen</button>
+    </form>
+
+    <!-- Stays empty after every save: the answer is this fragment rendered anew. -->
+    <form class="inline" method="post"
+          th:action="@{/speaker/{id}/link(id=${speaker.id})}"
+          th:hx-post="@{/speaker/{id}/link(id=${speaker.id})}"
+          hx-target="#speaker-links"
+          hx-swap="outerHTML">
+        <label>Adresse
+            <input type="text" name="url" required placeholder="www.max-muster.de">
+        </label>
+        <label>Beschriftung
+            <input type="text" name="label" placeholder="Blog">
+        </label>
+        <button type="submit">Link hinzufügen</button>
+    </form>
+</div>
+</body>
+</html>

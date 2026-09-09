@@ -9,6 +9,7 @@ import java.util.List;
 
 import static de.ostfale.greenroom.domain.Texts.optional;
 import static de.ostfale.greenroom.domain.Texts.required;
+import static de.ostfale.greenroom.domain.Texts.url;
 
 /**
  * A place that hosts an evening. It exists on its own: a location is entered once and used
@@ -25,10 +26,14 @@ import static de.ostfale.greenroom.domain.Texts.required;
  * address, because a place that moves rarely keeps the same room. What may never be missing is
  * somebody to ask, which is why there is at least one {@link ContactPerson} from the first
  * moment.
+ *
+ * <p>The website belongs to the place, not to the address: a company keeps its domain when
+ * it moves, and there is one of them however many sites it hosts at.
  */
 public record Location(
         @Id Long id,
         String name,
+        String website,
         String notes,
         boolean inUse,
         List<Address> addresses,
@@ -39,6 +44,7 @@ public record Location(
         if (contacts == null || contacts.isEmpty()) {
             throw new RuleViolated(Rule.LOCATION_NEEDS_A_CONTACT);
         }
+        website = url(website);
         notes = optional(notes);
         addresses = addresses == null ? List.of() : List.copyOf(addresses);
         contacts = List.copyOf(contacts);
@@ -46,7 +52,7 @@ public record Location(
 
     /** A new location, not yet stored. The contact person comes with it, never later. */
     public static Location of(String name, ContactPerson contact) {
-        return new Location(null, name, null, true, List.of(), List.of(contact));
+        return new Location(null, name, null, null, true, List.of(), List.of(contact));
     }
 
     /**
@@ -54,7 +60,7 @@ public record Location(
      * stays, addresses included — this only takes the place out of the choice.
      */
     public Location withInUse(boolean nowInUse) {
-        return new Location(id, name, notes, nowInUse, addresses, contacts);
+        return new Location(id, name, website, notes, nowInUse, addresses, contacts);
     }
 
     /** The one address that counts from now on; whatever was there before is kept as past. */
@@ -103,15 +109,19 @@ public record Location(
     }
 
     public Location withAddresses(List<Address> newAddresses) {
-        return new Location(id, name, notes, inUse, newAddresses, contacts);
+        return new Location(id, name, website, notes, inUse, newAddresses, contacts);
+    }
+
+    public Location withWebsite(String newWebsite) {
+        return new Location(id, name, newWebsite, notes, inUse, addresses, contacts);
     }
 
     public Location withNotes(String newNotes) {
-        return new Location(id, name, newNotes, inUse, addresses, contacts);
+        return new Location(id, name, website, newNotes, inUse, addresses, contacts);
     }
 
     public Location withContacts(List<ContactPerson> newContacts) {
-        return new Location(id, name, notes, inUse, addresses, newContacts);
+        return new Location(id, name, website, notes, inUse, addresses, newContacts);
     }
 
     public Location withAdditionalContact(ContactPerson contact) {

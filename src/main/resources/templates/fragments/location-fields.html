@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
+<!-- The website stands in the summary tile, so saving the form sends both back. -->
+<th:block th:fragment="location-fields-and-summary">
+    <div th:replace="~{fragments/location-fields :: location-fields}"></div>
+    <div th:replace="~{fragments/location-summary :: location-summary}"></div>
+</th:block>
+
 <div id="location-fields" th:fragment="location-fields">
     <p class="error" th:if="${error}" th:text="${error}">Fehler</p>
 
@@ -10,6 +16,17 @@
           hx-swap="outerHTML">
         <label>Name
             <input type="text" name="name" required th:value="${location.name}">
+        </label>
+        <label>
+            <span class="captioned">Webseite
+                <a th:if="${location.website}" th:href="${location.website}"
+                   target="_blank" rel="noreferrer"
+                   title="Webseite dieses Ortes öffnen">Öffnen</a>
+            </span>
+            <!-- Not type="url": that one rejects "www.firma.de", which is how a homepage is
+                 written down. The record puts the scheme in front. -->
+            <input type="text" name="website" placeholder="www.musterfirma.de"
+                   th:value="${location.website}">
         </label>
         <label>Notizen
             <textarea name="notes" rows="3" th:text="${location.notes}"></textarea>

@@ -8,6 +8,12 @@
     <dd th:text="${#strings.isEmpty(location.addressLine())} ? '—' : ${location.addressLine()}">—</dd>
     <dt>Plätze</dt>
     <dd class="data" th:text="${location.currentCapacity()} ?: '—'">—</dd>
+    <dt>Webseite</dt>
+    <dd>
+        <a th:if="${location.website}" th:href="${location.website}" target="_blank"
+           rel="noreferrer" th:text="${location.website}">www.musterfirma.de</a>
+        <span th:unless="${location.website}">—</span>
+    </dd>
     <dt>Standorte</dt>
     <dd class="data" th:text="${#lists.size(location.activeAddresses())} + ' aktiv'">1 aktiv</dd>
 </dl>

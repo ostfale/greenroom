@@ -13,6 +13,10 @@
         <label>Name
             <input type="text" name="name" required autofocus th:value="${submitted.name}">
         </label>
+        <label>Webseite
+            <input type="text" name="website" placeholder="www.musterfirma.de"
+                   th:value="${submitted.website}">
+        </label>
         <label>Straße und Hausnummer
             <input type="text" name="street" th:value="${submitted.street}">
         </label>

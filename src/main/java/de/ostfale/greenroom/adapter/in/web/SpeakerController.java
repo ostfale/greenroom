@@ -4,6 +4,7 @@ import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.domain.Rule;
 import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.speakers.Speaker;
+import de.ostfale.greenroom.domain.speakers.SpeakerLink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.CacheControl;
@@ -24,6 +25,7 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 @Controller
 @RequestMapping("/speaker")
@@ -124,6 +126,43 @@ public class SpeakerController {
             model.addAttribute("error", errors.german(e));
             return detailFragment(id, model);
         }
+    }
+
+    /** One more place the speaker can be found: a homepage, a recording, a profile. */
+    @PostMapping("/{id}/link")
+    public String addLink(@PathVariable Long id,
+                          @RequestParam(defaultValue = "") String url,
+                          @RequestParam(defaultValue = "") String label,
+                          Model model) {
+        return changeLinks(id, model, known ->
+                known.withAdditionalLink(new SpeakerLink(url, label)));
+    }
+
+    @PostMapping("/{id}/link/{position}")
+    public String changeLink(@PathVariable Long id, @PathVariable int position,
+                             @RequestParam(defaultValue = "") String url,
+                             @RequestParam(defaultValue = "") String label,
+                             Model model) {
+        return changeLinks(id, model, known ->
+                known.withLinkChanged(position, new SpeakerLink(url, label)));
+    }
+
+    @PostMapping("/{id}/link/{position}/remove")
+    public String removeLink(@PathVariable Long id, @PathVariable int position, Model model) {
+        return changeLinks(id, model, known -> known.withLinkRemoved(position));
+    }
+
+    /** What the three link routes have in common: read, let the record decide, write back. */
+    private String changeLinks(Long id, Model model, UnaryOperator<Speaker> change) {
+        try {
+            Speaker known = speakers.byId(id).orElseThrow(() ->
+                    new RuleViolated(Rule.NOT_FOUND));
+            speakers.change(change.apply(known));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
+        }
+        speakers.byId(id).ifPresent(speaker -> model.addAttribute("speaker", speaker));
+        return "fragments/speaker-links :: speaker-links";
     }
 
     /** Every change to the speaker answers with the same tile. */

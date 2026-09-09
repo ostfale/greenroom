@@ -50,12 +50,13 @@ public class LocationController {
 
     @GetMapping("/new")
     public String form(Model model) {
-        model.addAttribute("submitted", submitted("", "", "", "", "", "", "", "", ""));
+        model.addAttribute("submitted", submitted("", "", "", "", "", "", "", "", "", ""));
         return "location/form";
     }
 
     @PostMapping
     public String add(@RequestParam(defaultValue = "") String name,
+                      @RequestParam(defaultValue = "") String website,
                       @RequestParam(defaultValue = "") String street,
                       @RequestParam(defaultValue = "") String postalCode,
                       @RequestParam(defaultValue = "") String city,
@@ -67,7 +68,8 @@ public class LocationController {
                       Model model) {
         try {
             ContactPerson contact = new ContactPerson(contactName, contactEmail, contactPhone);
-            Location location = new Location(null, name, notes, true, List.of(), List.of(contact));
+            Location location =
+                    new Location(null, name, website, notes, true, List.of(), List.of(contact));
             if (!street.isBlank() || !postalCode.isBlank() || !city.isBlank()) {
                 location = location.movedTo(
                         Address.at(street, postalCode, city).withCapacity(FormValues.seats(capacity)));
@@ -80,8 +82,8 @@ public class LocationController {
             // The records know the rules; the form only has to say so in German and keep
             // what was typed.
             model.addAttribute("error", errors.german(e));
-            model.addAttribute("submitted", submitted(name, street, postalCode, city, capacity,
-                    notes, contactName, contactEmail, contactPhone));
+            model.addAttribute("submitted", submitted(name, website, street, postalCode, city,
+                    capacity, notes, contactName, contactEmail, contactPhone));
             return "location/form";
         }
     }
@@ -115,23 +117,25 @@ public class LocationController {
         return "fragments/address-list :: address-list-and-summary";
     }
 
-    /** Name and notes. The addresses and the contact people have their own forms. */
+    /** Name, website and notes. The addresses and the contact people have their own forms. */
     @PostMapping("/{id}")
     public String change(@PathVariable Long id,
                          @RequestParam(defaultValue = "") String name,
+                         @RequestParam(defaultValue = "") String website,
                          @RequestParam(defaultValue = "") String notes,
                          @RequestParam(defaultValue = "false") boolean inUse,
                          Model model) {
         try {
             Location known = locations.byId(id).orElseThrow(() ->
                     new RuleViolated(Rule.NOT_FOUND));
-            locations.change(new Location(id, name, notes, inUse,
+            locations.change(new Location(id, name, website, notes, inUse,
                     known.addresses(), known.contacts()));
         } catch (RuleViolated e) {
             model.addAttribute("error", errors.german(e));
         }
         locations.byId(id).ifPresent(location -> show(model, location));
-        return "fragments/location-fields :: location-fields";
+        // The summary carries the website, so it comes back with the form that changed it.
+        return "fragments/location-fields :: location-fields-and-summary";
     }
 
     /**
@@ -237,12 +241,13 @@ public class LocationController {
         model.addAttribute("onlyActive", onlyActive);
     }
 
-    private static Map<String, String> submitted(String name, String street, String postalCode,
-                                                 String city, String capacity, String notes,
-                                                 String contactName, String contactEmail,
-                                                 String contactPhone) {
+    private static Map<String, String> submitted(String name, String website, String street,
+                                                 String postalCode, String city, String capacity,
+                                                 String notes, String contactName,
+                                                 String contactEmail, String contactPhone) {
         Map<String, String> values = new LinkedHashMap<>();
         values.put("name", name);
+        values.put("website", website);
         values.put("street", street);
         values.put("postalCode", postalCode);
         values.put("city", city);

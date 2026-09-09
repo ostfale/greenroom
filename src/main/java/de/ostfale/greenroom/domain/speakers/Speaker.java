@@ -1,8 +1,10 @@
 package de.ostfale.greenroom.domain.speakers;
 
 import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.RuleViolated;
 import org.springframework.data.annotation.Id;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static de.ostfale.greenroom.domain.Texts.optional;
@@ -50,5 +52,33 @@ public record Speaker(
 
     public Speaker withLinks(List<SpeakerLink> newLinks) {
         return new Speaker(id, name, company, email, phone, bio, notes, newLinks);
+    }
+
+    /** One more place the speaker can be found. */
+    public Speaker withAdditionalLink(SpeakerLink link) {
+        List<SpeakerLink> more = new ArrayList<>(links);
+        more.add(link);
+        return withLinks(more);
+    }
+
+    /** Replaces the link at that position — a moved blog, a label put right. */
+    public Speaker withLinkChanged(int position, SpeakerLink link) {
+        List<SpeakerLink> changed = new ArrayList<>(links);
+        changed.set(known(position), link);
+        return withLinks(changed);
+    }
+
+    /** Drops the link at that position. A speaker without any is nothing unusual. */
+    public Speaker withLinkRemoved(int position) {
+        List<SpeakerLink> left = new ArrayList<>(links);
+        left.remove(known(position));
+        return withLinks(left);
+    }
+
+    private int known(int position) {
+        if (position < 0 || position >= links.size()) {
+            throw new RuleViolated(Rule.NO_LINK_AT_POSITION, position);
+        }
+        return position;
     }
 }

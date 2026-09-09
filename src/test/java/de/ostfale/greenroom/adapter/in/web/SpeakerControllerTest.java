@@ -228,6 +228,57 @@ class SpeakerControllerTest {
         });
     }
 
+    /**
+     * The links were on the page for years and could only be read. The tile is there even
+     * when there is none, or the first one could never be entered.
+     */
+    @Test
+    void aLinkIsAddedChangedAndRemovedOnTheDetailPage() throws Exception {
+        Long id = speakers.add(aSpeaker()).id();
+
+        String added = mvc.perform(post("/speaker/{id}/link", id)
+                        .param("url", "www.max-muster.de")
+                        .param("label", "")
+                        .header("HX-Request", "true"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(speakers.byId(id).orElseThrow().links()).singleElement()
+                .satisfies(link -> {
+                    assertThat(link.url()).isEqualTo("https://www.max-muster.de");
+                    assertThat(link.label()).isNull();
+                });
+        assertThat(Jsoup.parseBodyFragment(added).selectFirst("#speaker-links a").attr("href"))
+                .isEqualTo("https://www.max-muster.de");
+
+        mvc.perform(post("/speaker/{id}/link/{position}", id, 0)
+                        .param("url", "www.max-muster.de")
+                        .param("label", "Blog")
+                        .header("HX-Request", "true"))
+                .andExpect(status().isOk());
+
+        assertThat(speakers.byId(id).orElseThrow().links().getFirst().display()).isEqualTo("Blog");
+
+        mvc.perform(post("/speaker/{id}/link/{position}/remove", id, 0)
+                        .header("HX-Request", "true"))
+                .andExpect(status().isOk());
+
+        assertThat(speakers.byId(id).orElseThrow().links()).isEmpty();
+    }
+
+    @Test
+    void aLinkThatIsAlreadyGoneSaysSoInsteadOfFailing() throws Exception {
+        Long id = speakers.add(aSpeaker()).id();
+
+        String fragment = mvc.perform(post("/speaker/{id}/link/{position}/remove", id, 0)
+                        .header("HX-Request", "true"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("Link");
+    }
+
     /** The list could write to them and their own page could not. Now both can. */
     @Test
     void theDetailPageOpensAMailToThePerson() throws Exception {

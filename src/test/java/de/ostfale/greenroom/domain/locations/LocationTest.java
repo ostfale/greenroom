@@ -8,6 +8,7 @@ import java.util.List;
 
 import static de.ostfale.greenroom.Fixtures.aContact;
 import static de.ostfale.greenroom.Fixtures.aLocation;
+import static de.ostfale.greenroom.Fixtures.anAddress;
 import static de.ostfale.greenroom.Violations.ruleBrokenBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -22,10 +23,12 @@ class LocationTest {
 
     @Test
     void aLocationNeedsSomebodyToAsk() {
-        assertThat(ruleBrokenBy(() -> new Location(null, "Musterfirma GmbH", null, true, List.of(), List.of())))
+        assertThat(ruleBrokenBy(() ->
+                new Location(null, "Musterfirma GmbH", null, null, true, List.of(), List.of())))
                 .isEqualTo(Rule.LOCATION_NEEDS_A_CONTACT);
 
-        assertThat(ruleBrokenBy(() -> new Location(null, "Musterfirma GmbH", null, true, List.of(), null)))
+        assertThat(ruleBrokenBy(() ->
+                new Location(null, "Musterfirma GmbH", null, null, true, List.of(), null)))
                 .isEqualTo(Rule.LOCATION_NEEDS_A_CONTACT);
     }
 
@@ -385,10 +388,33 @@ class LocationTest {
      */
     @Test
     void aPlaceWithoutAnyAddressesHasAnEmptyListRatherThanNone() {
-        Location read = new Location(1L, "Musterfirma GmbH", null, true, null, List.of(aContact()));
+        Location read =
+                new Location(1L, "Musterfirma GmbH", null, null, true, null, List.of(aContact()));
 
         assertThat(read.addresses()).isEmpty();
         assertThat(read.currentAddress()).isNull();
+    }
+
+    /**
+     * The website belongs to the place and not to one of its addresses, so it survives a
+     * move. Written down as "www.…", it still has to be a link a browser follows.
+     */
+    @Test
+    void theWebsiteStaysWithThePlaceAndGetsItsScheme() {
+        Location place = new Location(1L, "Musterfirma GmbH", "www.musterfirma.de", null, true,
+                List.of(anAddress()), List.of(aContact()));
+
+        assertThat(place.website()).isEqualTo("https://www.musterfirma.de");
+        assertThat(place.movedTo(Address.at("Neue Straße 1", "20095", "Hamburg")).website())
+                .isEqualTo("https://www.musterfirma.de");
+        assertThat(place.withNotes("Anfahrt").website()).isEqualTo("https://www.musterfirma.de");
+    }
+
+    @Test
+    void aPlaceWithoutAWebsiteHasNoneRatherThanAnEmptyOne() {
+        assertThat(Location.of("Musterfirma GmbH", aContact()).website()).isNull();
+        assertThat(new Location(1L, "Musterfirma GmbH", "  ", null, true, List.of(),
+                List.of(aContact())).website()).isNull();
     }
 
     @Test

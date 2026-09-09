@@ -20,13 +20,10 @@
             <div th:replace="~{fragments/speaker-fields :: speaker-fields}"></div>
         </section>
 
-        <section class="tile half" th:if="${!#lists.isEmpty(speaker.links)}">
+        <!-- Always there, empty or not: the first link has to be enterable somewhere. -->
+        <section class="tile half">
             <h2>Links</h2>
-            <ul class="plain">
-                <li th:each="link : ${speaker.links}">
-                    <a th:href="${link.url}" th:text="${link.display()}" rel="noreferrer">Blog</a>
-                </li>
-            </ul>
+            <div th:replace="~{fragments/speaker-links :: speaker-links}"></div>
         </section>
     </div>
 </main>

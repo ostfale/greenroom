@@ -77,4 +77,39 @@ class SpeakerTest {
         assertThat(ruleBrokenBy(() -> SpeakerLink.of(" ")))
                 .isEqualTo(Rule.SPEAKER_LINK_NEEDS_A_URL);
     }
+
+    /** A homepage is written down as "www.…", and an href without a scheme goes nowhere. */
+    @Test
+    void aLinkWrittenWithoutASchemeGetsOne() {
+        assertThat(SpeakerLink.of("www.max-muster.de").url()).isEqualTo("https://www.max-muster.de");
+        assertThat(SpeakerLink.of("http://max-muster.de").url()).isEqualTo("http://max-muster.de");
+        assertThat(SpeakerLink.of("https://max-muster.de").url()).isEqualTo("https://max-muster.de");
+    }
+
+    @Test
+    void linksAreAddedChangedAndDroppedOneAtATime() {
+        Speaker speaker = Speaker.of("Max Muster", "max@example.org")
+                .withAdditionalLink(SpeakerLink.of("www.max-muster.de"))
+                .withAdditionalLink(new SpeakerLink("www.example.org/talk", "Aufzeichnung"));
+
+        assertThat(speaker.links()).hasSize(2);
+
+        speaker = speaker.withLinkChanged(0, new SpeakerLink("www.max-muster.de", "Blog"));
+        assertThat(speaker.links().getFirst().display()).isEqualTo("Blog");
+
+        speaker = speaker.withLinkRemoved(0);
+        assertThat(speaker.links()).singleElement()
+                .extracting(SpeakerLink::display).isEqualTo("Aufzeichnung");
+    }
+
+    @Test
+    void aLinkThatIsNotThereCannotBeChangedOrDropped() {
+        Speaker speaker = Speaker.of("Max Muster", "max@example.org")
+                .withAdditionalLink(SpeakerLink.of("www.max-muster.de"));
+
+        assertThat(ruleBrokenBy(() -> speaker.withLinkRemoved(1)))
+                .isEqualTo(Rule.NO_LINK_AT_POSITION);
+        assertThat(ruleBrokenBy(() -> speaker.withLinkChanged(-1, SpeakerLink.of("www.example.org"))))
+                .isEqualTo(Rule.NO_LINK_AT_POSITION);
+    }
 }

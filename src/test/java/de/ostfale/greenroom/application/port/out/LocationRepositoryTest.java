@@ -39,6 +39,7 @@ class LocationRepositoryTest {
     void storesAndReadsBackALocation() {
         Location saved = locations.save(aLocation()
                 .movedTo(Address.at("Musterweg 1", "22179", "Hamburg").withCapacity(80))
+                .withWebsite("www.musterfirma.de")
                 .withNotes("Parken im Hof, Beamer vorhanden."));
 
         assertThat(saved.id()).isNotNull();
@@ -47,6 +48,7 @@ class LocationRepositoryTest {
         assertThat(loaded.name()).isEqualTo("Musterfirma GmbH");
         assertThat(loaded.addressLine()).isEqualTo("Musterweg 1, 22179 Hamburg");
         assertThat(loaded.currentCapacity()).isEqualTo(80);
+        assertThat(loaded.website()).isEqualTo("https://www.musterfirma.de");
         assertThat(loaded.notes()).isEqualTo("Parken im Hof, Beamer vorhanden.");
     }
 
