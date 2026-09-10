@@ -111,11 +111,24 @@ the Pi next to `compose.pi.yaml`, put a `GRAFANA_ADMIN_PASSWORD` in the `.env`, 
 the log directory once, `mkdir -p logs` — a bind mount docker has to create itself belongs
 to root, and the container is user 1000.
 
-Grafana is on port 3000, user `admin`, with Prometheus and Loki already wired up. It
-brings no dashboards; the two that fit are imported by ID from grafana.com: **1860** for
-the Pi and **4701** for the JVM. The logs are in Explore, and because the application's
-console is JSON where Alloy collects it, they are filtered by field:
-`{service="app", level="WARN"}`.
+Grafana is on port 3000, user `admin`, with Prometheus and Loki already wired up and two
+dashboards already there: **Node Exporter Full** for the Pi and **JVM (Micrometer)** for the
+application. They are the grafana.com exports **1860** and **4701**, vendored under
+`observability/dashboards/` and provisioned — imported ones would live in the Grafana volume
+alone, which survives a restart but not a fresh Pi, and nothing in the repo would say they
+had ever been there. Edit one in the browser to try something out; what is meant to last is
+a new export into the repo. The JVM dashboard finds the application by an `application`
+label that `prometheus.yml` stamps on at scrape time, because Micrometer writes none.
+
+The logs are in Explore, and because the application's console is JSON where Alloy collects
+it, they are filtered by field: `{service="app", level="WARN"}` — an empty answer there
+usually means there were no warnings, not that the filter is wrong. The labels are `service`
+(`app`, `db`, `alloy`, `grafana`, `prometheus`), `level`, and `host`.
+
+`GREENROOM_HOST` in the `.env` is what the machine is called — in the `host` label on every
+log line and as `nodename` on the Pi dashboard. Both are read inside a container, where
+uname and the hostname answer with a docker id, so compose hands the name to Alloy and the
+node exporter. Unset, everything says `greenroom`; wrong only in that it says it twice.
 
 Prometheus keeps a year, Loki ninety days. Both write to a docker volume, which on the Pi
 is the SSD.

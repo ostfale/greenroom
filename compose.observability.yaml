@@ -47,6 +47,10 @@ services:
     image: prom/node-exporter:v1.12.1
     restart: unless-stopped
     pid: host
+    # `nodename` in node_uname_info, which is what the Pi dashboard puts in its title and
+    # in every variable. uname answers out of the container's namespace, so without this
+    # the machine appears under a docker id.
+    hostname: ${GREENROOM_HOST:-greenroom}
     command:
       - --path.procfs=/host/proc
       - --path.sysfs=/host/sys
@@ -71,6 +75,9 @@ services:
     image: grafana/alloy:v1.19.2
     restart: unless-stopped
     user: root
+    # The `host` label on every line comes out of this. Without it the container names
+    # itself after its own id, and the label reads like a checksum instead of a machine.
+    hostname: ${GREENROOM_HOST:-greenroom}
     command:
       - run
       - --storage.path=/var/lib/alloy/data
@@ -93,6 +100,8 @@ services:
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
     volumes:
       - ./observability/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+      - ./observability/grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
+      - ./observability/dashboards:/etc/grafana/provisioning/dashboards/files:ro
       - grafana-data:/var/lib/grafana
     ports:
       - "3000:3000"

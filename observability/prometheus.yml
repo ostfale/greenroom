@@ -12,6 +12,11 @@ scrape_configs:
     metrics_path: /mgmt/prometheus
     static_configs:
       - targets: [ "app:8382" ]
+        # The JVM dashboard picks its instance by an `application` label, which Micrometer
+        # does not write by itself. Stamped on here rather than configured in the jar: it
+        # says what this Prometheus scraped, which is exactly what a label is for.
+        labels:
+          application: greenroom
 
   # The Pi, read by the node exporter out of the host's /proc and /sys.
   - job_name: node

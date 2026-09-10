@@ -3,6 +3,10 @@
 // Two pipelines, because the application's console is JSON and the database's is not.
 // Running the JSON stage over Postgres lines would parse nothing and complain about it
 // once per line, so the containers are told apart by the compose service they belong to.
+//
+// The `host` label is this container's own name, which is why compose sets it to the
+// machine's: read from inside, a container is named after its id and the label says
+// nothing at all.
 
 discovery.docker "containers" {
 	host             = "unix:///var/run/docker.sock"

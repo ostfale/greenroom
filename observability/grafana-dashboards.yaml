@@ -1,0 +1,19 @@
+# The two dashboards that fit, provisioned rather than imported. Imported ones live in the
+# Grafana volume alone: they survive a restart and not a fresh Pi, and nothing in the repo
+# says they were ever there. These come with the checkout.
+#
+# They are vendored under observability/dashboards/ the same way htmx is vendored — the Pi
+# does not call grafana.com, and a dashboard that changed under us would be a surprise on
+# the wrong day. Both are exports from grafana.com by ID, with the datasource pinned to the
+# uid that grafana-datasources.yaml hands out.
+apiVersion: 1
+
+providers:
+  - name: greenroom
+    type: file
+    # Edits in the browser are for trying something out. What is meant to last is a new
+    # export into the repo, so the next Pi has it too.
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards/files
+      foldersFromFilesStructure: false
