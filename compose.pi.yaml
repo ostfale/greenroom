@@ -29,6 +29,9 @@ services:
       # The warnings on disk, in ./logs beside this file. Every level goes to the console
       # as before; this file is what is left where nothing collects the console.
       LOGGING_FILE_NAME: /app/logs/greenroom.log
+      # Cron writes the backup line into the same folder, so the settings page can say when
+      # the last one ran. Read only — the backup itself belongs to the host, not in here.
+      GREENROOM_BACKUP_LOG: /app/logs/backup.log
     volumes:
       # Make it before the first start: `mkdir -p logs`. A bind mount that docker has to
       # create itself belongs to root, and the container runs as user 1000.

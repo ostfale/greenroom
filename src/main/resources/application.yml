@@ -37,6 +37,11 @@ logging:
       total-size-cap: 200MB
 
 greenroom:
+  backup:
+    # The line `backup.sh` appends every night, as the application sees it. On the Pi that
+    # is the folder already mounted for the warning log; unset everywhere else, and the
+    # settings page then says that it found no log instead of pretending there was none.
+    log: ${GREENROOM_BACKUP_LOG:}
   geo:
     # Off unless asked for. OpenStreetMap's search needs no key but does ask for an
     # identifying user agent, so without one nothing is looked up and no map is shown.

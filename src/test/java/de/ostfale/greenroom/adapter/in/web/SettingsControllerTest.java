@@ -1,5 +1,6 @@
 package de.ostfale.greenroom.adapter.in.web;
 
+import de.ostfale.greenroom.FakeBackupLog;
 import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.WebTest;
 import de.ostfale.greenroom.application.port.in.ManageEvents;
@@ -46,9 +47,13 @@ class SettingsControllerTest {
     @Autowired
     private TestDatabase database;
 
+    @Autowired
+    private FakeBackupLog backupLog;
+
     @BeforeEach
     void emptyTheList() {
         database.empty();
+        backupLog.saysNothing();
     }
 
     @Test
@@ -285,6 +290,55 @@ class SettingsControllerTest {
                 .matches("greenroom Version \\d+\\.\\d+\\.\\d+");
         assertThat(page.selectFirst("#about a[href^=mailto:]").attr("href"))
                 .isEqualTo("mailto:info@uwe-sauerbrei.de");
+    }
+
+    // --- what the backup last did -------------------------------------------------------
+
+    @Test
+    void theSettingsPageSaysWhenTheBackupLastWentThrough() throws Exception {
+        backupLog.lastSaid("backup :: 2026-09-10 pushed");
+
+        Document page = settingsPage();
+
+        assertThat(page.selectFirst("#backup span.badge").text()).isEqualTo("gesichert");
+        assertThat(page.selectFirst("#backup p.state").text())
+                .contains("zuletzt 10.09.2026 um 03:00 Uhr");
+    }
+
+    /** A night without a commit still gets a green word: nothing had changed, so nothing broke. */
+    @Test
+    void aNightWithNothingToSaveIsShownAsAGoodOne() throws Exception {
+        backupLog.lastSaid("backup :: 2026-09-10 nothing changed");
+
+        Document page = settingsPage();
+
+        assertThat(page.selectFirst("#backup span.badge").text()).isEqualTo("nichts zu sichern");
+        assertThat(page.selectFirst("#backup span.badge").classNames()).doesNotContain("stop");
+    }
+
+    @Test
+    void aRunThatBrokeOffIsMarked() throws Exception {
+        backupLog.lastSaid("pg_dump: error: connection to server failed");
+
+        Document page = settingsPage();
+
+        assertThat(page.selectFirst("#backup span.badge").text()).isEqualTo("fehlgeschlagen");
+        assertThat(page.selectFirst("#backup span.badge").classNames()).contains("stop");
+    }
+
+    /** No log is the normal state of a machine that runs no backup, and no cause for alarm. */
+    @Test
+    void aMissingLogIsSaidQuietlyAndWithoutADate() throws Exception {
+        Document page = settingsPage();
+
+        assertThat(page.selectFirst("#backup span.badge").text()).isEqualTo("kein Log gefunden");
+        assertThat(page.selectFirst("#backup span.badge").classNames()).contains("quiet");
+        assertThat(page.selectFirst("#backup p.state").text()).doesNotContain("zuletzt");
+    }
+
+    private Document settingsPage() throws Exception {
+        return Jsoup.parse(mvc.perform(get("/settings")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
     }
 
     /** The refusal renders the whole page again, and the tile is part of it. */

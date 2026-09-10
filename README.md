@@ -29,7 +29,7 @@ for one user on one machine in a home network. Another group is welcome to run i
 | `/speaker` | The people who gave a talk, with photo and biography |
 | `/location` | The places, every address they ever had and the people to ask there, with a map excerpt |
 | `/note` | The slip box: an idea with a stamp, belonging to nothing |
-| `/settings` | What is set once and used everywhere — for now the list of tags |
+| `/settings` | What is set once and used everywhere — the list of tags, and when the backup last ran |
 
 ## Stack
 

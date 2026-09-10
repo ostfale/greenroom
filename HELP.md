@@ -149,3 +149,9 @@ leaves no commit.
 Set up once beside `compose.pi.yaml`, then run it nightly from cron. The header of the
 script has both. The repository must not sit in an end-to-end encrypted folder — a bare
 repository has to be readable by the server to be one.
+
+Cron appends its one line per night to `logs/backup.log`, which is the folder already
+mounted into the container for the warning log, so `/settings` can read it and say what the
+last run did: pushed, nothing to save, broken off, or no log at all. `GREENROOM_BACKUP_LOG`
+names that file for the application and is set in `compose.pi.yaml`; where it is unset the
+tile says it found no log. Nothing is ever written back — the backup belongs to cron.

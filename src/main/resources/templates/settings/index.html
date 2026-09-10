@@ -32,6 +32,26 @@
             <div th:replace="~{fragments/tag-list :: tag-list}"></div>
         </section>
 
+        <!-- Not planning, but the one thing the page can say that no Markdown note can:
+             whether last night's backup went through. Read off the log the script writes,
+             never triggered from here. -->
+        <section class="tile half" id="backup">
+            <h2>Datensicherung</h2>
+            <p class="state">
+                <span class="badge label"
+                      th:classappend="${backup.state.name() == 'FAILED'} ? 'stop'
+                                    : (${backup.state.name() == 'UNKNOWN'} ? 'quiet' : '')"
+                      th:text="#{'backup.state.' + ${backup.state}}">gesichert</span>
+                <span th:if="${backup.ranAt} != null"
+                      th:text="|zuletzt ${#temporals.format(backup.ranAt, 'dd.MM.yyyy')} um ${#temporals.format(backup.ranAt, 'HH:mm')} Uhr|">zuletzt 10.09.2026 um 03:00 Uhr</span>
+            </p>
+            <p class="hint">
+                Was nachts nach HiDrive geschoben wird. „Nichts zu sichern“ ist ebenso gut
+                wie „gesichert“: dann hatte sich an den Daten nichts geändert. Bleibt das
+                Datum stehen, ist der nächtliche Lauf ausgeblieben.
+            </p>
+        </section>
+
         <section class="tile half" id="about">
             <h2>Über</h2>
             <p>

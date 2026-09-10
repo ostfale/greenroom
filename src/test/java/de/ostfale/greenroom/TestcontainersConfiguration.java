@@ -31,6 +31,13 @@ public class TestcontainersConfiguration {
         return new FakeGeocoder();
     }
 
+    /** In front of the real one: no test looks for a backup log on the machine it runs on. */
+    @Bean
+    @Primary
+    public FakeBackupLog fakeBackupLog() {
+        return new FakeBackupLog();
+    }
+
     /** Available wherever this configuration is imported, which is every test with a database. */
     @Bean
     public TestDatabase testDatabase(EventRepository events, SpeakerRepository speakers,

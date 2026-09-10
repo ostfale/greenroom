@@ -1,6 +1,7 @@
 package de.ostfale.greenroom.adapter.in.web;
 
 import de.ostfale.greenroom.application.port.in.ManageTags;
+import de.ostfale.greenroom.application.port.in.ShowBackup;
 import de.ostfale.greenroom.domain.Rule;
 import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.tags.Tag;
@@ -15,7 +16,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * What is set once and then used everywhere. For now that is the list of tags; lead times
- * and the rest of the planning settings will join it here.
+ * and the rest of the planning settings will join it here. Beside them stand the two facts
+ * about this installation that are worth a glance: which version answers, and whether last
+ * night's backup went through.
  *
  * <p>The words are shown as a row of chips. Picking one opens it underneath, so a list of
  * thirty keywords stays a list and not thirty forms.
@@ -25,12 +28,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class SettingsController {
 
     private final ManageTags tags;
+    private final ShowBackup backup;
     private final ErrorMessages errors;
     private final String version;
 
-    public SettingsController(ManageTags tags, ErrorMessages errors,
+    public SettingsController(ManageTags tags, ShowBackup backup, ErrorMessages errors,
                               @Value("${spring.application.version}") String version) {
         this.tags = tags;
+        this.backup = backup;
         this.errors = errors;
         this.version = version;
     }
@@ -110,11 +115,13 @@ public class SettingsController {
     /**
      * The whole page. The version is the one the jar was built as — Maven writes it into
      * application.yml, so the tile answers with what is actually running and not with what
-     * somebody last typed into a template.
+     * somebody last typed into a template. The backup is read the same way: off what the
+     * nightly run left behind, on every request, so the page cannot show a stale yes.
      */
     private String page(Model model) {
         model.addAttribute("tags", tags.all());
         model.addAttribute("version", version);
+        model.addAttribute("backup", backup.lastRun());
         return "settings/index";
     }
 

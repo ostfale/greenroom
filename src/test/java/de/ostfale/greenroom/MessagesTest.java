@@ -1,5 +1,6 @@
 package de.ostfale.greenroom;
 
+import de.ostfale.greenroom.application.port.in.Backup;
 import de.ostfale.greenroom.domain.Rule;
 import de.ostfale.greenroom.domain.activities.ActivityKind;
 import de.ostfale.greenroom.domain.events.EventMode;
@@ -50,6 +51,10 @@ class MessagesTest {
                 assertThat(TEXTS).containsKey("event.step." + step));
         assertThat(ActivityKind.values()).allSatisfy(kind ->
                 assertThat(TEXTS).containsKey("activity.kind." + kind));
+        // Not a domain name, but printed through the bundle the same way: the settings page
+        // shows the state of the last backup as a word, not as a log line.
+        assertThat(Backup.State.values()).allSatisfy(state ->
+                assertThat(TEXTS).containsKey("backup.state." + state));
     }
 
     /** The other way round: a key nobody asks for any more is dead weight. */
