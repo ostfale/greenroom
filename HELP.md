@@ -150,6 +150,15 @@ Set up once beside `compose.pi.yaml`, then run it nightly from cron. The header 
 script has both. The repository must not sit in an end-to-end encrypted folder — a bare
 repository has to be readable by the server to be one.
 
+`restore-check.sh` answers the other half of the question: does it come back? It clones
+what is actually at HiDrive — not the copy that stayed on the machine — plays it into a
+throwaway PostgreSQL, compares every table with the running database, and starts the
+deployed image against the result. It passes only when Flyway finds the schema up to date,
+every page answers 200 and a stored photo comes back a picture. Own container, own network,
+own temporary directory, all taken down again either way; the live stack is never touched.
+Run it by hand, and above all after a schema migration — a check is valid for the dump it
+checked and for no other.
+
 Cron appends its one line per night to `logs/backup.log`, which is the folder already
 mounted into the container for the warning log, so `/settings` can read it and say what the
 last run did: pushed, nothing to save, broken off, or no log at all. `GREENROOM_BACKUP_LOG`
