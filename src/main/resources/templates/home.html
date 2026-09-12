@@ -111,8 +111,6 @@
                            th:text="${place.name}">Musterfirma GmbH</a>
                     </td>
                     <td class="data" th:text="${place.times}">6</td>
-                    <td class="data hint"
-                        th:text="${place.last} != null ? ${#temporals.format(place.last, 'yyyy')} : '—'">2024</td>
                 </tr>
                 </tbody>
             </table>
@@ -131,8 +129,6 @@
                            th:text="${person.name}">Max Muster</a>
                     </td>
                     <td class="data" th:text="${person.times}">3</td>
-                    <td class="data hint"
-                        th:text="${person.last} != null ? ${#temporals.format(person.last, 'yyyy')} : '—'">2025</td>
                 </tr>
                 </tbody>
             </table>

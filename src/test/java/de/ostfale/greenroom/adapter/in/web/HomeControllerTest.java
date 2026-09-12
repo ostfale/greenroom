@@ -130,9 +130,9 @@ class HomeControllerTest {
         Document page = overview();
 
         assertThat(page.select("section.tile").get(4).select("tbody tr td").eachText())
-                .containsSequence("Musterfirma GmbH", "2", "2025");
+                .containsSequence("Musterfirma GmbH", "2");
         assertThat(page.select("section.tile").get(5).select("tbody tr td").eachText())
-                .containsSequence("Max Muster", "2", "2025");
+                .containsSequence("Max Muster", "2");
     }
 
     /** The place counts evenings, the person counts talks — two on one night are two. */
@@ -143,9 +143,9 @@ class HomeControllerTest {
         Document page = overview();
 
         assertThat(page.select("section.tile").get(4).select("tbody tr td").eachText())
-                .containsSequence("Musterfirma GmbH", "1", "2025");
+                .containsSequence("Musterfirma GmbH", "1");
         assertThat(page.select("section.tile").get(5).select("tbody tr td").eachText())
-                .containsSequence("Max Muster", "2", "2025");
+                .containsSequence("Max Muster", "2");
     }
 
     /** Ten is where a ranking stops being a glance. */
