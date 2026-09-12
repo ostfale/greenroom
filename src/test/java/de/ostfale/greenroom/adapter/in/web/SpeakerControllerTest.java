@@ -372,6 +372,84 @@ class SpeakerControllerTest {
         assertThat(speakers.photoOf(id)).isEmpty();
     }
 
+    // --- somebody who might already be there -------------------------------------------
+
+    @Test
+    void theSameAddressUnderAnotherNameIsPointedOut() throws Exception {
+        Long id = speakers.add(aSpeaker()).id();
+
+        String fragment = mvc.perform(get("/speaker/duplicates")
+                        .param("name", "Erika Beispiel")
+                        .param("email", "MAX@example.org"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document warning = Jsoup.parseBodyFragment(fragment);
+        assertThat(warning.selectFirst("p.notice").text())
+                .contains("E-Mail-Adresse", "Max Muster");
+        assertThat(warning.selectFirst("p.notice a").attr("href")).isEqualTo("/speaker/" + id);
+    }
+
+    @Test
+    void theSameNameUnderAnotherAddressIsPointedOutToo() throws Exception {
+        speakers.add(aSpeaker());
+
+        String fragment = mvc.perform(get("/speaker/duplicates")
+                        .param("name", "max muster")
+                        .param("email", "max@privat.example"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.notice").text())
+                .contains("Namen", "Max Muster");
+    }
+
+    @Test
+    void somebodyNobodyKnowsRaisesNoWarning() throws Exception {
+        speakers.add(aSpeaker());
+
+        String fragment = mvc.perform(get("/speaker/duplicates")
+                        .param("name", "Erika Beispiel")
+                        .param("email", "erika@example.org"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.notice")).isNull();
+    }
+
+    @Test
+    void anEmptyFormIsNotAskedAboutAtAll() throws Exception {
+        speakers.add(aSpeaker());
+
+        String fragment = mvc.perform(get("/speaker/duplicates")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.notice")).isNull();
+    }
+
+    /** It warns, it does not refuse: two people may well carry the same name. */
+    @Test
+    void theWarningDoesNotKeepTheSecondEntryFromBeingStored() throws Exception {
+        speakers.add(aSpeaker());
+
+        mvc.perform(post("/speaker")
+                        .param("name", "Max Muster")
+                        .param("email", "max@example.org"))
+                .andExpect(redirectedUrl("/speaker"));
+
+        assertThat(speakers.all()).hasSize(2);
+    }
+
+    @Test
+    void theFormCarriesThePlaceTheWarningGoes() throws Exception {
+        String html = mvc.perform(get("/speaker/new")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document form = Jsoup.parse(html);
+        assertThat(form.selectFirst("#speaker-duplicates")).isNotNull();
+        assertThat(form.select("input[hx-get='/speaker/duplicates']"))
+                .extracting(field -> field.attr("name"))
+                .containsExactlyInAnyOrder("name", "email");
+    }
+
     // --- the detail page and its picture ---------------------------------------------
 
     @Test

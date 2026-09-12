@@ -11,14 +11,28 @@
 
     <form class="sheet wide guarded" method="post" enctype="multipart/form-data"
           th:action="@{/speaker}">
+        <!-- Both fields ask the same question as soon as they are left: is this person
+             already there? Each one takes the other along, so the answer sees both. -->
         <div class="row even">
             <label>Name
-                <input type="text" name="name" required autofocus th:value="${submitted.name}">
+                <input type="text" name="name" required autofocus th:value="${submitted.name}"
+                       th:hx-get="@{/speaker/duplicates}"
+                       hx-include="[name='email']"
+                       hx-target="#speaker-duplicates"
+                       hx-swap="outerHTML"
+                       hx-trigger="change">
             </label>
             <label>E-Mail
-                <input type="email" name="email" required th:value="${submitted.email}">
+                <input type="email" name="email" required th:value="${submitted.email}"
+                       th:hx-get="@{/speaker/duplicates}"
+                       hx-include="[name='name']"
+                       hx-target="#speaker-duplicates"
+                       hx-swap="outerHTML"
+                       hx-trigger="change">
             </label>
         </div>
+
+        <div th:replace="~{fragments/speaker-duplicates :: speaker-duplicates}"></div>
 
         <div class="row even">
             <label>Firma

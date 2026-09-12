@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  A warning, not a refusal: two people may carry the same name, and sometimes the second
+  entry is meant. So this only says who is already there and links to them — in a new tab,
+  because what has been typed here is not to be lost on the way to looking.
+-->
+<div id="speaker-duplicates" th:fragment="speaker-duplicates">
+    <p class="notice" th:each="found : ${duplicates}">
+        <span th:if="${found.sameEmail}">Diese E-Mail-Adresse ist schon eingetragen:</span>
+        <span th:unless="${found.sameEmail}">Unter diesem Namen ist schon jemand eingetragen:</span>
+        <a th:href="@{/speaker/{id}(id=${found.speaker.id})}" target="_blank"
+           th:text="${found.speaker.name} + ' · ' + ${found.speaker.email}">Max Muster</a>
+    </p>
+</div>
+</body>
+</html>

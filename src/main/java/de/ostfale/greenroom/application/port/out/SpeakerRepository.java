@@ -21,4 +21,16 @@ public interface SpeakerRepository extends ListCrudRepository<Speaker, Long> {
             order by name
             """)
     List<Speaker> search(String fragment);
+
+    /**
+     * Whoever is already there under that address or under that name. Case does not
+     * count: nobody types a name in twice the same way.
+     */
+    @Query("""
+            select * from speaker
+            where lower(email) = lower(:email)
+               or lower(name) = lower(:name)
+            order by name
+            """)
+    List<Speaker> sameEmailOrName(String name, String email);
 }

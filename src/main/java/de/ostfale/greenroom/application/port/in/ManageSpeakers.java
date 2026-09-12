@@ -21,6 +21,13 @@ public interface ManageSpeakers {
 
     Optional<Speaker> byId(Long id);
 
+    /**
+     * Whoever is already stored under that address or under that name — what the form asks
+     * while it is being filled in, so a second entry for the same person is noticed before
+     * it exists. Empty if nothing matches, and empty for blank input.
+     */
+    List<PossibleDuplicate> possibleDuplicatesOf(String name, String email);
+
     /** Stores a speaker that has no id yet and returns it with the id it was given. */
     Speaker add(Speaker speaker);
 

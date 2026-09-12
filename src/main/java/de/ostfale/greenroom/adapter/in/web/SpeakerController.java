@@ -61,7 +61,20 @@ public class SpeakerController {
     @GetMapping("/new")
     public String form(Model model) {
         model.addAttribute("submitted", empty());
+        model.addAttribute("duplicates", List.of());
         return "speaker/form";
+    }
+
+    /**
+     * What the form asks while it is being filled in: is this person perhaps already
+     * there? Only ever a hint — the answer never keeps anybody from saving.
+     */
+    @GetMapping("/duplicates")
+    public String duplicates(@RequestParam(defaultValue = "") String name,
+                             @RequestParam(defaultValue = "") String email,
+                             Model model) {
+        model.addAttribute("duplicates", speakers.possibleDuplicatesOf(name, email));
+        return "fragments/speaker-duplicates :: speaker-duplicates";
     }
 
     @PostMapping
@@ -83,6 +96,8 @@ public class SpeakerController {
             // what was typed. The chosen file is gone — no browser lets us put it back.
             model.addAttribute("error", addMessage(e));
             model.addAttribute("submitted", submitted(name, email, company, phone, bio, notes));
+            // The warning that stood under the fields belongs back there with them.
+            model.addAttribute("duplicates", speakers.possibleDuplicatesOf(name, email));
             return "speaker/form";
         }
     }

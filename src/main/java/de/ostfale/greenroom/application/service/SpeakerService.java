@@ -1,6 +1,7 @@
 package de.ostfale.greenroom.application.service;
 
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
+import de.ostfale.greenroom.application.port.in.PossibleDuplicate;
 import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.application.port.out.ScaleImages;
 import de.ostfale.greenroom.application.port.out.SpeakerPhotoRepository;
@@ -63,6 +64,21 @@ public class SpeakerService implements ManageSpeakers {
     @Transactional(readOnly = true)
     public Optional<Speaker> byId(Long id) {
         return id == null ? Optional.empty() : speakerRepository.findById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PossibleDuplicate> possibleDuplicatesOf(String name, String email) {
+        String typedName = name == null ? "" : name.strip();
+        String typedEmail = email == null ? "" : email.strip();
+        if (typedName.isBlank() && typedEmail.isBlank()) {
+            return List.of();
+        }
+        return speakerRepository.sameEmailOrName(typedName, typedEmail).stream()
+                .map(known -> new PossibleDuplicate(known,
+                        known.email().equalsIgnoreCase(typedEmail),
+                        known.name().equalsIgnoreCase(typedName)))
+                .toList();
     }
 
     @Override
