@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Stands in the headline, but counts what the table shows. hx-swap-oob lets the answer to
+     the search box carry the new number along without the heading being replaced. -->
+<span id="speaker-count" hx-swap-oob="true" th:fragment="speaker-count"
+      th:text="'(' + ${#lists.size(speakers)} + ')'">(47)</span>
+</body>
+</html>

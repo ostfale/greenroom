@@ -50,12 +50,12 @@ public class SpeakerController {
 
     /**
      * The same route for htmx: only the table comes back, so typing in the search box
-     * replaces it without reloading the page.
+     * replaces it without reloading the page — and the count in the headline with it.
      */
     @GetMapping(headers = "HX-Request")
     public String listFragment(@RequestParam(defaultValue = "") String search, Model model) {
         fill(model, search);
-        return "fragments/speaker-table :: speaker-table";
+        return "fragments/speaker-table :: speaker-table-and-count";
     }
 
     @GetMapping("/new")

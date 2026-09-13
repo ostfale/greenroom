@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
+<!-- The answer to the search box: the table, and the number in the headline that counts it. -->
+<th:block th:fragment="speaker-table-and-count">
+    <div th:replace="~{fragments/speaker-table :: speaker-table}"></div>
+    <span th:replace="~{fragments/speaker-count :: speaker-count}"></span>
+</th:block>
+
 <div id="speaker-table" class="card" th:fragment="speaker-table">
     <table>
         <caption th:if="${#lists.isEmpty(speakers)}">Keine Referenten gefunden.</caption>

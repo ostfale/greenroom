@@ -11,6 +11,7 @@ import de.ostfale.greenroom.domain.events.TalkSpeaker;
 import de.ostfale.greenroom.domain.speakers.Speaker;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -133,6 +134,36 @@ class SpeakerControllerTest {
 
         assertThat(Jsoup.parse(html).select("#speaker-table tbody tr td:first-child").eachText())
                 .containsExactly("Anna Albers");
+    }
+
+    @Test
+    void theHeadlineCountsWhatTheTableShows() throws Exception {
+        speakers.add(Speaker.of("Zoe Zimmer", "zoe@example.org"));
+        speakers.add(Speaker.of("Anna Albers", "anna@example.org"));
+
+        String all = mvc.perform(get("/speaker"))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(Jsoup.parse(all).selectFirst("h1").text()).isEqualTo("Referenten (2)");
+
+        String narrowed = mvc.perform(get("/speaker").param("search", "albers"))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(Jsoup.parse(narrowed).selectFirst("h1").text()).isEqualTo("Referenten (1)");
+    }
+
+    @Test
+    void theSearchSendsTheNewCountAlongToTheHeadline() throws Exception {
+        speakers.add(Speaker.of("Zoe Zimmer", "zoe@example.org"));
+        speakers.add(Speaker.of("Anna Albers", "anna@example.org"));
+
+        String fragment = mvc.perform(get("/speaker").param("search", "albers")
+                        .header("HX-Request", "true"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Element count = Jsoup.parseBodyFragment(fragment).selectFirst("span#speaker-count");
+        assertThat(count).isNotNull();
+        assertThat(count.attr("hx-swap-oob")).isEqualTo("true");
+        assertThat(count.text()).isEqualTo("(1)");
     }
 
     @Test
