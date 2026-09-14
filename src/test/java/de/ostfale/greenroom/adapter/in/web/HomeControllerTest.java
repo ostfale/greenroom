@@ -102,15 +102,32 @@ class HomeControllerTest {
     @Test
     void everyOpenEveningSaysWhatItWaitsFor() throws Exception {
         events.add(Event.draftFor(aReadyTalk(speakerId))
-                .withMotto("Ohne Ort").withDate(LocalDate.now().plusDays(5)));
+                .withMotto("Ohne Ort").withDate(LocalDate.now().plusDays(5))
+                .moveTo(EventStatus.DATE_CONFIRMED));
         events.add(Event.draftFor(aTalk(speakerId))
                 .withMotto("Ohne Abstract").withDate(LocalDate.now().plusDays(20))
-                .withLocation(place));
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .withLocation(place)
+                .moveTo(EventStatus.VENUE_CONFIRMED));
 
         Document page = overview();
 
         assertThat(page.selectFirst("section.tile p.hint").text()).contains("Ort fehlt");
         assertThat(page.select("section.tile table td.hint").eachText()).contains("Abstract fehlt");
+    }
+
+    /** A place we asked is not a place that said yes: nothing may be announced yet. */
+    @Test
+    void anEveningWhoseVenueHasNotSaidYesIsNotReadyToBeAnnounced() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Ort angefragt").withDate(LocalDate.now().plusDays(5))
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .withLocation(place));
+
+        Document page = overview();
+
+        assertThat(page.selectFirst("section.tile p.hint").text())
+                .contains("Ort nicht bestätigt");
     }
 
     @Test

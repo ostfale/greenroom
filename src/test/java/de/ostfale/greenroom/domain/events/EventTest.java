@@ -246,16 +246,33 @@ class EventTest {
     // --- what an evening is waiting for -----------------------------------------------
 
     @Test
-    void aTopicWaitsForADateAndThenForAVenue() {
+    void aTopicWaitsForADateAndThenForSomebodyToSettleIt() {
         Event topic = Event.draftFor(aReadyTalk(SPEAKER));
 
         assertThat(topic.nextStep(EVENING)).isEqualTo(NextStep.FIND_A_DATE);
-        assertThat(topic.withDate(EVENING).nextStep(EVENING)).isEqualTo(NextStep.FIND_A_VENUE);
+        assertThat(topic.withDate(EVENING).nextStep(EVENING))
+                .isEqualTo(NextStep.CONFIRM_THE_DATE);
+    }
+
+    /** A place we asked is not a place that said yes — the status says which of the two. */
+    @Test
+    void aSettledDateWaitsForAVenueAndThenForItsYes() {
+        Event dated = Event.draftFor(aReadyTalk(SPEAKER))
+                .withDate(EVENING)
+                .moveTo(EventStatus.DATE_CONFIRMED);
+
+        assertThat(dated.nextStep(EVENING)).isEqualTo(NextStep.FIND_A_VENUE);
+        assertThat(dated.withLocation(VENUE).nextStep(EVENING))
+                .isEqualTo(NextStep.CONFIRM_THE_VENUE);
     }
 
     @Test
     void anEveningWithAVenueWaitsForWhatTheTalksStillOwe() {
-        Event hosted = Event.draftFor(aTalk(SPEAKER)).withDate(EVENING).withLocation(VENUE);
+        Event hosted = Event.draftFor(aTalk(SPEAKER))
+                .withDate(EVENING)
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .withLocation(VENUE)
+                .moveTo(EventStatus.VENUE_CONFIRMED);
 
         assertThat(hosted.nextStep(EVENING)).isEqualTo(NextStep.WRITE_THE_ABSTRACT);
         assertThat(hosted.withTalks(List.of(aReadyTalk(SPEAKER))).nextStep(EVENING))

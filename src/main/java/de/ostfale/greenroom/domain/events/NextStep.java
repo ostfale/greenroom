@@ -8,7 +8,9 @@ package de.ostfale.greenroom.domain.events;
 public enum NextStep {
 
     FIND_A_DATE,
+    CONFIRM_THE_DATE,
     FIND_A_VENUE,
+    CONFIRM_THE_VENUE,
     WRITE_THE_ABSTRACT,
     ANNOUNCE_IT,
     CLOSE_IT,

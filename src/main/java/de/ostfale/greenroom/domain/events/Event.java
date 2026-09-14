@@ -294,6 +294,10 @@ public record Event(
      * promises. A closed evening waits for nothing; a postponed one waits for a new date,
      * whatever date still stands on it.
      *
+     * <p>A date somebody wrote down is not a settled date and a place we asked is not a
+     * place that said yes: the field says what was picked, the status whether it holds.
+     * Both have to be there before the next step is the announcement.
+     *
      * <p>Today is handed in rather than taken: whether an evening is over is a question
      * about a day, and the record does not decide which day that is.
      */
@@ -304,8 +308,14 @@ public record Event(
         if (status == EventStatus.POSTPONED || date == null) {
             return NextStep.FIND_A_DATE;
         }
+        if (!status.requiresADate()) {
+            return NextStep.CONFIRM_THE_DATE;
+        }
         if (locationId == null) {
             return NextStep.FIND_A_VENUE;
+        }
+        if (!status.requiresAVenue()) {
+            return NextStep.CONFIRM_THE_VENUE;
         }
         if (!allTalksAreReadyToPublish()) {
             return NextStep.WRITE_THE_ABSTRACT;
