@@ -225,6 +225,12 @@ form .caption:first-child {
     text-transform: uppercase;
 }
 
+/* On the overview the tiles hold six unrelated things at once, so their labels carry more
+   weight than elsewhere: same size, heavier, so the eye finds a block before reading it. */
+.dashboard .tile > h2 {
+    font-weight: 800;
+}
+
 .tile > p:last-child {
     margin-bottom: 0;
 }
