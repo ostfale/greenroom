@@ -85,7 +85,7 @@ class HomeControllerTest {
         Document page = overview();
 
         assertThat(page.selectFirst("section.tile a").text()).isEqualTo("Bald");
-        assertThat(page.selectFirst("section.tile p.data").text()).contains("in 12 Tagen");
+        assertThat(page.selectFirst("section.tile .lead .data").text()).contains("in 12 Tagen");
     }
 
     /** An evening that is over is not in planning any more, however it went. */

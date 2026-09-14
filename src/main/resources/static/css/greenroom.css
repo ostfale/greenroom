@@ -235,6 +235,30 @@ form .caption:first-child {
     margin-bottom: 0;
 }
 
+/* Two statements of equal standing on one line of a tile: the second begins at the middle,
+   so it stands in the same place however long the first one turns out. */
+.lead {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: baseline;
+    row-gap: .25rem;
+}
+
+.lead > p {
+    margin: 0;
+}
+
+/* The facts on the left sit beside each other the way the cells of a row do. The space
+   between the halves keeps out of the second one's column, so "the middle" is the middle
+   and not a hand's width past it. */
+.lead > p:first-child {
+    display: flex;
+    align-items: baseline;
+    gap: .75rem;
+    min-width: 0;
+    padding-right: 1rem;
+}
+
 /* The narrowest tile on the page, so the upload has to be modest about itself. */
 .photo {
     display: grid;
@@ -429,6 +453,26 @@ tr.closed td {
 .tile table td:not(:first-child) {
     padding-left: 1.25rem;
     white-space: nowrap;
+}
+
+/* A row read like the lead line of a tile: date and name in the left half, the state from
+   the middle on, so both tiles of the overview break at the same place. */
+.tile table.halved {
+    table-layout: fixed;
+}
+
+.tile table.halved td:first-child {
+    width: 6rem;
+}
+
+.tile table.halved td:nth-child(2) {
+    padding-left: .75rem;
+    padding-right: 1rem;
+}
+
+.tile table.halved td:last-child {
+    width: 50%;
+    padding-left: 0;
 }
 
 /* The seat count in an address row: a field, its unit and the way to keep it, all on the
@@ -1124,6 +1168,26 @@ ul.tags .toggle {
 
     .tile, .tile.half, .tile.quarter, .tile.three, .tile.from-two {
         grid-column: span 1;
+    }
+
+    /* No middle left to begin at — the state moves under the date instead of beside it. */
+    .lead {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Same reason: the columns take what they need again rather than halve a width that is
+       not there. */
+    .tile table.halved {
+        table-layout: auto;
+    }
+
+    .tile table.halved td:first-child {
+        width: auto;
+    }
+
+    .tile table.halved td:not(:first-child) {
+        width: auto;
+        padding-left: 1.25rem;
     }
 
     .row {
