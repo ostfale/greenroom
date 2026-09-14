@@ -34,6 +34,12 @@
     --red: #96271f;
     --red-soft: #faeceb;
 
+    /* Half the strength of the soft tones: enough to tell three blocks apart at a glance,
+       too little to read as a warning. */
+    --green-wash: #f3f8f5;
+    --amber-wash: #fcf7f1;
+    --red-wash: #fdf6f5;
+
     --radius: 14px;
     --radius-sm: 8px;
     --shadow: 0 1px 2px rgba(21, 33, 28, .05), 0 1px 1px rgba(21, 33, 28, .04);
@@ -223,6 +229,21 @@ form .caption:first-child {
     font: 600 .6875rem/1 var(--mono);
     letter-spacing: .12em;
     text-transform: uppercase;
+}
+
+/* The three evening tiles say which stage they stand for by the ground they are on: a date
+   that is next, a date further out, no date at all. A breath of colour — the page is read
+   for its words, the tone only says which of the three a block is. */
+.tile.stage-next {
+    background: var(--green-wash);
+}
+
+.tile.stage-later {
+    background: var(--amber-wash);
+}
+
+.tile.stage-undated {
+    background: var(--red-wash);
 }
 
 /* On the overview the tiles hold six unrelated things at once, so their labels carry more

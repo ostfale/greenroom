@@ -32,7 +32,7 @@
         <!-- The three evening tiles stand below each other, in the order an evening moves
              through the planning: what is next, what comes after it, what has no date yet.
              Full width rather than side by side, so that order is the reading order. -->
-        <section class="tile">
+        <section class="tile stage-next">
             <h2>Der nächste Abend</h2>
 
             <p class="hint" th:if="${dashboard.next == null}">
@@ -69,7 +69,7 @@
             </div>
         </section>
 
-        <section class="tile">
+        <section class="tile stage-later">
             <!-- Not "what is missing": an evening that is announced and simply waiting
                  belongs on this list too, and it says so in the last column. -->
             <h2>Weiter geplant</h2>
@@ -92,7 +92,7 @@
             </table>
         </section>
 
-        <section class="tile">
+        <section class="tile stage-undated">
             <h2>Themen ohne Termin</h2>
 
             <p class="hint" th:if="${#lists.isEmpty(dashboard.topics)}">
