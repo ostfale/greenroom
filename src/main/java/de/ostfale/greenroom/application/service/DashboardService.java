@@ -10,6 +10,7 @@ import de.ostfale.greenroom.application.port.out.TagRepository;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.locations.Location;
+import de.ostfale.greenroom.domain.speakers.Speaker;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +18,9 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Counts what there is and says what is next. Everything is worked out in memory from the
@@ -59,9 +62,14 @@ public class DashboardService implements ShowDashboard {
                         ChronoUnit.DAYS.between(today, event.date())))
                 .toList();
 
-        List<Event> topics = all.stream()
+        List<Speaker> everyone = speakers.findAll();
+        Map<Long, String> names = everyone.stream()
+                .collect(Collectors.toMap(Speaker::id, Speaker::name));
+
+        List<Dashboard.Topic> topics = all.stream()
                 .filter(event -> !event.status().isClosed())
                 .filter(event -> event.date() == null)
+                .map(event -> new Dashboard.Topic(event, named(event, names)))
                 .toList();
 
         return new Dashboard(
@@ -70,7 +78,7 @@ public class DashboardService implements ShowDashboard {
                 topics,
                 counted(all, today),
                 whereWeHaveBeen(all),
-                whoWeHaveHad(all));
+                whoWeHaveHad(all, everyone));
     }
 
     private Dashboard.Counts counted(List<Event> all, LocalDate today) {
@@ -100,9 +108,17 @@ public class DashboardService implements ShowDashboard {
                 .toList();
     }
 
+    /** In the order the evening holds its people, so the first one named is the first one. */
+    private static List<String> named(Event topic, Map<Long, String> names) {
+        return topic.speakerIds().stream()
+                .map(names::get)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
     /** Counted in talks, not in evenings: two talks on one night are two. */
-    private List<Dashboard.Tally> whoWeHaveHad(List<Event> all) {
-        return speakers.findAll().stream()
+    private List<Dashboard.Tally> whoWeHaveHad(List<Event> all, List<Speaker> everyone) {
+        return everyone.stream()
                 .map(person -> {
                     List<Event> given = all.stream()
                             .filter(event -> event.isGivenBy(person.id())).toList();

@@ -122,6 +122,16 @@ class HomeControllerTest {
         assertThat(page.select("ul.plain a").eachText()).containsExactly("Noch ohne Termin");
     }
 
+    /** A topic is worth as much as the person behind it, so the overview names them. */
+    @Test
+    void aTopicWithoutADateSaysWhoWouldGiveIt() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Noch ohne Termin"));
+
+        Document page = overview();
+
+        assertThat(page.select("ul.plain li span.hint").eachText()).containsExactly("Max Muster");
+    }
+
     @Test
     void thePlacesAndThePeopleAreCountedByHowOftenTheyCame() throws Exception {
         events.add(done(LocalDate.of(2024, 3, 14)));

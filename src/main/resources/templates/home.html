@@ -99,10 +99,16 @@
                 Kein Thema auf Vorrat — der nächste Abend will gefunden werden.
             </p>
 
+            <!-- Broken at the same place as the two tiles above: the topic on the left, who
+                 would give it from the middle on. A topic is worth as much as the person
+                 behind it, so the name is not an afterthought at the end of the line. -->
             <ul class="plain" th:unless="${#lists.isEmpty(dashboard.topics)}">
-                <li th:each="topic : ${dashboard.topics}">
-                    <a th:href="@{/event/{id}(id=${topic.id})}"
-                       th:text="${topic.displayName()} ?: 'Ohne Titel'">Ohne Titel</a>
+                <li class="lead" th:each="topic : ${dashboard.topics}">
+                    <a th:href="@{/event/{id}(id=${topic.evening.id})}"
+                       th:text="${topic.evening.displayName()} ?: 'Ohne Titel'">Ohne Titel</a>
+                    <span class="hint"
+                          th:text="${topic.speakers[0]
+                                  + (#lists.size(topic.speakers) > 1 ? ' u.a.' : '')}">Max Muster</span>
                 </li>
             </ul>
         </section>

@@ -17,7 +17,8 @@ import java.util.List;
  *
  * @param next     the nearest evening still being planned, or {@code null} when there is none
  * @param open     the other dated evenings still being planned, soonest first
- * @param topics   evenings that have no date yet — the ones waiting for a slot
+ * @param topics   evenings that have no date yet — the ones waiting for a slot, each with
+ *                 the names of the people who would give it
  * @param counts   how much of everything there is
  * @param venues   where the evenings were held, the most used first, at most ten
  * @param speakers who gave them, the most talks first, at most ten
@@ -25,7 +26,7 @@ import java.util.List;
 public record Dashboard(
         Upcoming next,
         List<Upcoming> open,
-        List<Event> topics,
+        List<Topic> topics,
         Counts counts,
         List<Tally> venues,
         List<Tally> speakers) {
@@ -35,6 +36,14 @@ public record Dashboard(
      * an evening whose day has passed while it was still being planned.
      */
     public record Upcoming(Event evening, NextStep step, long daysAway) {
+    }
+
+    /**
+     * An evening without a date and who would give it. The names come along because the
+     * evening holds its people by id alone, and a topic is worth as much as the person
+     * behind it — there is never none of them.
+     */
+    public record Topic(Event evening, List<String> speakers) {
     }
 
     public record Counts(

@@ -265,19 +265,23 @@ form .caption:first-child {
     row-gap: .25rem;
 }
 
-.lead > p {
+.lead > * {
     margin: 0;
+    min-width: 0;
 }
 
-/* The facts on the left sit beside each other the way the cells of a row do. The space
-   between the halves keeps out of the second one's column, so "the middle" is the middle
-   and not a hand's width past it. */
+/* The space between the halves keeps out of the second one's column, so "the middle" is the
+   middle and not a hand's width past it. */
+.lead > :first-child {
+    padding-right: 1rem;
+}
+
+/* Where the left half holds several facts they sit beside each other the way the cells of a
+   row do. */
 .lead > p:first-child {
     display: flex;
     align-items: baseline;
     gap: .75rem;
-    min-width: 0;
-    padding-right: 1rem;
 }
 
 /* The narrowest tile on the page, so the upload has to be modest about itself. */
