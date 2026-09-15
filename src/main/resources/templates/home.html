@@ -65,6 +65,11 @@
                         ·
                         <span th:text="#{'event.step.' + ${next.step}}">Abstract fehlt</span>
                     </p>
+                    <!-- Under the name, not beside it: both halves of the line are taken, and
+                         a person is not a third fact to squeeze between date and state. -->
+                    <span class="hint who"
+                          th:text="${next.speakers[0]
+                                  + (#lists.size(next.speakers) > 1 ? ' u.a.' : '')}">Max Muster</span>
                 </div>
             </div>
         </section>
@@ -85,6 +90,9 @@
                     <td>
                         <a th:href="@{/event/{id}(id=${row.evening.id})}"
                            th:text="${row.evening.displayName()} ?: 'Ohne Titel'">Ohne Titel</a>
+                        <span class="hint who"
+                              th:text="${row.speakers[0]
+                                      + (#lists.size(row.speakers) > 1 ? ' u.a.' : '')}">Max Muster</span>
                     </td>
                     <td class="hint" th:text="#{'event.step.' + ${row.step}}">Ort fehlt</td>
                 </tr>

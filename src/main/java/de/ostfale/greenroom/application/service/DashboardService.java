@@ -54,17 +54,17 @@ public class DashboardService implements ShowDashboard {
     public Dashboard asOf(LocalDate today) {
         List<Event> all = events.allNewestFirst();
 
+        List<Speaker> everyone = speakers.findAll();
+        Map<Long, String> names = everyone.stream()
+                .collect(Collectors.toMap(Speaker::id, Speaker::name));
+
         List<Dashboard.Upcoming> dated = all.stream()
                 .filter(event -> !event.status().isClosed())
                 .filter(event -> event.date() != null)
                 .sorted(Comparator.comparing(Event::date))
                 .map(event -> new Dashboard.Upcoming(event, event.nextStep(today),
-                        ChronoUnit.DAYS.between(today, event.date())))
+                        ChronoUnit.DAYS.between(today, event.date()), named(event, names)))
                 .toList();
-
-        List<Speaker> everyone = speakers.findAll();
-        Map<Long, String> names = everyone.stream()
-                .collect(Collectors.toMap(Speaker::id, Speaker::name));
 
         List<Dashboard.Topic> topics = all.stream()
                 .filter(event -> !event.status().isClosed())
@@ -109,8 +109,8 @@ public class DashboardService implements ShowDashboard {
     }
 
     /** In the order the evening holds its people, so the first one named is the first one. */
-    private static List<String> named(Event topic, Map<Long, String> names) {
-        return topic.speakerIds().stream()
+    private static List<String> named(Event evening, Map<Long, String> names) {
+        return evening.speakerIds().stream()
                 .map(names::get)
                 .filter(Objects::nonNull)
                 .toList();

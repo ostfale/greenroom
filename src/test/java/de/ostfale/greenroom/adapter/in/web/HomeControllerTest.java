@@ -130,6 +130,31 @@ class HomeControllerTest {
                 .contains("Ort nicht bestätigt");
     }
 
+    /** An evening is the people who stand on its stage, so the overview names them. */
+    @Test
+    void theNextEveningSaysWhoFillsIt() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Bald").withDate(LocalDate.now().plusDays(12)));
+
+        Document page = overview();
+
+        assertThat(page.select("section.stage-next span.who").eachText())
+                .containsExactly("Max Muster");
+    }
+
+    @Test
+    void everyFurtherEveningSaysWhoFillsIt() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Bald").withDate(LocalDate.now().plusDays(12)));
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Später").withDate(LocalDate.now().plusMonths(3)));
+
+        Document page = overview();
+
+        assertThat(page.select("section.stage-later td span.who").eachText())
+                .containsExactly("Max Muster");
+    }
+
     @Test
     void aTopicWithoutADateIsWaitingForASlot() throws Exception {
         events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Noch ohne Termin"));

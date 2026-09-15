@@ -15,8 +15,10 @@ import java.util.List;
  * say which evening is next and what it is still waiting for — that is the reason this
  * page exists, and the numbers ride along at the bottom.
  *
- * @param next     the nearest evening still being planned, or {@code null} when there is none
- * @param open     the other dated evenings still being planned, soonest first
+ * @param next     the nearest evening still being planned, or {@code null} when there is
+ *                 none, with the names of the people who fill it
+ * @param open     the other dated evenings still being planned, soonest first, each with
+ *                 the names of the people who fill it
  * @param topics   evenings that have no date yet — the ones waiting for a slot, each with
  *                 the names of the people who would give it
  * @param counts   how much of everything there is
@@ -32,10 +34,12 @@ public record Dashboard(
         List<Tally> speakers) {
 
     /**
-     * An evening with a date, what it waits for, and how far off it is. Negative days are
-     * an evening whose day has passed while it was still being planned.
+     * An evening with a date, what it waits for, how far off it is, and who fills it.
+     * Negative days are an evening whose day has passed while it was still being planned.
+     * The names come along for the reason they do on a {@link Topic}: the evening holds its
+     * people by id alone, and an evening is the people who stand on its stage.
      */
-    public record Upcoming(Event evening, NextStep step, long daysAway) {
+    public record Upcoming(Event evening, NextStep step, long daysAway, List<String> speakers) {
     }
 
     /**

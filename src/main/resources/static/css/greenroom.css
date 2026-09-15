@@ -284,6 +284,14 @@ form .caption:first-child {
     gap: .75rem;
 }
 
+/* Who stands on the stage of an evening, on the line below its name — in the same half, so
+   the break in the middle stays where the eye has learned it. In a lead the grid has made a
+   block of it already; in a row of the list beside it, it has not. */
+.who {
+    display: block;
+    margin: 0;
+}
+
 /* The narrowest tile on the page, so the upload has to be modest about itself. */
 .photo {
     display: grid;
