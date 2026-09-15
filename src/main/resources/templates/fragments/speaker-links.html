@@ -10,16 +10,14 @@
           th:hx-post="@{/speaker/{id}/link/{pos}(id=${speaker.id},pos=${i.index})}"
           hx-target="#speaker-links"
           hx-swap="outerHTML">
-        <label>
-            <span class="captioned">Adresse
-                <a th:href="${link.url}" target="_blank" rel="noreferrer"
-                   title="Diese Seite öffnen">Öffnen</a>
-            </span>
+        <label>Adresse
             <input type="text" name="url" required th:value="${link.url}">
         </label>
-        <label>Beschriftung
+        <label>Name
             <input type="text" name="label" placeholder="Blog" th:value="${link.label}">
         </label>
+        <a class="open" th:href="${link.url}" target="_blank" rel="noreferrer"
+           title="Diese Seite öffnen" aria-label="Diese Seite öffnen">↗</a>
         <button type="submit" disabled>Speichern</button>
         <button type="button" class="link"
                 th:hx-post="@{/speaker/{id}/link/{pos}/remove(id=${speaker.id},pos=${i.index})}"
@@ -39,7 +37,7 @@
         <label>Adresse
             <input type="text" name="url" required placeholder="www.max-muster.de">
         </label>
-        <label>Beschriftung
+        <label>Name
             <input type="text" name="label" placeholder="Blog">
         </label>
         <button type="submit" disabled>Link hinzufügen</button>

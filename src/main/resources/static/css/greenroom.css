@@ -580,8 +580,8 @@ form {
     gap: .5rem;
 }
 
-/* A word, not a symbol: nothing else in this application is an icon, and a lone envelope
-   is something nobody finds. It carries the caption's own size and case. */
+/* A word, not a symbol: a lone envelope above a field is something nobody finds. It carries
+   the caption's own size and case. */
 .captioned a {
     color: var(--green);
 }
@@ -691,6 +691,21 @@ form.inline {
 
 form.inline label {
     flex: 1 1 9rem;
+}
+
+/* The one symbol in the application: an address is the single field whose content leads
+   somewhere, and beside the row's buttons the arrow is where a hand already is. It keeps a
+   button's box so the bottom edges line up. */
+form.inline a.open {
+    padding: .4rem .25rem;
+    color: var(--green);
+    font-size: 1rem;
+    line-height: 1.4;
+    text-decoration: none;
+}
+
+form.inline a.open:hover {
+    color: var(--ink);
 }
 
 form.boxed {
