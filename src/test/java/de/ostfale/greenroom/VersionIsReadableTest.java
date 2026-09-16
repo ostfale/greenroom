@@ -45,10 +45,10 @@ class VersionIsReadableTest {
         JsonNode stamped = get("/mgmt/info").path("build");
 
         assertThat(stamped.isMissingNode()).isFalse();
-        assertThat(stamped.path("version").asText()).isEqualTo(build.getVersion());
-        assertThat(stamped.path("artifact").asText()).isEqualTo("greenroom");
+        assertThat(stamped.path("version").asString()).isEqualTo(build.getVersion());
+        assertThat(stamped.path("artifact").asString()).isEqualTo("greenroom");
         // Two images of the same version are told apart by when they were made.
-        assertThat(stamped.path("time").asText()).isNotBlank();
+        assertThat(stamped.path("time").asString()).isNotBlank();
     }
 
     private JsonNode get(String path) throws Exception {
