@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static java.util.function.Predicate.not;
+
 /**
  * Counts what there is and says what is next. Everything is worked out in memory from the
  * lists that are loaded anyway — the same trade {@link EventService#matching} makes, and
@@ -70,6 +72,14 @@ public class DashboardService implements ShowDashboard {
                 .map(event -> upcoming(event, today, names, venues))
                 .toList();
 
+        // The top tile carries what is settled: the evenings whose announcement is out, the
+        // nearest date first. What is left is what still wants a hand, and only that is
+        // "weiter geplant" — an evening nobody has been told about yet.
+        List<Dashboard.Upcoming> ahead = dated.stream()
+                .filter(DashboardService::isAnnounced).toList();
+        List<Dashboard.Upcoming> open = dated.stream()
+                .filter(not(DashboardService::isAnnounced)).toList();
+
         List<Dashboard.Topic> topics = all.stream()
                 .filter(event -> !event.status().isClosed())
                 .filter(event -> event.date() == null)
@@ -77,12 +87,17 @@ public class DashboardService implements ShowDashboard {
                 .toList();
 
         return new Dashboard(
-                dated.isEmpty() ? null : dated.getFirst(),
-                dated.isEmpty() ? List.of() : dated.subList(1, dated.size()),
+                ahead,
+                open,
                 topics,
                 counted(all, today, places),
                 whereWeHaveBeen(all, places),
                 whoWeHaveHad(all, everyone));
+    }
+
+    /** The announcement is out. Done and cancelled never reach here — they are not upcoming. */
+    private static boolean isAnnounced(Dashboard.Upcoming row) {
+        return row.evening().status() == EventStatus.PUBLISHED;
     }
 
     /**

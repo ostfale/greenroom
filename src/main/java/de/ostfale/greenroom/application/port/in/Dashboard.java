@@ -15,10 +15,12 @@ import java.util.List;
  * say which evening is next and what it is still waiting for — that is the reason this
  * page exists, and the numbers ride along at the bottom.
  *
- * @param next     the nearest evening still being planned, or {@code null} when there is
- *                 none, with the names of the people who fill it
- * @param open     the other dated evenings still being planned, soonest first, each with
- *                 the names of the people who fill it
+ * @param ahead    what stands at the top: the evenings whose announcement is out, the
+ *                 nearest date first, each with the names of the people who fill it. An
+ *                 announced evening is not "further planned" — the planning is behind it,
+ *                 and what is left to do with it is nothing or to close it
+ * @param open     the dated evenings nobody has been told about yet, soonest first, each
+ *                 with the names of the people who fill it
  * @param topics   evenings that have no date yet — the ones waiting for a slot, each with
  *                 the names of the people who would give it
  * @param counts   how much of everything there is
@@ -26,7 +28,7 @@ import java.util.List;
  * @param speakers who gave them, the most talks first, at most ten
  */
 public record Dashboard(
-        Upcoming next,
+        List<Upcoming> ahead,
         List<Upcoming> open,
         List<Topic> topics,
         Counts counts,

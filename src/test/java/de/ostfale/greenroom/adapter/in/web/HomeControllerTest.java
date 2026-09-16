@@ -71,21 +71,39 @@ class HomeControllerTest {
 
         assertThat(page.selectFirst("h1").text()).isEqualTo("Übersicht");
         assertThat(page.select("section.tile h2").eachText())
-                .containsExactly("Zahlen", "Der nächste Abend", "Weiter geplant",
+                .containsExactly("Zahlen", "Die nächsten Abende", "Weiter geplant",
                         "Themen ohne Termin", "Top Ten Location", "Top Ten Speaker");
     }
 
+    /** Announced is not "further planned": the planning is behind it, however far off it is. */
     @Test
-    void theNearestEveningStillBeingPlannedIsTheOneOnTop() throws Exception {
-        events.add(Event.draftFor(aReadyTalk(speakerId))
-                .withMotto("Später").withDate(LocalDate.now().plusMonths(3)));
-        events.add(Event.draftFor(aReadyTalk(speakerId))
-                .withMotto("Bald").withDate(LocalDate.now().plusDays(12)));
+    void everyAnnouncedEveningStandsOnTopAndTheNearestDateLeads() throws Exception {
+        events.add(announced("Zweiter", LocalDate.now().plusMonths(3)));
+        events.add(announced("Erster", LocalDate.now().plusDays(12)));
 
         Document page = overview();
 
-        assertThat(page.selectFirst("section.tile a").text()).isEqualTo("Bald");
-        assertThat(page.selectFirst("section.tile .lead .data").text()).contains("in 12 Tagen");
+        assertThat(page.select("section.stage-next a").eachText())
+                .containsExactly("Erster", "Zweiter");
+        assertThat(page.selectFirst("section.stage-next .lead .data").text())
+                .contains("in 12 Tagen");
+        assertThat(page.selectFirst("section.stage-later p.hint").text())
+                .isEqualTo("Dahinter ist nichts weiter geplant.");
+    }
+
+    /** Only the announced ones: an evening nobody has been told about waits its turn below. */
+    @Test
+    void theNearestEveningIsNotOnTopUntilItIsAnnounced() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Bald").withDate(LocalDate.now().plusDays(12)));
+        events.add(announced("Angekündigt", LocalDate.now().plusMonths(3)));
+
+        Document page = overview();
+
+        assertThat(page.select("section.stage-next a").eachText())
+                .containsExactly("Angekündigt");
+        assertThat(page.select("section.stage-later tbody a").eachText())
+                .containsExactly("Bald");
     }
 
     /** An evening that is over is not in planning any more, however it went. */
@@ -95,8 +113,10 @@ class HomeControllerTest {
 
         Document page = overview();
 
-        assertThat(page.selectFirst("section.tile p.hint").text())
-                .isEqualTo("Kein Abend mit Termin in Planung.");
+        assertThat(page.selectFirst("section.stage-next p.hint").text())
+                .isEqualTo("Noch nichts angekündigt.");
+        assertThat(page.selectFirst("section.stage-later p.hint").text())
+                .isEqualTo("Dahinter ist nichts weiter geplant.");
     }
 
     @Test
@@ -112,8 +132,8 @@ class HomeControllerTest {
 
         Document page = overview();
 
-        assertThat(page.selectFirst("section.tile p.hint").text()).contains("Ort fehlt");
-        assertThat(page.select("section.tile table td.hint").eachText()).contains("Abstract fehlt");
+        assertThat(page.select("section.stage-later td.hint").eachText())
+                .containsExactly("Ort fehlt", "Abstract fehlt");
     }
 
     /** A place we asked is not a place that said yes: nothing may be announced yet. */
@@ -126,8 +146,8 @@ class HomeControllerTest {
 
         Document page = overview();
 
-        assertThat(page.selectFirst("section.tile p.hint").text())
-                .contains("Ort nicht bestätigt");
+        assertThat(page.select("section.stage-later td.hint").eachText())
+                .containsExactly("Ort nicht bestätigt (Musterfirma GmbH)");
     }
 
     /** And it says which place: "nicht bestätigt" without a name leaves the question open. */
@@ -137,15 +157,9 @@ class HomeControllerTest {
                 .withMotto("Bald").withDate(LocalDate.now().plusDays(5))
                 .moveTo(EventStatus.DATE_CONFIRMED)
                 .withLocation(place));
-        events.add(Event.draftFor(aReadyTalk(speakerId))
-                .withMotto("Später").withDate(LocalDate.now().plusMonths(3))
-                .moveTo(EventStatus.DATE_CONFIRMED)
-                .withLocation(place));
 
         Document page = overview();
 
-        assertThat(page.selectFirst("section.stage-next p.hint").text())
-                .contains("Ort nicht bestätigt (Musterfirma GmbH)");
         assertThat(page.select("section.stage-later td.hint").eachText())
                 .containsExactly("Ort nicht bestätigt (Musterfirma GmbH)");
     }
@@ -161,15 +175,14 @@ class HomeControllerTest {
 
         Document page = overview();
 
-        assertThat(page.selectFirst("section.stage-next p.hint").text())
+        assertThat(page.selectFirst("section.stage-later td.hint").text())
                 .doesNotContain("Musterfirma GmbH");
     }
 
     /** An evening is the people who stand on its stage, so the overview names them. */
     @Test
     void theNextEveningSaysWhoFillsIt() throws Exception {
-        events.add(Event.draftFor(aReadyTalk(speakerId))
-                .withMotto("Bald").withDate(LocalDate.now().plusDays(12)));
+        events.add(announced("Bald", LocalDate.now().plusDays(12)));
 
         Document page = overview();
 
@@ -179,8 +192,7 @@ class HomeControllerTest {
 
     @Test
     void everyFurtherEveningSaysWhoFillsIt() throws Exception {
-        events.add(Event.draftFor(aReadyTalk(speakerId))
-                .withMotto("Bald").withDate(LocalDate.now().plusDays(12)));
+        events.add(announced("Bald", LocalDate.now().plusDays(12)));
         events.add(Event.draftFor(aReadyTalk(speakerId))
                 .withMotto("Später").withDate(LocalDate.now().plusMonths(3)));
 
@@ -268,6 +280,16 @@ class HomeControllerTest {
                 .contains("1 von 1 Orten aktiv")
                 .contains("1 Tags")
                 .contains("1 Notizen");
+    }
+
+    private Event announced(String motto, LocalDate on) {
+        return Event.draftFor(aReadyTalk(speakerId))
+                .withMotto(motto)
+                .withDate(on)
+                .withLocation(place)
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .moveTo(EventStatus.VENUE_CONFIRMED)
+                .moveTo(EventStatus.PUBLISHED);
     }
 
     private Event done(LocalDate on) {

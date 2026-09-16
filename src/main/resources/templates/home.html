@@ -33,13 +33,13 @@
              through the planning: what is next, what comes after it, what has no date yet.
              Full width rather than side by side, so that order is the reading order. -->
         <section class="tile stage-next">
-            <h2>Der nächste Abend</h2>
+            <h2>Die nächsten Abende</h2>
 
-            <p class="hint" th:if="${dashboard.next == null}">
-                Kein Abend mit Termin in Planung.
+            <p class="hint" th:if="${#lists.isEmpty(dashboard.ahead)}">
+                Noch nichts angekündigt.
             </p>
 
-            <div th:if="${dashboard.next != null}" th:with="next=${dashboard.next}">
+            <div th:each="next : ${dashboard.ahead}">
                 <!-- One evening, one line — read like a row of the list below it: when and
                      which one on the left, how far along from the middle on, where the eye
                      finds it whatever the date reads. -->
@@ -63,11 +63,10 @@
                     <p class="hint">
                         <span th:text="#{'event.status.' + ${next.evening.status}}">Ort bestätigt</span>
                         ·
-                        <span th:text="#{'event.step.' + ${next.step}}">Abstract fehlt</span>
-                        <!-- Which place is being waited on: the step alone says that one is,
-                             and the answer to "welcher?" is one lookup away otherwise. -->
-                        <span th:if="${next.pickedVenue != null}"
-                              th:text="|(${next.pickedVenue})|">(Musterfirma GmbH)</span>
+                        <!-- No place in brackets here as there is in the list below: an
+                             evening that is announced has a venue that said yes, so the step
+                             that waits for one cannot happen on this tile. -->
+                        <span th:text="#{'event.step.' + ${next.step}}">nichts offen</span>
                     </p>
                     <!-- Under the name, not beside it: both halves of the line are taken, and
                          a person is not a third fact to squeeze between date and state. -->
@@ -79,8 +78,8 @@
         </section>
 
         <section class="tile stage-later">
-            <!-- Not "what is missing": an evening that is announced and simply waiting
-                 belongs on this list too, and it says so in the last column. -->
+            <!-- What still wants a hand. An announced evening has its planning behind it
+                 and stands in the tile above, however far off its date is. -->
             <h2>Weiter geplant</h2>
 
             <p class="hint" th:if="${#lists.isEmpty(dashboard.open)}">
