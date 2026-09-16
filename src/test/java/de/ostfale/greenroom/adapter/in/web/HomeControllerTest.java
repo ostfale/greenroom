@@ -130,6 +130,41 @@ class HomeControllerTest {
                 .contains("Ort nicht bestätigt");
     }
 
+    /** And it says which place: "nicht bestätigt" without a name leaves the question open. */
+    @Test
+    void anEveningWaitingForAVenueNamesThePlaceItAsked() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Bald").withDate(LocalDate.now().plusDays(5))
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .withLocation(place));
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Später").withDate(LocalDate.now().plusMonths(3))
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .withLocation(place));
+
+        Document page = overview();
+
+        assertThat(page.selectFirst("section.stage-next p.hint").text())
+                .contains("Ort nicht bestätigt (Musterfirma GmbH)");
+        assertThat(page.select("section.stage-later td.hint").eachText())
+                .containsExactly("Ort nicht bestätigt (Musterfirma GmbH)");
+    }
+
+    /** Only there: a step that is not waiting for a yes is not improved by a place. */
+    @Test
+    void aSettledVenueIsNotRepeatedBesideTheNextStep() throws Exception {
+        events.add(Event.draftFor(aTalk(speakerId))
+                .withMotto("Ohne Abstract").withDate(LocalDate.now().plusDays(5))
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .withLocation(place)
+                .moveTo(EventStatus.VENUE_CONFIRMED));
+
+        Document page = overview();
+
+        assertThat(page.selectFirst("section.stage-next p.hint").text())
+                .doesNotContain("Musterfirma GmbH");
+    }
+
     /** An evening is the people who stand on its stage, so the overview names them. */
     @Test
     void theNextEveningSaysWhoFillsIt() throws Exception {

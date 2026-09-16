@@ -64,6 +64,10 @@
                         <span th:text="#{'event.status.' + ${next.evening.status}}">Ort bestätigt</span>
                         ·
                         <span th:text="#{'event.step.' + ${next.step}}">Abstract fehlt</span>
+                        <!-- Which place is being waited on: the step alone says that one is,
+                             and the answer to "welcher?" is one lookup away otherwise. -->
+                        <span th:if="${next.pickedVenue != null}"
+                              th:text="|(${next.pickedVenue})|">(Musterfirma GmbH)</span>
                     </p>
                     <!-- Under the name, not beside it: both halves of the line are taken, and
                          a person is not a third fact to squeeze between date and state. -->
@@ -94,7 +98,11 @@
                               th:text="${row.speakers[0]
                                       + (#lists.size(row.speakers) > 1 ? ' u.a.' : '')}">Max Muster</span>
                     </td>
-                    <td class="hint" th:text="#{'event.step.' + ${row.step}}">Ort fehlt</td>
+                    <td class="hint">
+                        <span th:text="#{'event.step.' + ${row.step}}">Ort fehlt</span>
+                        <span th:if="${row.pickedVenue != null}"
+                              th:text="|(${row.pickedVenue})|">(Musterfirma GmbH)</span>
+                    </td>
                 </tr>
                 </tbody>
             </table>

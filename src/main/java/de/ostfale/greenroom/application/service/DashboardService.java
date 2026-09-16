@@ -9,6 +9,7 @@ import de.ostfale.greenroom.application.port.out.SpeakerRepository;
 import de.ostfale.greenroom.application.port.out.TagRepository;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
+import de.ostfale.greenroom.domain.events.NextStep;
 import de.ostfale.greenroom.domain.locations.Location;
 import de.ostfale.greenroom.domain.speakers.Speaker;
 import org.springframework.stereotype.Service;
@@ -58,12 +59,15 @@ public class DashboardService implements ShowDashboard {
         Map<Long, String> names = everyone.stream()
                 .collect(Collectors.toMap(Speaker::id, Speaker::name));
 
+        List<Location> places = locations.findAll();
+        Map<Long, String> venues = places.stream()
+                .collect(Collectors.toMap(Location::id, Location::name));
+
         List<Dashboard.Upcoming> dated = all.stream()
                 .filter(event -> !event.status().isClosed())
                 .filter(event -> event.date() != null)
                 .sorted(Comparator.comparing(Event::date))
-                .map(event -> new Dashboard.Upcoming(event, event.nextStep(today),
-                        ChronoUnit.DAYS.between(today, event.date()), named(event, names)))
+                .map(event -> upcoming(event, today, names, venues))
                 .toList();
 
         List<Dashboard.Topic> topics = all.stream()
@@ -76,13 +80,27 @@ public class DashboardService implements ShowDashboard {
                 dated.isEmpty() ? null : dated.getFirst(),
                 dated.isEmpty() ? List.of() : dated.subList(1, dated.size()),
                 topics,
-                counted(all, today),
-                whereWeHaveBeen(all),
+                counted(all, today, places),
+                whereWeHaveBeen(all, places),
                 whoWeHaveHad(all, everyone));
     }
 
-    private Dashboard.Counts counted(List<Event> all, LocalDate today) {
-        List<Location> places = locations.findAll();
+    /**
+     * The place is named only where it is the answer: on the step that waits for its yes.
+     * Everywhere else the step says all there is to say and a name beside it is noise.
+     */
+    private static Dashboard.Upcoming upcoming(Event evening, LocalDate today,
+                                               Map<Long, String> names,
+                                               Map<Long, String> venues) {
+        NextStep step = evening.nextStep(today);
+        String picked = step == NextStep.CONFIRM_THE_VENUE
+                ? venues.get(evening.locationId())
+                : null;
+        return new Dashboard.Upcoming(evening, step,
+                ChronoUnit.DAYS.between(today, evening.date()), named(evening, names), picked);
+    }
+
+    private Dashboard.Counts counted(List<Event> all, LocalDate today, List<Location> places) {
         return new Dashboard.Counts(
                 all.size(),
                 all.stream().filter(event -> event.isIn(today.getYear())).count(),
@@ -95,8 +113,8 @@ public class DashboardService implements ShowDashboard {
     }
 
     /** The places that hosted at least one evening. A place we never went to is no tally. */
-    private List<Dashboard.Tally> whereWeHaveBeen(List<Event> all) {
-        return locations.findAll().stream()
+    private static List<Dashboard.Tally> whereWeHaveBeen(List<Event> all, List<Location> places) {
+        return places.stream()
                 .map(place -> {
                     List<Event> there = all.stream()
                             .filter(event -> event.isAt(place.id())).toList();

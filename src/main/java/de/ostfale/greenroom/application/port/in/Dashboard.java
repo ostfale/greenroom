@@ -38,8 +38,13 @@ public record Dashboard(
      * Negative days are an evening whose day has passed while it was still being planned.
      * The names come along for the reason they do on a {@link Topic}: the evening holds its
      * people by id alone, and an evening is the people who stand on its stage.
+     *
+     * <p>{@code pickedVenue} is the name of the place that was asked and has not said yes,
+     * and null on every other step: a step that reads "Ort nicht bestätigt" is worth more
+     * when it says which place is being waited on.
      */
-    public record Upcoming(Event evening, NextStep step, long daysAway, List<String> speakers) {
+    public record Upcoming(Event evening, NextStep step, long daysAway, List<String> speakers,
+                           String pickedVenue) {
     }
 
     /**
