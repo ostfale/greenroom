@@ -1614,6 +1614,22 @@ class EventControllerTest {
         assertThat(activities.historyOf(id)).isEmpty();
     }
 
+    /** The page opens on where the evening stands, so the last line written is the top row. */
+    @Test
+    void theHistoryShowsTheNewestEntryFirst() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+        activities.append(Activity.of(id, LocalDate.of(2026, 9, 2),
+                ActivityKind.MAIL_SENT, "Termin angefragt"));
+        activities.append(Activity.of(id, LocalDate.of(2026, 9, 9),
+                ActivityKind.MAIL_RECEIVED, "Zusage"));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("#event-history tbody tr td.data:first-child").eachText())
+                .containsExactly("09.09.2026", "02.09.2026");
+    }
+
     @Test
     void anEveningWithoutAHistorySaysSo() throws Exception {
         Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();

@@ -59,14 +59,25 @@ class ActivityRepositoryTest {
         });
     }
 
-    /** A history is read forwards. */
+    /** Where the evening stands now is the last line written, so it comes first. */
     @Test
-    void theLogIsOldestFirst() {
+    void theLogIsNewestFirst() {
         activities.save(anEntry(LocalDate.of(2026, 9, 8), "zweite"));
         activities.save(anEntry(LocalDate.of(2026, 9, 1), "erste"));
 
         assertThat(activities.findByEvent(eventId)).extracting(Activity::what)
-                .containsExactly("erste", "zweite");
+                .containsExactly("zweite", "erste");
+    }
+
+    /** Two on one day are told apart by the order they were written in, latest first. */
+    @Test
+    void twoEntriesOnOneDayKeepTheLaterOneOnTop() {
+        LocalDate sameDay = LocalDate.of(2026, 9, 8);
+        activities.save(anEntry(sameDay, "erste"));
+        activities.save(anEntry(sameDay, "zweite"));
+
+        assertThat(activities.findByEvent(eventId)).extracting(Activity::what)
+                .containsExactly("zweite", "erste");
     }
 
     @Test

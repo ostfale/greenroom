@@ -18,7 +18,10 @@ public interface ActivityRepository extends Repository<Activity, Long> {
 
     Activity save(Activity activity);
 
-    /** Oldest first: a history is read forwards. */
-    @Query("select * from activity where event_id = :eventId order by happened_on, id")
+    /**
+     * Newest first: the question the page is open for is where the evening stands now, and
+     * that is the last line somebody wrote. A long history would push it out of sight.
+     */
+    @Query("select * from activity where event_id = :eventId order by happened_on desc, id desc")
     List<Activity> findByEvent(Long eventId);
 }
