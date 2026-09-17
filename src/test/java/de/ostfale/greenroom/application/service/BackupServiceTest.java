@@ -23,7 +23,7 @@ class BackupServiceTest {
     }
 
     @Test
-    void aPushedLineMeansTheDumpIsAtHiDrive() {
+    void aPushedLineMeansTheDumpLeftTheMachine() {
         log.lastSaid("backup :: 2026-09-10 pushed");
 
         assertThat(backup.lastRun().state()).isEqualTo(Backup.State.PUSHED);
