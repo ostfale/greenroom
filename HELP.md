@@ -56,6 +56,18 @@ off unless asked for, and OSM asks callers to identify themselves:
 
 Without it nothing is looked up and no map is shown — which is also the state in the tests.
 
+## What it needs
+
+A container runtime, a PostgreSQL with a volume that outlives the container, the handful of
+variables out of `.env.example`, and somewhere that takes a dump every night and gives it
+back on demand. That is the whole list, and the image is built for `linux/amd64` as well as
+`linux/arm64`, so a NAS, a small server or a workstation meets it as readily as a Raspberry
+Pi does.
+
+What follows is one way of meeting that list and not the only one: a Pi that pulls from
+`ghcr.io`, a Git repository over SSH as the place the dump goes, cron as the clock. Another
+installation differs in those three. It does not differ in what the application expects.
+
 ## Deployment
 
 Every push to `main` runs the tests and then builds a container image for `linux/amd64` and
@@ -177,3 +189,22 @@ mounted into the container for the warning log, so `/settings` can read it and s
 last run did: pushed, nothing to save, broken off, or no log at all. `GREENROOM_BACKUP_LOG`
 names that file for the application and is set in `compose.pi.yaml`; where it is unset the
 tile says it found no log. Nothing is ever written back — the backup belongs to cron.
+
+### Coming back somewhere else
+
+The machine is gone and the next evening is in a week. What that takes is the last dump and
+two passwords and nothing besides: any machine with a container runtime, `compose.pi.yaml`,
+an `.env` built again out of `.env.example`, and `greenroom.sql` played into the empty
+database. A workstation will do — the image is there for `linux/amd64` too.
+
+Of the two passwords only one is ever worth keeping. `GRAFANA_ADMIN_PASSWORD` may simply be
+chosen anew, and so may `POSTGRES_PASSWORD` whenever the dump goes into a fresh database,
+because the role is created from the environment as the cluster first comes up. What pins it
+is a surviving volume: a data directory that is still there and an `.env` that is not leaves
+a role holding a password nobody knows any more. Both belong wherever the credentials for
+the dump's destination are kept, and that destination is the one thing here that cannot be
+replaced.
+
+This section cannot prove itself. `restore-check.sh` shows that the dump comes back on the
+machine that wrote it; whether it comes back on a machine that has never run greenroom is
+another question, and the only way to answer it is to do it once while nothing is burning.
