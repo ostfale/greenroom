@@ -1,13 +1,16 @@
 package de.ostfale.greenroom.application.service;
 
+import de.ostfale.greenroom.application.port.in.GivenTalk;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.in.PossibleDuplicate;
 import de.ostfale.greenroom.application.port.out.EventRepository;
+import de.ostfale.greenroom.application.port.out.LocationRepository;
 import de.ostfale.greenroom.application.port.out.ScaleImages;
 import de.ostfale.greenroom.application.port.out.SpeakerPhotoRepository;
 import de.ostfale.greenroom.application.port.out.SpeakerRepository;
 import de.ostfale.greenroom.domain.Rule;
 import de.ostfale.greenroom.domain.RuleViolated;
+import de.ostfale.greenroom.domain.locations.Location;
 import de.ostfale.greenroom.domain.speakers.Speaker;
 import de.ostfale.greenroom.domain.speakers.SpeakerPhoto;
 import org.slf4j.Logger;
@@ -16,7 +19,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -31,15 +36,18 @@ public class SpeakerService implements ManageSpeakers {
     private final SpeakerPhotoRepository photoRepository;
     private final ScaleImages images;
     private final EventRepository eventRepository;
+    private final LocationRepository locationRepository;
 
     public SpeakerService(SpeakerRepository speakerRepository,
                           SpeakerPhotoRepository photoRepository,
                           ScaleImages images,
-                          EventRepository eventRepository) {
+                          EventRepository eventRepository,
+                          LocationRepository locationRepository) {
         this.speakerRepository = speakerRepository;
         this.photoRepository = photoRepository;
         this.images = images;
         this.eventRepository = eventRepository;
+        this.locationRepository = locationRepository;
     }
 
     @Override
@@ -64,6 +72,27 @@ public class SpeakerService implements ManageSpeakers {
     @Transactional(readOnly = true)
     public Optional<Speaker> byId(Long id) {
         return id == null ? Optional.empty() : speakerRepository.findById(id);
+    }
+
+    /**
+     * Every evening is read and the talks of that person picked out of them. A join would
+     * spare the reading, but it would also be a second place that knows how a talk names
+     * its speakers — the record already answers that, and a few hundred evenings cost
+     * nothing worth measuring. The order is the one the port returns.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<GivenTalk> talksOf(Long speakerId) {
+        if (speakerId == null) {
+            return List.of();
+        }
+        Map<Long, String> places = locationRepository.findAllByOrderByNameAsc().stream()
+                .collect(Collectors.toMap(Location::id, Location::name));
+        return eventRepository.allNewestFirst().stream()
+                .flatMap(event -> event.talksGivenBy(speakerId).stream()
+                        .map(talk -> new GivenTalk(event.id(), event.date(), talk.title(),
+                                places.get(event.locationId()))))
+                .toList();
     }
 
     @Override

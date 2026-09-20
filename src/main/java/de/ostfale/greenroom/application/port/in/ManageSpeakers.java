@@ -22,6 +22,13 @@ public interface ManageSpeakers {
     Optional<Speaker> byId(Long id);
 
     /**
+     * What that person has talked about, newest first and the undated evenings last. One
+     * line per talk: an evening where somebody takes the floor twice stands there twice.
+     * Empty for an unknown id.
+     */
+    List<GivenTalk> talksOf(Long speakerId);
+
+    /**
      * Whoever is already stored under that address or under that name — what the form asks
      * while it is being filled in, so a second entry for the same person is noticed before
      * it exists. Empty if nothing matches, and empty for blank input.

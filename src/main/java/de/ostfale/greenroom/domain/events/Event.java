@@ -265,10 +265,15 @@ public record Event(
      * takes the floor twice counts twice — the tally is about talks, not about appearances.
      */
     public long talksBy(Long speaker) {
-        return speaker == null ? 0 : talks.stream()
+        return talksGivenBy(speaker).size();
+    }
+
+    /** Which of the talks that person gives, in the order the evening holds them. */
+    public List<Talk> talksGivenBy(Long speaker) {
+        return speaker == null ? List.of() : talks.stream()
                 .filter(talk -> talk.speakers().stream()
                         .anyMatch(announced -> speaker.equals(announced.speakerId())))
-                .count();
+                .toList();
     }
 
     public boolean isAt(Long place) {

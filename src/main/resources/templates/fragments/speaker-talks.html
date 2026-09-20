@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div id="speaker-talks" th:fragment="speaker-talks">
+    <table>
+        <caption th:if="${#lists.isEmpty(talks)}">Noch auf keinem Event angekündigt.</caption>
+        <thead th:unless="${#lists.isEmpty(talks)}">
+        <tr>
+            <th>Datum</th>
+            <th>Thema</th>
+            <th>Ort</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="talk : ${talks}">
+            <td class="data"
+                th:text="${talk.date} != null ? ${#temporals.format(talk.date, 'dd.MM.yyyy')} : '—'">—</td>
+            <td><a th:href="@{/event/{id}(id=${talk.eventId})}"
+                   th:text="${talk.title} ?: 'Ohne Titel'">Ohne Titel</a></td>
+            <td th:text="${talk.locationName} ?: '—'">—</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

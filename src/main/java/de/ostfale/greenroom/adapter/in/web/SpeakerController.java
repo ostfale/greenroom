@@ -108,6 +108,7 @@ public class SpeakerController {
                 .map(speaker -> {
                     model.addAttribute("speaker", speaker);
                     model.addAttribute("hasPhoto", speakers.photoOf(id).isPresent());
+                    model.addAttribute("talks", speakers.talksOf(id));
                     return "speaker/detail";
                 })
                 .orElse("redirect:/speaker");

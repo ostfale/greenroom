@@ -4,6 +4,7 @@ import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.WebTest;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.in.ManageEvents;
+import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.out.SpeakerRepository;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.Talk;
@@ -12,6 +13,7 @@ import de.ostfale.greenroom.domain.speakers.Speaker;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static de.ostfale.greenroom.Fixtures.EVENING;
+import static de.ostfale.greenroom.Fixtures.aLocation;
 import static de.ostfale.greenroom.Fixtures.aSpeaker;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -50,6 +54,9 @@ class SpeakerControllerTest {
 
     @Autowired
     private ManageEvents events;
+
+    @Autowired
+    private ManageLocations locations;
 
     /** A real picture — the scaler reads the bytes, it does not trust a content type. */
     private static byte[] picture(int width, int height) throws Exception {
@@ -513,6 +520,43 @@ class SpeakerControllerTest {
                 .isEqualTo("Schreibt Java, seit es Generics gibt.");
         assertThat(page.selectFirst(".portrait").hasClass("placeholder")).isTrue();
         assertThat(page.selectFirst(".portrait").text()).isEqualTo("M");
+    }
+
+    @Test
+    void theDetailPageListsWhatThePersonTalkedAboutAndWhere() throws Exception {
+        Long id = speakers.add(aSpeaker()).id();
+        Long place = locations.add(aLocation()).id();
+        events.add(Event.draftFor(Talk.by(TalkSpeaker.of(id)).withTitle("Records in Java 25"))
+                .withDate(EVENING)
+                .withLocation(place));
+        // Nothing settled yet: the line stands there all the same, with dashes.
+        events.add(Event.draftFor(Talk.by(TalkSpeaker.of(id)).withTitle("Virtuelle Threads")));
+
+        String html = mvc.perform(get("/speaker/{id}", id)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Elements rows = Jsoup.parse(html).select("#speaker-talks tbody tr");
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0).select("td").eachText())
+                .containsExactly("24.09.2026", "Records in Java 25", "Musterfirma GmbH");
+        assertThat(rows.get(0).selectFirst("td a").attr("href")).startsWith("/event/");
+        assertThat(rows.get(1).select("td").eachText())
+                .containsExactly("—", "Virtuelle Threads", "—");
+    }
+
+    @Test
+    void anotherPersonsEveningDoesNotShowUpOnThisPage() throws Exception {
+        Long id = speakers.add(aSpeaker()).id();
+        Long other = speakers.add(Speaker.of("Erika Muster", "erika@example.org")).id();
+        events.add(Event.draftFor(Talk.by(TalkSpeaker.of(other)).withTitle("Records in Java 25")));
+
+        String html = mvc.perform(get("/speaker/{id}", id)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document page = Jsoup.parse(html);
+        assertThat(page.select("#speaker-talks tbody tr")).isEmpty();
+        assertThat(page.selectFirst("#speaker-talks caption").text())
+                .isEqualTo("Noch auf keinem Event angekündigt.");
     }
 
     @Test

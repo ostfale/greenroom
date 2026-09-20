@@ -82,6 +82,20 @@ class EventTest {
         assertThat(evening.talksBy(4711L)).isZero();
     }
 
+    /** What the person's page reads: the talks themselves, in the order of the evening. */
+    @Test
+    void anEveningNamesTheTalksSomebodyGives() {
+        Event evening = Event.draftFor(aReadyTalk(SPEAKER).withTitle("Records in Java 25"))
+                .withAdditionalTalk(aReadyTalk(999L).withTitle("Virtuelle Threads"))
+                .withAdditionalTalk(aReadyTalk(SPEAKER).withTitle("Pattern Matching"));
+
+        assertThat(evening.talksGivenBy(SPEAKER))
+                .extracting(Talk::title)
+                .containsExactly("Records in Java 25", "Pattern Matching");
+        assertThat(evening.talksGivenBy(4711L)).isEmpty();
+        assertThat(evening.talksGivenBy(null)).isEmpty();
+    }
+
     @Test
     void anEveningNeedsAtLeastOneTalk() {
         assertThat(ruleBrokenBy(() -> new Event(null, null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE,
