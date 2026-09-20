@@ -107,6 +107,15 @@ to one group is either in the `.env` or in `messages.properties`.
 port may read and change everything. That is a home network decision, and forwarding the
 port to the outside would turn it into the wrong one.
 
+**Reaching it from elsewhere.** Through a VPN, not through a forwarded port. A WireGuard
+connection on the router makes the travelling device a member of the home network, and
+greenroom answers at the same local address as it does at home. Nothing on the Pi changes
+and nothing is published: what listens on the internet is the VPN port, and it stays silent
+to anything it cannot authenticate. One connection per device, and none from inside the home
+network — there is nothing to dial into from where you already are. Where the network at the
+other end uses the same address range as home, the Pi is unreachable from it; that is a
+numbering decision, not a setting.
+
 ## Observability
 
 The application already carries the metrics: Micrometer is in the jar and the actuator
