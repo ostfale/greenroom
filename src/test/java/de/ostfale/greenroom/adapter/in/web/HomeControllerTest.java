@@ -180,8 +180,9 @@ class HomeControllerTest {
     }
 
     /**
-     * Where it happens is half of what there is to know about an announced evening, and it
-     * reads between the date and the name: when, where, what.
+     * Where it happens is half of what there is to know about an announced evening. It
+     * stands beside the person on the second line and not between date and name, where it
+     * would squeeze the first one and leave the half next to it empty.
      */
     @Test
     void theNextEveningSaysWhereItIs() throws Exception {
@@ -192,7 +193,18 @@ class HomeControllerTest {
         assertThat(page.selectFirst("section.stage-next .lead span.where").text())
                 .isEqualTo("Musterfirma GmbH");
         assertThat(page.selectFirst("section.stage-next .lead > p").text())
-                .containsSubsequence("in 12 Tagen", "Musterfirma GmbH", "Bald");
+                .doesNotContain("Musterfirma GmbH");
+    }
+
+    /** Set like the person it stands beside, so the two read as the pair they are. */
+    @Test
+    void whoAndWhereAreSetTheSameWay() throws Exception {
+        events.add(announced("Bald", LocalDate.now().plusDays(12)));
+
+        Document page = overview();
+
+        assertThat(page.select("section.stage-next .lead > span.hint").eachText())
+                .containsExactly("Max Muster", "Musterfirma GmbH");
     }
 
     /**

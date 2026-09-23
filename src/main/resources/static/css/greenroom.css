@@ -277,25 +277,19 @@ form .caption:first-child {
 }
 
 /* Where the left half holds several facts they sit beside each other the way the cells of a
-   row do — and break into a second line rather than out of the tile where three of them do
-   not fit, which on a phone is most of the time. */
+   row do. */
 .lead > p:first-child {
     display: flex;
-    flex-wrap: wrap;
     align-items: baseline;
     gap: .75rem;
 }
 
-/* The place an evening is at, between the date and its name. Quieter than the title it
-   stands in front of: it answers "where", and the title is still what is being read for. */
+/* Who stands on the stage of an evening and where it is, on the line below its name — each
+   in the half the line above put its own half in, so the break in the middle stays where the
+   eye has learned it. In a lead the grid has made a block of them already; in a row of the
+   list beside it, it has not. */
+.who,
 .where {
-    color: var(--muted);
-}
-
-/* Who stands on the stage of an evening, on the line below its name — in the same half, so
-   the break in the middle stays where the eye has learned it. In a lead the grid has made a
-   block of it already; in a row of the list beside it, it has not. */
-.who {
     display: block;
     margin: 0;
 }

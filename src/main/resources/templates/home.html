@@ -40,13 +40,10 @@
             </p>
 
             <div th:each="next : ${dashboard.ahead}">
-                <!-- One evening, one line — read like a row of the list below it: when,
-                     where and which one on the left, how far along from the middle on, where
-                     the eye finds it whatever the date reads. The place stands between the
-                     two because an announced evening is a date and an address before it is a
-                     title: that is what somebody on their way there needs. Plain text and no
-                     second link — the line already has one, and it leads where the place is
-                     named again. -->
+                <!-- One evening, two lines — read like a row of the list below it: when and
+                     which one on the left, how far along from the middle on, where the eye
+                     finds it whatever the date reads. Underneath, in the same two halves, who
+                     fills it and where it is. -->
                 <div class="lead">
                     <p>
                         <span class="data">
@@ -58,7 +55,6 @@
                             <span th:if="${next.daysAway < 0}"
                                   th:text="|vor ${-next.daysAway} Tagen|">vor 3 Tagen</span>
                         </span>
-                        <span class="where" th:if="${next.venue}" th:text="${next.venue}">Musterfirma GmbH</span>
                         <a th:href="@{/event/{id}(id=${next.evening.id})}"
                            th:text="${next.evening.displayName()} ?: 'Ohne Titel'">Ohne Titel</a>
                     </p>
@@ -73,11 +69,19 @@
                              that waits for one cannot happen on this tile. -->
                         <span th:text="#{'event.step.' + ${next.step}}">nichts offen</span>
                     </p>
-                    <!-- Under the name, not beside it: both halves of the line are taken, and
-                         a person is not a third fact to squeeze between date and state. -->
+                    <!-- Under the name, not beside it: both halves of the line above are
+                         taken, and a person is not a third fact to squeeze between date and
+                         state. -->
                     <span class="hint who"
                           th:text="${next.speakers[0]
                                   + (#lists.size(next.speakers) > 1 ? ' u.a.' : '')}">Max Muster</span>
+                    <!-- And where, in the half beside them, which was standing empty. Who and
+                         where read as one pair and are set as one: neither is the headline,
+                         both are what somebody on the way there asks. Plain text and no
+                         second link — the line above already has one, and it leads to the
+                         page where the place is named again. -->
+                    <span class="hint where" th:if="${next.venue}"
+                          th:text="${next.venue}">Musterfirma GmbH</span>
                 </div>
             </div>
         </section>
