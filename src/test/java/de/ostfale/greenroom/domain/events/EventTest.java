@@ -1,6 +1,7 @@
 package de.ostfale.greenroom.domain.events;
 
 import de.ostfale.greenroom.domain.Rule;
+import de.ostfale.greenroom.domain.locations.ContactPerson;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalTime;
@@ -8,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static de.ostfale.greenroom.Fixtures.EVENING;
+import static de.ostfale.greenroom.Fixtures.aContact;
 import static de.ostfale.greenroom.Fixtures.aReadyTalk;
 import static de.ostfale.greenroom.Fixtures.aTalk;
 import static de.ostfale.greenroom.Violations.ruleBrokenBy;
@@ -50,13 +52,13 @@ class EventTest {
     @Test
     void anEveningNeedsAStatusAModeAndATalk() {
         assertThat(ruleBrokenBy(() -> new Event(1L, null, null, null, null,
-                null, EventMode.ONSITE, null, null, List.of(aReadyTalk(SPEAKER)))))
+                null, EventMode.ONSITE, null, null, List.of(), List.of(aReadyTalk(SPEAKER)))))
                 .isEqualTo(Rule.EVENT_NEEDS_A_STATUS);
         assertThat(ruleBrokenBy(() -> new Event(1L, null, null, null, null,
-                EventStatus.DRAFT, null, null, null, List.of(aReadyTalk(SPEAKER)))))
+                EventStatus.DRAFT, null, null, null, List.of(), List.of(aReadyTalk(SPEAKER)))))
                 .isEqualTo(Rule.EVENT_NEEDS_A_MODE);
         assertThat(ruleBrokenBy(() -> new Event(1L, null, null, null, null,
-                EventStatus.DRAFT, EventMode.ONSITE, null, null, null)))
+                EventStatus.DRAFT, EventMode.ONSITE, null, null, List.of(), null)))
                 .isEqualTo(Rule.EVENT_NEEDS_ONE_TALK);
     }
 
@@ -99,7 +101,7 @@ class EventTest {
     @Test
     void anEveningNeedsAtLeastOneTalk() {
         assertThat(ruleBrokenBy(() -> new Event(null, null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE,
-                null, null, List.of())))
+                null, null, List.of(), List.of())))
                 .isEqualTo(Rule.EVENT_NEEDS_ONE_TALK);
 
         assertThat(ruleBrokenBy(() -> Event.draftFor(aReadyTalk(SPEAKER)).withTalks(List.of())))
@@ -234,6 +236,62 @@ class EventTest {
 
         assertThat(evening.moveTo(EventStatus.DATE_CONFIRMED).addressPosition()).isEqualTo(1);
         assertThat(evening.withMotto("Java-Herbst").addressPosition()).isEqualTo(1);
+    }
+
+    // --- who was asked for the room -----------------------------------------------------
+
+    @Test
+    void anEveningNamesNobodyUntilSomebodyIsPicked() {
+        Event evening = Event.draftFor(aReadyTalk(SPEAKER)).withLocation(VENUE);
+
+        assertThat(evening.contacts()).isEmpty();
+        assertThat(evening.withContacts(List.of(EventContact.copying(aContact()))).contacts())
+                .extracting(EventContact::name).containsExactly("Max Muster");
+    }
+
+    /** The people belong to one house; at another the same names work somewhere else. */
+    @Test
+    void thePeopleAskedDoNotTravelToAnotherPlace() {
+        Event evening = Event.draftFor(aReadyTalk(SPEAKER)).withLocation(VENUE)
+                .withContacts(List.of(EventContact.copying(aContact())));
+
+        assertThat(evening.withLocation(VENUE).contacts()).hasSize(1);
+        assertThat(evening.withLocation(VENUE + 1).contacts()).isEmpty();
+        assertThat(evening.withLocation(null).contacts()).isEmpty();
+    }
+
+    /**
+     * A copy, not a look-up: whoever was asked stays on the evening however the place
+     * rewrites its list afterwards.
+     */
+    @Test
+    void theCopyKeepsWhatThePlaceHadWhenItWasTaken() {
+        EventContact then = EventContact.copying(ContactPerson.of("Max Muster", "max@example.org"));
+
+        assertThat(then.name()).isEqualTo("Max Muster");
+        assertThat(then.email()).isEqualTo("max@example.org");
+        assertThat(then.isSameAs(ContactPerson.of("Max Mustermann", "MAX@example.org"))).isTrue();
+        assertThat(then.isSameAs(ContactPerson.of("Max Muster", "moritz@example.org"))).isFalse();
+        assertThat(then.isSameAs(null)).isFalse();
+    }
+
+    /** The copy is a contact person like any other and refuses by the same names. */
+    @Test
+    void aCopiedContactStillNeedsANameAndAnEmail() {
+        assertThat(ruleBrokenBy(() -> new EventContact(" ", "max@example.org", null)))
+                .isEqualTo(Rule.CONTACT_NEEDS_A_NAME);
+        assertThat(ruleBrokenBy(() -> new EventContact("Max Muster", null, null)))
+                .isEqualTo(Rule.CONTACT_NEEDS_AN_EMAIL);
+    }
+
+    @Test
+    void thePeopleAskedSurviveEverythingElseTheEveningDoes() {
+        Event evening = Event.draftFor(aReadyTalk(SPEAKER)).withLocation(VENUE)
+                .withContacts(List.of(EventContact.copying(aContact()))).withDate(EVENING);
+
+        assertThat(evening.moveTo(EventStatus.DATE_CONFIRMED).contacts()).hasSize(1);
+        assertThat(evening.withMotto("Java-Herbst").contacts()).hasSize(1);
+        assertThat(evening.withAddressAt(1).contacts()).hasSize(1);
     }
 
     // --- when the evening begins --------------------------------------------------------

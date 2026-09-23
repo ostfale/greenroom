@@ -51,10 +51,11 @@ public class EventController {
     private final ErrorMessages errors;
     private final EventPage page;
     private final ChosenAddress chosenAddress;
+    private final ChosenContacts chosenContacts;
 
     public EventController(ManageEvents events, ManageSpeakers speakers, ManageLocations locations,
                            ManageTags tags, ErrorMessages errors, EventPage page,
-                           ChosenAddress chosenAddress) {
+                           ChosenAddress chosenAddress, ChosenContacts chosenContacts) {
         this.events = events;
         this.speakers = speakers;
         this.locations = locations;
@@ -62,6 +63,7 @@ public class EventController {
         this.errors = errors;
         this.page = page;
         this.chosenAddress = chosenAddress;
+        this.chosenContacts = chosenContacts;
     }
 
     @GetMapping
@@ -238,29 +240,34 @@ public class EventController {
     public String assignVenue(@PathVariable Long id,
                               @RequestParam(defaultValue = "") String locationId,
                               @RequestParam(defaultValue = "") String addressPosition,
+                              @RequestParam(name = "contactPosition", required = false)
+                              List<String> contactPositions,
                               Model model) {
         return page.afterChanging(id, model, "fragments/event-venue :: event-venue", () -> {
             Event known = events.byId(id).orElseThrow(() -> new RuleViolated(Rule.NOT_FOUND));
             Long place = FormValues.locationId(locationId);
-            // withLocation drops a pin that belonged to another place, so the address is
-            // set after it and never before.
+            // withLocation drops a pin and the people that belonged to another place, so
+            // both are set after it and never before.
             events.change(known.withLocation(place)
-                    .withAddressAt(chosenAddress.of(place, addressPosition)));
+                    .withAddressAt(chosenAddress.of(place, addressPosition))
+                    .withContacts(chosenContacts.of(place, contactPositions)));
         });
     }
 
     /**
-     * The addresses of the place that was just picked. Its own little route because the
-     * second select depends on the first, and htmx swaps it rather than the whole tile.
+     * What there is to choose once a place is picked: its addresses and the people to ask
+     * there. Its own little route because both depend on the first select, and htmx swaps
+     * them rather than the whole tile.
      */
-    @GetMapping("/{id}/addresses")
-    public String venueAddresses(@PathVariable Long id,
-                                 @RequestParam(defaultValue = "") String locationId,
-                                 Model model) {
+    @GetMapping("/{id}/choices")
+    public String venueChoices(@PathVariable Long id,
+                               @RequestParam(defaultValue = "") String locationId,
+                               Model model) {
         Long place = FormValues.locationId(locationId);
         model.addAttribute("place", place == null ? null : locations.byId(place).orElse(null));
-        // Another place means another list, so nothing is preselected in it.
+        // Another place means another list, so nothing is preselected in either of them.
         model.addAttribute("chosenAddress", null);
-        return "fragments/event-venue :: venue-address";
+        model.addAttribute("chosenContacts", List.of());
+        return "fragments/event-venue :: venue-choices";
     }
 }

@@ -40,6 +40,12 @@ import static de.ostfale.greenroom.domain.Texts.optional;
  * what it elsewhere copies: an address is never rewritten and never dropped here, only
  * flagged inactive, so pointing at one is as stable as copying it — and it lets the old
  * address be written down once at the place instead of once per evening.
+ *
+ * <p>{@code contacts} are the people who were asked for the room this time. A place lists
+ * several, and which of them is the one to write to changes over the years, so the evening
+ * names its own. Copied and not pointed at, the way {@link EventContact} explains. Empty
+ * means nobody was named: with one person at the place there is nothing to name, and with
+ * several the page asks instead of guessing.
  */
 public record Event(
         @Id Long id,
@@ -51,6 +57,7 @@ public record Event(
         EventMode mode,
         Long locationId,
         Integer addressPosition,
+        List<EventContact> contacts,
         List<Talk> talks) {
 
     public Event {
@@ -75,13 +82,14 @@ public record Event(
         motto = optional(motto);
         moderator = optional(moderator);
         notes = optional(notes);
+        contacts = contacts == null ? List.of() : List.copyOf(contacts);
         talks = List.copyOf(talks);
     }
 
     /** A topic: somebody we want to hear, and nothing settled yet. */
     public static Event draftFor(Talk talk) {
         return new Event(null, null, null, null, null, EventStatus.DRAFT, EventMode.ONSITE,
-                null, null, List.of(talk));
+                null, null, List.of(), List.of(talk));
     }
 
     /**
@@ -95,17 +103,17 @@ public record Event(
             throw new RuleViolated(Rule.EVENT_DOES_NOT_MOVE, status, target);
         }
         return new Event(id, date, motto, moderator, notes, target, mode, locationId,
-                addressPosition, talks);
+                addressPosition, contacts, talks);
     }
 
     public Event withDate(LocalDate newDate) {
         return new Event(id, newDate, motto, moderator, notes, status, mode, locationId,
-                addressPosition, talks);
+                addressPosition, contacts, talks);
     }
 
     public Event withMotto(String newMotto) {
         return new Event(id, date, newMotto, moderator, notes, status, mode, locationId,
-                addressPosition, talks);
+                addressPosition, contacts, talks);
     }
 
     /**
@@ -114,28 +122,31 @@ public record Event(
      */
     public Event withModerator(String newModerator) {
         return new Event(id, date, motto, newModerator, notes, status, mode, locationId,
-                addressPosition, talks);
+                addressPosition, contacts, talks);
     }
 
     /** Anything worth writing down that has no field of its own. */
     public Event withNotes(String newNotes) {
         return new Event(id, date, motto, moderator, newNotes, status, mode, locationId,
-                addressPosition, talks);
+                addressPosition, contacts, talks);
     }
 
     public Event withMode(EventMode newMode) {
         return new Event(id, date, motto, moderator, notes, status, newMode, locationId,
-                addressPosition, talks);
+                addressPosition, contacts, talks);
     }
 
     /**
-     * The host. A pinned address does not travel with it: a position points into one place's
-     * list, and at another place the same number means another building.
+     * The host. Neither a pinned address nor the people who were asked travel with it: both
+     * belong to one place, and at another the number means another building and the names
+     * mean nobody who works there.
      */
     public Event withLocation(Long newLocationId) {
-        Integer stays = Objects.equals(locationId, newLocationId) ? addressPosition : null;
+        boolean sameHouse = Objects.equals(locationId, newLocationId);
+        Integer stays = sameHouse ? addressPosition : null;
+        List<EventContact> asked = sameHouse ? contacts : List.of();
         return new Event(id, date, motto, moderator, notes, status, mode, newLocationId,
-                stays, talks);
+                stays, asked, talks);
     }
 
     /**
@@ -143,12 +154,21 @@ public record Event(
      */
     public Event withAddressAt(Integer position) {
         return new Event(id, date, motto, moderator, notes, status, mode, locationId,
-                position, talks);
+                position, contacts, talks);
+    }
+
+    /**
+     * Who was asked for the room this time. Empty takes the answer back to nobody named,
+     * which is what an evening at a place with a single contact stays at.
+     */
+    public Event withContacts(List<EventContact> asked) {
+        return new Event(id, date, motto, moderator, notes, status, mode, locationId,
+                addressPosition, asked, talks);
     }
 
     public Event withTalks(List<Talk> newTalks) {
         return new Event(id, date, motto, moderator, notes, status, mode, locationId,
-                addressPosition, newTalks);
+                addressPosition, contacts, newTalks);
     }
 
     public Event withAdditionalTalk(Talk talk) {

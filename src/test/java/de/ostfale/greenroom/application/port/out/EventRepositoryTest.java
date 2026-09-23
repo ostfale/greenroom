@@ -3,6 +3,7 @@ package de.ostfale.greenroom.application.port.out;
 import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.TestcontainersConfiguration;
 import de.ostfale.greenroom.domain.events.Event;
+import de.ostfale.greenroom.domain.events.EventContact;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
 import de.ostfale.greenroom.domain.events.TalkSpeaker;
@@ -88,6 +89,37 @@ class EventRepositoryTest {
                 assertThat(speaker.announcedBio()).isNull();
             });
         });
+    }
+
+    /**
+     * The people asked for the room are the evening's own rows, not the place's. Rewriting
+     * the list at the location leaves the evening with whoever it asked back then.
+     */
+    @Test
+    void thePeopleAskedForTheRoomAreStoredWithTheEvening() {
+        Location place = locations.findById(locationId).orElseThrow();
+        Event saved = events.save(Event.draftFor(aReadyTalk(speakerId))
+                .withLocation(locationId)
+                .withContacts(List.of(EventContact.copying(place.contacts().getFirst()))));
+
+        locations.save(place.withContacts(
+                List.of(ContactPerson.of("Bea Brandt", "bea@example.org"))));
+
+        Event loaded = events.findById(saved.id()).orElseThrow();
+        assertThat(loaded.contacts()).singleElement().satisfies(person -> {
+            assertThat(person.name()).isEqualTo("Anna Albers");
+            assertThat(person.email()).isEqualTo("anna@example.org");
+        });
+        assertThat(locations.findById(locationId).orElseThrow().contacts())
+                .extracting(ContactPerson::name).containsExactly("Bea Brandt");
+    }
+
+    /** Nobody asked is no row, and the evening comes back with an empty list, never null. */
+    @Test
+    void anEveningThatAskedNobodyComesBackWithNobody() {
+        Event saved = events.save(Event.draftFor(aReadyTalk(speakerId)).withLocation(locationId));
+
+        assertThat(events.findById(saved.id()).orElseThrow().contacts()).isEmpty();
     }
 
     @Test

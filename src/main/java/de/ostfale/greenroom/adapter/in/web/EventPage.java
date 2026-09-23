@@ -114,6 +114,11 @@ class EventPage {
         // place changes, and then they come from the request instead.
         model.addAttribute("place", host);
         model.addAttribute("chosenAddress", event.addressPosition());
+        // Which boxes are ticked: the evening holds copies, the place holds its list, and
+        // the mail address is what says they are the same person.
+        model.addAttribute("chosenContacts", host == null ? List.of() : host.contacts().stream()
+                .filter(person -> event.contacts().stream().anyMatch(one -> one.isSameAs(person)))
+                .toList());
     }
 
     /**

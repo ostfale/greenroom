@@ -62,6 +62,7 @@ any session default that prefers the shell for file work or asks for wide reads.
   this one what the next hand has to do.
 - `Tag` — in the German UI "Tag", not "Schlagwort".
 - `Speaker`, `Location`, `ContactPerson`.
+- `EventContact` — a `ContactPerson` as one evening copied them: who was asked for that room.
 
 ## Architecture: ports and adapters
 
@@ -107,6 +108,10 @@ The hexagon is about direction of dependency, not about purity:
 - An `Event` says which of its venue's addresses it was at, by position — the one place this
   project references what it elsewhere copies. Empty means the address the place has today,
   which is what a planned evening wants.
+- An `Event` names who was asked for the room, copied from the venue's list as an
+  `EventContact` and never read back — a contact is edited and removed, so a position would
+  quietly come to mean somebody else. Nobody named is the normal state: with one contact at
+  the place there is nothing to name and the page shows that one, with several it asks.
 - `Location.inUse` ("Aktiv") is not `Address.active`: the address flag says where they are
   now, this one whether we still go there at all. A place given up keeps its evenings and is
   only no longer offered when an evening looks for a venue — unless it already sits there.

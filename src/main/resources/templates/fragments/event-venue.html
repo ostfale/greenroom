@@ -16,8 +16,8 @@
           hx-swap="outerHTML">
         <label>Gastgeber
             <select name="locationId"
-                    th:hx-get="@{/event/{id}/addresses(id=${event.id})}"
-                    hx-target="#venue-address"
+                    th:hx-get="@{/event/{id}/choices(id=${event.id})}"
+                    hx-target="#venue-choices"
                     hx-swap="outerHTML">
                 <option value="">Noch offen</option>
                 <option th:each="place : ${locations}"
@@ -27,8 +27,9 @@
             </select>
         </label>
 
-        <!-- Reloaded when the place changes: a position points into one place's list. -->
-        <div th:replace="~{fragments/event-venue :: venue-address}"></div>
+        <!-- Reloaded when the place changes: both the position and the people to ask point
+             into one place's list. -->
+        <div th:replace="~{fragments/event-venue :: venue-choices}"></div>
 
         <div class="actions">
             <button type="submit" disabled>Ort übernehmen</button>
@@ -38,7 +39,9 @@
     <!-- What is stored, said so: the selects above show what is about to be picked, and
          until it is saved the two disagree. Without the caption the tile names two places
          at once and nothing tells them apart. -->
-    <div class="stack" th:if="${location}">
+    <div class="stack" th:if="${location}"
+         th:with="asked=${!#lists.isEmpty(event.contacts) ? event.contacts
+                          : (location.hasSeveralContacts() ? null : location.contacts())}">
         <p class="caption">Eingetragen</p>
         <p><a th:href="@{/location/{id}(id=${location.id})}"
               th:text="${location.name}">Musterfirma GmbH</a></p>
@@ -51,23 +54,31 @@
             Dieser Ort hat mehrere Adressen in Benutzung — bitte oben angeben, welche es war.
         </p>
 
-        <!-- The name opens the mail client; what is written in it is nobody's business here. -->
-        <ul class="plain" th:unless="${#lists.isEmpty(location.contacts())}">
-            <li th:each="person : ${location.contacts()}">
+        <!-- Who was asked for the room this time. The evening's own copies where it named
+             anybody, otherwise the one person the place has — and where it has several and
+             the evening named none, no names at all: a list of everybody says nothing about
+             who to write to. The name opens the mail client; what is written in it is
+             nobody's business here. -->
+        <ul class="plain" th:unless="${asked} == null">
+            <li th:each="person : ${asked}">
                 <a th:href="'mailto:' + ${person.email}" th:text="${person.name}">Max Muster</a>
                 <span class="hint" th:if="${person.phone}" th:text="${person.phone}">040 123456</span>
             </li>
         </ul>
+        <p class="hint" th:if="${#lists.isEmpty(event.contacts)} and ${location.hasSeveralContacts()}">
+            Dieser Ort hat mehrere Ansprechpartner — bitte oben angeben, wer zuständig war.
+        </p>
     </div>
     <p class="hint" th:unless="${location}">Noch kein Ort zugeordnet.</p>
 </div>
 
 <!--
-  Which address of that place. Only where there is a choice: one address is no question,
-  and none is nothing to ask about. The empty entry says what it resolves to, so a place
-  with two rooms in use cannot silently pick whichever is listed first.
+  What there is to choose once a place is picked. Only where there is a choice: one address
+  and one contact are no question, and none of either is nothing to ask about. The empty
+  address entry says what it resolves to, so a place with two rooms in use cannot silently
+  pick whichever is listed first.
 -->
-<div id="venue-address" th:fragment="venue-address">
+<div id="venue-choices" th:fragment="venue-choices">
     <label th:if="${place} != null and ${#lists.size(place.addresses)} > 1">Adresse
         <select name="addressPosition">
             <option value=""
@@ -81,6 +92,21 @@
                              + (${address.active} ? '' : ' · stillgelegt')">Musterweg 1</option>
         </select>
     </label>
+
+    <!-- Who of them was asked. Ticked on this form and saved with it, the way the tags
+         are: what is ticked when it is sent is who the evening carries. -->
+    <div class="keywords" th:if="${place} != null and ${place.hasSeveralContacts()}">
+        <p class="caption">Ansprechpartner</p>
+        <ul class="tags">
+            <li th:each="person, i : ${place.contacts}">
+                <label class="toggle">
+                    <input type="checkbox" name="contactPosition" th:value="${i.index}"
+                           th:checked="${#lists.contains(chosenContacts, person)}">
+                    <span th:text="${person.name}">Max Muster</span>
+                </label>
+            </li>
+        </ul>
+    </div>
 </div>
 </body>
 </html>

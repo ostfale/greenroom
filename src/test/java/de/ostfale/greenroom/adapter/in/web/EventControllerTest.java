@@ -12,6 +12,7 @@ import de.ostfale.greenroom.application.port.out.SpeakerRepository;
 import de.ostfale.greenroom.domain.activities.Activity;
 import de.ostfale.greenroom.domain.activities.ActivityKind;
 import de.ostfale.greenroom.domain.events.Event;
+import de.ostfale.greenroom.domain.events.EventContact;
 import de.ostfale.greenroom.domain.events.EventMode;
 import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
@@ -1341,6 +1342,116 @@ class EventControllerTest {
         assertThat(events.byId(id).orElseThrow().locationId()).isNull();
     }
 
+    // --- who was asked for the room -----------------------------------------------------
+
+    /** One person at the place is no question, so the tile does not ask one — it shows them. */
+    @Test
+    void aPlaceWithOneContactIsNotAskedAbout() throws Exception {
+        Long place = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withLocation(place)).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("input[name=contactPosition]")).isEmpty();
+        assertThat(page.select("#event-venue ul.plain a").eachText()).containsExactly("Max Muster");
+    }
+
+    /**
+     * Several people at the place and none named for this evening: a list of everybody says
+     * nothing about who to write to, so the tile asks instead of showing them all.
+     */
+    @Test
+    void aPlaceWithSeveralContactsAsksWhoWasResponsible() throws Exception {
+        Long place = locations.add(aLocation()
+                .withAdditionalContact(ContactPerson.of("Bea Brandt", "bea@example.org"))).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withLocation(place)).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("input[name=contactPosition]")).hasSize(2);
+        assertThat(page.select("#event-venue p.hint").text()).contains("mehrere Ansprechpartner");
+        assertThat(page.select("#event-venue ul.plain a")).isEmpty();
+    }
+
+    /** What is ticked when the form is sent is who the evening carries — and only them. */
+    @Test
+    void theEveningShowsOnlyThePeopleItNamed() throws Exception {
+        Long place = locations.add(aLocation()
+                .withAdditionalContact(ContactPerson.of("Bea Brandt", "bea@example.org"))).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withLocation(place)).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/location")
+                        .param("locationId", String.valueOf(place))
+                        .param("contactPosition", "1"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Document tile = Jsoup.parseBodyFragment(fragment);
+        assertThat(tile.select("#event-venue ul.plain a").eachText()).containsExactly("Bea Brandt");
+        assertThat(tile.select("#event-venue p.hint").text()).doesNotContain("mehrere Ansprechpartner");
+        // And the box that was ticked comes back ticked.
+        assertThat(tile.select("input[name=contactPosition][checked]"))
+                .singleElement().extracting(box -> box.attr("value")).isEqualTo("1");
+        assertThat(events.byId(id).orElseThrow().contacts())
+                .extracting(EventContact::email).containsExactly("bea@example.org");
+    }
+
+    /**
+     * A copy, not a look-up. The place replaces the person who left; the evening keeps the
+     * one it actually wrote to.
+     */
+    @Test
+    void thePersonAskedStaysWhenThePlaceMovesOn() throws Exception {
+        Location place = locations.add(aLocation()
+                .withAdditionalContact(ContactPerson.of("Bea Brandt", "bea@example.org")));
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withLocation(place.id())).id();
+        mvc.perform(post("/event/" + id + "/location")
+                .param("locationId", String.valueOf(place.id()))
+                .param("contactPosition", "1"));
+
+        locations.changeContact(place.id(), 1, ContactPerson.of("Cem Celik", "cem@example.org"));
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+        assertThat(page.select("#event-venue ul.plain a").eachText()).containsExactly("Bea Brandt");
+    }
+
+    /** Picking another house drops the people: at another place the names work elsewhere. */
+    @Test
+    void thePeopleAskedGoWhenTheEveningMovesHouse() throws Exception {
+        Long place = locations.add(aLocation()
+                .withAdditionalContact(ContactPerson.of("Bea Brandt", "bea@example.org"))).id();
+        Long other = locations.add(Location.of("Anderswo AG", aContact())).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withLocation(place)).id();
+        mvc.perform(post("/event/" + id + "/location")
+                .param("locationId", String.valueOf(place))
+                .param("contactPosition", "1"));
+
+        mvc.perform(post("/event/" + id + "/location").param("locationId", String.valueOf(other)))
+                .andExpect(status().isOk());
+
+        assertThat(events.byId(id).orElseThrow().contacts()).isEmpty();
+    }
+
+    /** A number that points at nobody is a stale page, not a person. */
+    @Test
+    void aContactThatIsNotThereIsRefused() throws Exception {
+        Long place = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        String fragment = mvc.perform(post("/event/" + id + "/location")
+                        .param("locationId", String.valueOf(place))
+                        .param("contactPosition", "7"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("Ansprechpartner");
+        assertThat(events.byId(id).orElseThrow().locationId()).isNull();
+    }
+
     // --- when a talk begins -------------------------------------------------------------
 
     @Test
@@ -1500,28 +1611,33 @@ class EventControllerTest {
     }
 
     /**
-     * The second select depends on the first, so picking a place fetches its addresses on
-     * their own. Picking none leaves nothing to choose from. A place that only ever had
-     * one address has nothing to ask about, which is why this one moved.
+     * What there is to choose depends on the first select, so picking a place fetches its
+     * addresses and its people on their own. Picking none leaves nothing to choose from. A
+     * place that only ever had one address has nothing to ask about, which is why this one
+     * moved.
      */
     @Test
-    void pickingAPlaceFetchesTheAddressesToChooseFrom() throws Exception {
+    void pickingAPlaceFetchesTheChoicesThatComeWithIt() throws Exception {
         Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withDate(EVENING)).id();
         Long place = locations.add(aLocation()
                 .movedTo(anAddress())
-                .movedTo(Address.at("Neuer Weg 2", "20095", "Hamburg"))).id();
+                .movedTo(Address.at("Neuer Weg 2", "20095", "Hamburg"))
+                .withAdditionalContact(ContactPerson.of("Bea Brandt", "bea@example.org"))).id();
 
-        String withPlace = mvc.perform(get("/event/" + id + "/addresses")
+        String withPlace = mvc.perform(get("/event/" + id + "/choices")
                         .param("locationId", place.toString()))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        assertThat(withPlace).contains("Musterweg 1");
+        assertThat(withPlace).contains("Musterweg 1").contains("Bea Brandt");
+        // Another place means another list, so nothing arrives ticked.
+        assertThat(Jsoup.parseBodyFragment(withPlace).select("input[name=contactPosition][checked]"))
+                .isEmpty();
 
-        String withNone = mvc.perform(get("/event/" + id + "/addresses")
+        String withNone = mvc.perform(get("/event/" + id + "/choices")
                         .param("locationId", ""))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        assertThat(withNone).doesNotContain("Musterweg 1");
+        assertThat(withNone).doesNotContain("Musterweg 1").doesNotContain("Bea Brandt");
     }
 
     // --- the speakers of the evening, reachable from the facts -------------------------

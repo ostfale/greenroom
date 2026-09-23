@@ -149,6 +149,20 @@ public record Location(
         return withContacts(left);
     }
 
+    /**
+     * The person at that position — for an evening that copies whoever it asked.
+     *
+     * @throws RuleViolated if there is nobody at that position
+     */
+    public ContactPerson contactAt(int position) {
+        return contacts.get(known(position));
+    }
+
+    /** Whether the place offers a choice at all, or only the one person there ever is. */
+    public boolean hasSeveralContacts() {
+        return contacts.size() > 1;
+    }
+
     private int known(int position) {
         if (position < 0 || position >= contacts.size()) {
             throw new RuleViolated(Rule.NO_CONTACT_AT_POSITION, position);

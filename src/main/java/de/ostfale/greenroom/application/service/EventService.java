@@ -80,7 +80,8 @@ public class EventService implements ManageEvents {
         // promises; only the walk through the chain is left out, and retracing a planning
         // that is ten years over would be ceremony.
         Event evening = new Event(null, past.date(), null, null, null, past.status(),
-                past.mode(), past.locationId(), past.addressPosition(), List.of(talk));
+                past.mode(), past.locationId(), past.addressPosition(), List.of(),
+                List.of(talk));
         log.debug("EventService :: past evening on {} as {}", past.date(), past.status());
         return eventRepository.save(evening);
     }
