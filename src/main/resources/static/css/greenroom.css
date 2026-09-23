@@ -277,11 +277,19 @@ form .caption:first-child {
 }
 
 /* Where the left half holds several facts they sit beside each other the way the cells of a
-   row do. */
+   row do — and break into a second line rather than out of the tile where three of them do
+   not fit, which on a phone is most of the time. */
 .lead > p:first-child {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
     gap: .75rem;
+}
+
+/* The place an evening is at, between the date and its name. Quieter than the title it
+   stands in front of: it answers "where", and the title is still what is being read for. */
+.where {
+    color: var(--muted);
 }
 
 /* Who stands on the stage of an evening, on the line below its name — in the same half, so

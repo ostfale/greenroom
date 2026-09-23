@@ -9,7 +9,6 @@ import de.ostfale.greenroom.application.port.out.SpeakerRepository;
 import de.ostfale.greenroom.application.port.out.TagRepository;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.events.EventStatus;
-import de.ostfale.greenroom.domain.events.NextStep;
 import de.ostfale.greenroom.domain.locations.Location;
 import de.ostfale.greenroom.domain.speakers.Speaker;
 import org.springframework.stereotype.Service;
@@ -101,18 +100,16 @@ public class DashboardService implements ShowDashboard {
     }
 
     /**
-     * The place is named only where it is the answer: on the step that waits for its yes.
-     * Everywhere else the step says all there is to say and a name beside it is noise.
+     * The name of the place is looked up whenever there is one; which tile prints it and
+     * where is the tiles' business, and {@link Dashboard.Upcoming#waitsOnItsVenue()} is
+     * where the one that only wants it as an answer asks.
      */
     private static Dashboard.Upcoming upcoming(Event evening, LocalDate today,
                                                Map<Long, String> names,
                                                Map<Long, String> venues) {
-        NextStep step = evening.nextStep(today);
-        String picked = step == NextStep.CONFIRM_THE_VENUE
-                ? venues.get(evening.locationId())
-                : null;
-        return new Dashboard.Upcoming(evening, step,
-                ChronoUnit.DAYS.between(today, evening.date()), named(evening, names), picked);
+        return new Dashboard.Upcoming(evening, evening.nextStep(today),
+                ChronoUnit.DAYS.between(today, evening.date()), named(evening, names),
+                venues.get(evening.locationId()));
     }
 
     private Dashboard.Counts counted(List<Event> all, LocalDate today, List<Location> places) {

@@ -179,6 +179,55 @@ class HomeControllerTest {
                 .doesNotContain("Musterfirma GmbH");
     }
 
+    /**
+     * Where it happens is half of what there is to know about an announced evening, and it
+     * reads between the date and the name: when, where, what.
+     */
+    @Test
+    void theNextEveningSaysWhereItIs() throws Exception {
+        events.add(announced("Bald", LocalDate.now().plusDays(12)));
+
+        Document page = overview();
+
+        assertThat(page.selectFirst("section.stage-next .lead span.where").text())
+                .isEqualTo("Musterfirma GmbH");
+        assertThat(page.selectFirst("section.stage-next .lead > p").text())
+                .containsSubsequence("in 12 Tagen", "Musterfirma GmbH", "Bald");
+    }
+
+    /**
+     * The place is not a link: the line already has one, and it leads to the page that names
+     * the place again — a second one there would only ask which of the two was meant.
+     */
+    @Test
+    void thePlaceOnTopIsNamedAndNotLinked() throws Exception {
+        events.add(announced("Bald", LocalDate.now().plusDays(12)));
+
+        Document page = overview();
+
+        assertThat(page.select("section.stage-next a").eachText()).containsExactly("Bald");
+    }
+
+    /** Only up there. Below, the place still turns up where it is the answer, and only there. */
+    @Test
+    void theEveningsBelowAreUnchangedByThePlaceOnTop() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Ort angefragt").withDate(LocalDate.now().plusDays(5))
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .withLocation(place));
+        events.add(Event.draftFor(aTalk(speakerId))
+                .withMotto("Ohne Abstract").withDate(LocalDate.now().plusDays(20))
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .withLocation(place)
+                .moveTo(EventStatus.VENUE_CONFIRMED));
+
+        Document page = overview();
+
+        assertThat(page.select("section.stage-later span.where")).isEmpty();
+        assertThat(page.select("section.stage-later td.hint").eachText())
+                .containsExactly("Ort nicht bestätigt (Musterfirma GmbH)", "Abstract fehlt");
+    }
+
     /** An evening is the people who stand on its stage, so the overview names them. */
     @Test
     void theNextEveningSaysWhoFillsIt() throws Exception {
