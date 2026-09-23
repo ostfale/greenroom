@@ -42,22 +42,13 @@ public record Dashboard(
      * people by id alone, and an evening is the people who stand on its stage.
      *
      * <p>{@code venue} is the name of the place the evening is at, null while none is
-     * picked. The evening itself holds the place by id alone, and both tiles that read this
-     * record want the name — the one on top because where an announced evening happens is
-     * half of what there is to know about it, the one below it because a step that reads
-     * "Ort nicht bestätigt" is worth more when it says which place is being waited on.
+     * picked — which on the tile of the evenings nobody has been told about yet is half of
+     * them, because finding a place is what they are waiting for. The evening itself holds
+     * the place by id alone, and both tiles that read this record want the name: where an
+     * evening happens is half of what there is to know about it.
      */
     public record Upcoming(Event evening, NextStep step, long daysAway, List<String> speakers,
                            String venue) {
-
-        /**
-         * Whether naming the place is the answer to what this evening waits for. Everywhere
-         * else the step says all there is to say and a name beside it is noise — which is
-         * the difference between the two tiles, not a difference in what is known.
-         */
-        public boolean waitsOnItsVenue() {
-            return step == NextStep.CONFIRM_THE_VENUE && venue != null;
-        }
     }
 
     /**

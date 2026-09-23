@@ -510,6 +510,17 @@ tr.closed td {
     padding-left: 0;
 }
 
+/* An evening that takes two rows: the line between them goes and the padding closes up, so
+   the pair reads as the one row of the list it is. */
+.tile table.halved tr.continues td {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.tile table.halved tr.continues + tr td {
+    padding-top: .25rem;
+}
+
 /* The seat count in an address row: a field, its unit and the way to keep it, all on the
    line the number stood on before. */
 form.seats {

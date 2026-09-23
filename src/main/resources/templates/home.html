@@ -95,23 +95,38 @@
                 Dahinter ist nichts weiter geplant.
             </p>
 
+            <!-- Two rows per evening, read as one, and broken the way the tile above breaks:
+                 when, what and how far along on the first, who and where under them. The
+                 second row starts under the date rather than under the name, so the pair
+                 stands where the eye has learned it. -->
             <table class="halved" th:unless="${#lists.isEmpty(dashboard.open)}">
                 <tbody>
-                <tr th:each="row : ${dashboard.open}">
-                    <td class="data" th:text="${#temporals.format(row.evening.date, 'dd.MM.yyyy')}">12.02.2027</td>
-                    <td>
-                        <a th:href="@{/event/{id}(id=${row.evening.id})}"
-                           th:text="${row.evening.displayName()} ?: 'Ohne Titel'">Ohne Titel</a>
-                        <span class="hint who"
-                              th:text="${row.speakers[0]
-                                      + (#lists.size(row.speakers) > 1 ? ' u.a.' : '')}">Max Muster</span>
-                    </td>
-                    <td class="hint">
-                        <span th:text="#{'event.step.' + ${row.step}}">Ort fehlt</span>
-                        <span th:if="${row.waitsOnItsVenue()}"
-                              th:text="|(${row.venue})|">(Musterfirma GmbH)</span>
-                    </td>
-                </tr>
+                <th:block th:each="row : ${dashboard.open}">
+                    <tr class="continues">
+                        <td class="data" th:text="${#temporals.format(row.evening.date, 'dd.MM.yyyy')}">12.02.2027</td>
+                        <td>
+                            <a th:href="@{/event/{id}(id=${row.evening.id})}"
+                               th:text="${row.evening.displayName()} ?: 'Ohne Titel'">Ohne Titel</a>
+                        </td>
+                        <!-- No place in brackets any more: it stands in the column below this
+                             one, which answers "which place are we waiting on" by standing
+                             there and says it for the settled evenings too. -->
+                        <td class="hint" th:text="#{'event.step.' + ${row.step}}">Ort fehlt</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <span class="hint who"
+                                  th:text="${row.speakers[0]
+                                          + (#lists.size(row.speakers) > 1 ? ' u.a.' : '')}">Max Muster</span>
+                        </td>
+                        <!-- Empty while no place is picked, which on this tile is half of
+                             what stands here: finding one is what they are waiting for. -->
+                        <td>
+                            <span class="hint where" th:if="${row.venue}"
+                                  th:text="${row.venue}">Musterfirma GmbH</span>
+                        </td>
+                    </tr>
+                </th:block>
                 </tbody>
             </table>
         </section>

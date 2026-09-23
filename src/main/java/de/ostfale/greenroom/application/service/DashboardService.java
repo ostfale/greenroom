@@ -100,9 +100,8 @@ public class DashboardService implements ShowDashboard {
     }
 
     /**
-     * The name of the place is looked up whenever there is one; which tile prints it and
-     * where is the tiles' business, and {@link Dashboard.Upcoming#waitsOnItsVenue()} is
-     * where the one that only wants it as an answer asks.
+     * The name of the place is looked up whenever there is one; where a tile prints it is
+     * the tile's business.
      */
     private static Dashboard.Upcoming upcoming(Event evening, LocalDate today,
                                                Map<Long, String> names,

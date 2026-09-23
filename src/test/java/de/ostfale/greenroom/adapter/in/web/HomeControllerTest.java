@@ -14,6 +14,7 @@ import de.ostfale.greenroom.domain.speakers.Speaker;
 import de.ostfale.greenroom.domain.tags.Tag;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -147,10 +148,14 @@ class HomeControllerTest {
         Document page = overview();
 
         assertThat(page.select("section.stage-later td.hint").eachText())
-                .containsExactly("Ort nicht bestätigt (Musterfirma GmbH)");
+                .containsExactly("Ort nicht bestätigt");
     }
 
-    /** And it says which place: "nicht bestätigt" without a name leaves the question open. */
+    /**
+     * And it says which place: "nicht bestätigt" without a name leaves the question open.
+     * The name stands under the step and no longer in brackets beside it — that column is
+     * where the place is named now, for the settled evenings as well.
+     */
     @Test
     void anEveningWaitingForAVenueNamesThePlaceItAsked() throws Exception {
         events.add(Event.draftFor(aReadyTalk(speakerId))
@@ -160,13 +165,15 @@ class HomeControllerTest {
 
         Document page = overview();
 
-        assertThat(page.select("section.stage-later td.hint").eachText())
-                .containsExactly("Ort nicht bestätigt (Musterfirma GmbH)");
+        assertThat(page.selectFirst("section.stage-later td.hint").text())
+                .isEqualTo("Ort nicht bestätigt");
+        assertThat(page.select("section.stage-later span.where").eachText())
+                .containsExactly("Musterfirma GmbH");
     }
 
-    /** Only there: a step that is not waiting for a yes is not improved by a place. */
+    /** A settled venue is named too, in the same place — the step is not the one that says it. */
     @Test
-    void aSettledVenueIsNotRepeatedBesideTheNextStep() throws Exception {
+    void aSettledVenueIsNamedBelowTheStepAndNotBesideIt() throws Exception {
         events.add(Event.draftFor(aTalk(speakerId))
                 .withMotto("Ohne Abstract").withDate(LocalDate.now().plusDays(5))
                 .moveTo(EventStatus.DATE_CONFIRMED)
@@ -177,6 +184,39 @@ class HomeControllerTest {
 
         assertThat(page.selectFirst("section.stage-later td.hint").text())
                 .doesNotContain("Musterfirma GmbH");
+        assertThat(page.select("section.stage-later span.where").eachText())
+                .containsExactly("Musterfirma GmbH");
+    }
+
+    /** An evening still looking for a place has nothing to say in that column. */
+    @Test
+    void anEveningWithoutAPlaceLeavesThatColumnEmpty() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Ohne Ort").withDate(LocalDate.now().plusDays(5))
+                .moveTo(EventStatus.DATE_CONFIRMED));
+
+        Document page = overview();
+
+        assertThat(page.select("section.stage-later span.where")).isEmpty();
+        assertThat(page.select("section.stage-later td.hint").eachText())
+                .containsExactly("Ort fehlt");
+    }
+
+    /** Two rows, read as one: the second starts under the date and not under the name. */
+    @Test
+    void whoAndWhereStandUnderTheDateOfTheEveningTheyBelongTo() throws Exception {
+        events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withMotto("Bald").withDate(LocalDate.now().plusDays(5))
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .withLocation(place)
+                .moveTo(EventStatus.VENUE_CONFIRMED));
+
+        Document page = overview();
+
+        Element pair = page.selectFirst("section.stage-later tr.continues + tr");
+        assertThat(pair.select("td").first().attr("colspan")).isEqualTo("2");
+        assertThat(pair.selectFirst("span.who").text()).isEqualTo("Max Muster");
+        assertThat(pair.selectFirst("span.where").text()).isEqualTo("Musterfirma GmbH");
     }
 
     /**
@@ -218,26 +258,6 @@ class HomeControllerTest {
         Document page = overview();
 
         assertThat(page.select("section.stage-next a").eachText()).containsExactly("Bald");
-    }
-
-    /** Only up there. Below, the place still turns up where it is the answer, and only there. */
-    @Test
-    void theEveningsBelowAreUnchangedByThePlaceOnTop() throws Exception {
-        events.add(Event.draftFor(aReadyTalk(speakerId))
-                .withMotto("Ort angefragt").withDate(LocalDate.now().plusDays(5))
-                .moveTo(EventStatus.DATE_CONFIRMED)
-                .withLocation(place));
-        events.add(Event.draftFor(aTalk(speakerId))
-                .withMotto("Ohne Abstract").withDate(LocalDate.now().plusDays(20))
-                .moveTo(EventStatus.DATE_CONFIRMED)
-                .withLocation(place)
-                .moveTo(EventStatus.VENUE_CONFIRMED));
-
-        Document page = overview();
-
-        assertThat(page.select("section.stage-later span.where")).isEmpty();
-        assertThat(page.select("section.stage-later td.hint").eachText())
-                .containsExactly("Ort nicht bestätigt (Musterfirma GmbH)", "Abstract fehlt");
     }
 
     /** An evening is the people who stand on its stage, so the overview names them. */
