@@ -3,8 +3,11 @@ package de.ostfale.greenroom.adapter.in.web;
 import de.ostfale.greenroom.FakeGeocoder;
 import de.ostfale.greenroom.TestDatabase;
 import de.ostfale.greenroom.WebTest;
+import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
+import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.out.LocationRepository;
+import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.locations.Address;
 import de.ostfale.greenroom.domain.locations.ContactPerson;
 import de.ostfale.greenroom.domain.locations.Location;
@@ -18,6 +21,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static de.ostfale.greenroom.Fixtures.aContact;
 import static de.ostfale.greenroom.Fixtures.aLocation;
+import static de.ostfale.greenroom.Fixtures.aSpeaker;
+import static de.ostfale.greenroom.Fixtures.aTalk;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -39,6 +44,12 @@ class LocationControllerTest {
 
     @Autowired
     private LocationRepository repository;
+
+    @Autowired
+    private ManageEvents events;
+
+    @Autowired
+    private ManageSpeakers speakers;
 
     @Autowired
     private FakeGeocoder geocoder;
@@ -312,7 +323,7 @@ class LocationControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         Document page = Jsoup.parse(html);
-        Element reveal = page.selectFirst("details.reveal");
+        Element reveal = page.selectFirst("details.reveal:has(input[name=street])");
         assertThat(reveal).isNotNull();
         assertThat(reveal.hasAttr("open")).isFalse();
         assertThat(reveal.selectFirst("summary").text()).isEqualTo("Weitere Adresse");
@@ -595,6 +606,49 @@ class LocationControllerTest {
         // The last form is the empty one to add with, so it carries no value at all.
         assertThat(page.select("#contact-list input[name=contactName]").eachAttr("value"))
                 .containsExactly("Max Muster", "Anna Albers");
+    }
+
+    // --- dropping a place nobody ever went to -------------------------------------------
+
+    @Test
+    void aPlaceWithoutAnEveningCanBeRemovedWithItsAddressAndItsContact() throws Exception {
+        Long id = locations.add(aLocation()).id();
+
+        mvc.perform(post("/location/{id}/remove", id))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/location"));
+
+        assertThat(locations.byId(id)).isEmpty();
+    }
+
+    @Test
+    void aPlaceAnEveningIsHeldAtStays() throws Exception {
+        Long id = locations.add(aLocation()).id();
+        Long speakerId = speakers.add(aSpeaker()).id();
+        events.add(Event.draftFor(aTalk(speakerId)).withLocation(id));
+
+        String fragment = mvc.perform(post("/location/{id}/remove", id))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
+                .contains("mindestens ein Event");
+        assertThat(locations.byId(id)).isPresent();
+    }
+
+    /** Irreversible, so it takes two clicks: the fold, then the button that names the place. */
+    @Test
+    void theButtonToDropThePlaceWaitsBehindAFoldAndNamesWhatItDeletes() throws Exception {
+        Long id = locations.add(aLocation()).id();
+
+        String html = mvc.perform(get("/location/{id}", id)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Element fold = Jsoup.parse(html).selectFirst("#location-fields details.reveal.danger");
+        assertThat(fold.hasAttr("open")).isFalse();
+        assertThat(fold.selectFirst("summary").text()).isEqualTo("Ort löschen");
+        assertThat(fold.selectFirst("button.danger").text())
+                .isEqualTo("„Musterfirma GmbH“ endgültig löschen");
     }
 
     @Test

@@ -41,6 +41,24 @@
             <button type="submit" disabled>Änderungen speichern</button>
         </div>
     </form>
+
+    <!-- Deleting is the one step here that cannot be undone, so it takes a second click:
+         the fold names what goes with the place, and the button inside carries it out. A
+         refused delete swaps this whole block, which closes the fold again. -->
+    <details class="reveal danger">
+        <summary>Ort löschen</summary>
+        <p class="hint">
+            Mit dem Ort verschwinden seine Adressen und seine Ansprechpartner. Das lässt sich
+            nicht zurückholen. Ein Ort, an dem schon ein Event hängt, bleibt bestehen — wer
+            dort nicht mehr hingeht, nimmt ihm den Haken bei „Aktiv“.
+        </p>
+        <button type="button" class="danger"
+                th:hx-post="@{/location/{id}/remove(id=${location.id})}"
+                hx-target="#location-fields"
+                hx-swap="outerHTML"
+                th:text="|„${location.name}“ endgültig löschen|">„Musterfirma GmbH“ endgültig
+            löschen</button>
+    </details>
 </div>
 </body>
 </html>

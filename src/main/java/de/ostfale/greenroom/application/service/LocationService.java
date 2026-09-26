@@ -1,6 +1,7 @@
 package de.ostfale.greenroom.application.service;
 
 import de.ostfale.greenroom.application.port.in.ManageLocations;
+import de.ostfale.greenroom.application.port.out.EventRepository;
 import de.ostfale.greenroom.application.port.out.LocationRepository;
 import de.ostfale.greenroom.application.port.out.LookUpAddress;
 import de.ostfale.greenroom.domain.Rule;
@@ -24,11 +25,15 @@ public class LocationService implements ManageLocations {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final LocationRepository locationRepository;
+    private final EventRepository eventRepository;
     private final LookUpAddress lookup;
 
-    public LocationService(LocationRepository locationRepository, LookUpAddress lookup) {
+    public LocationService(LocationRepository locationRepository,
+                           EventRepository eventRepository,
+                           LookUpAddress lookup) {
         log.debug("LocationService :: init");
         this.locationRepository = locationRepository;
+        this.eventRepository = eventRepository;
         this.lookup = lookup;
     }
 
@@ -61,6 +66,17 @@ public class LocationService implements ManageLocations {
         }
         log.debug("LocationService :: change location {}", location.id());
         return locationRepository.save(location);
+    }
+
+    @Override
+    public void remove(Long id) {
+        // Asked before deleting, so the page can name the reason instead of showing a
+        // constraint violation. The foreign key stays as the last word.
+        if (eventRepository.isTheVenueOfAnEvent(id)) {
+            throw new RuleViolated(Rule.LOCATION_IS_THE_VENUE_OF_AN_EVENT);
+        }
+        log.debug("LocationService :: remove location {}", id);
+        locationRepository.deleteById(id);
     }
 
     @Override

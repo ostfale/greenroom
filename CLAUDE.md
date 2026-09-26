@@ -115,6 +115,9 @@ The hexagon is about direction of dependency, not about purity:
 - `Location.inUse` ("Aktiv") is not `Address.active`: the address flag says where they are
   now, this one whether we still go there at all. A place given up keeps its evenings and is
   only no longer offered when an evening looks for a venue — unless it already sits there.
+- A `Location` no evening was ever held at may be deleted, with its addresses and contacts:
+  it is a typo or a place that came to nothing. As soon as one evening names it, deleting is
+  refused and "Aktiv" is the only way out — the evening keeps where it happened.
 - An `Activity` is never edited or deleted; the record has no `with…` method and its port
   declares no way to. The only deletion is the cascade when the evening goes. A `Note` is the
   opposite: it may be changed and thrown away, and its stamp does not move when it is.

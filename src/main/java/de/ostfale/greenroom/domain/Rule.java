@@ -47,6 +47,7 @@ public enum Rule {
     /** A place, its addresses and the people to write to there. */
     LOCATION_NEEDS_A_NAME,
     LOCATION_NEEDS_A_CONTACT,
+    LOCATION_IS_THE_VENUE_OF_AN_EVENT,
     NO_ADDRESS_AT_POSITION,
     NO_CONTACT_AT_POSITION,
     ADDRESS_NEEDS_A_STREET_OR_TOWN,

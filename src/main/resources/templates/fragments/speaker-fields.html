@@ -37,12 +37,25 @@
 
         <div class="actions">
             <button type="submit" disabled>Änderungen speichern</button>
-            <button type="button" class="danger"
-                    th:hx-post="@{/speaker/{id}/remove(id=${speaker.id})}"
-                    hx-target="#speaker-fields"
-                    hx-swap="outerHTML">Referenten löschen</button>
         </div>
     </form>
+
+    <!-- Like the place: irreversible, so it takes a second click. A refused delete swaps
+         this whole block, which closes the fold again. -->
+    <details class="reveal danger">
+        <summary>Referenten löschen</summary>
+        <p class="hint">
+            Mit dem Referenten verschwinden sein Bild und seine Links. Das lässt sich nicht
+            zurückholen. Wer für einen Vortrag angekündigt ist, bleibt bestehen — die
+            Geschichte eines Abends zeigt auf ihn.
+        </p>
+        <button type="button" class="danger"
+                th:hx-post="@{/speaker/{id}/remove(id=${speaker.id})}"
+                hx-target="#speaker-fields"
+                hx-swap="outerHTML"
+                th:text="|„${speaker.name}“ endgültig löschen|">„Max Muster“ endgültig
+            löschen</button>
+    </details>
 </div>
 </body>
 </html>

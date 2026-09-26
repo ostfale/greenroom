@@ -25,6 +25,14 @@ public interface ManageLocations {
     Location change(Location location);
 
     /**
+     * Drops a place nobody ever went to, with its addresses and its contact people. A place
+     * with an evening at it stays — for that there is "Aktiv".
+     *
+     * @throws RuleViolated if an evening names it as its venue
+     */
+    void remove(Long id);
+
+    /**
      * The place moved or opened a second site. The earlier addresses are kept — an evening
      * held at an old address was held there.
      */

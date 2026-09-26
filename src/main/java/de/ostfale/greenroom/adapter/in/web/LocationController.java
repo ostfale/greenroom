@@ -138,6 +138,18 @@ public class LocationController {
         return "fragments/location-fields :: location-fields-and-summary";
     }
 
+    @PostMapping("/{id}/remove")
+    public String remove(@PathVariable Long id, Model model) {
+        try {
+            locations.remove(id);
+            return "redirect:/location";
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
+            locations.byId(id).ifPresent(location -> show(model, location));
+            return "fragments/location-fields :: location-fields";
+        }
+    }
+
     /**
      * A new address. "Moved" retires the earlier ones; without it the place simply has a
      * second site.

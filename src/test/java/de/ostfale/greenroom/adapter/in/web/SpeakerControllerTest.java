@@ -374,6 +374,21 @@ class SpeakerControllerTest {
         assertThat(speakers.byId(id).orElseThrow().email()).isEqualTo("max@example.org");
     }
 
+    /** Irreversible, so it takes two clicks: the fold, then the button that names the person. */
+    @Test
+    void theButtonToDropASpeakerWaitsBehindAFoldAndNamesWhomItDeletes() throws Exception {
+        Long id = speakers.add(aSpeaker()).id();
+
+        String html = mvc.perform(get("/speaker/{id}", id)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Element fold = Jsoup.parse(html).selectFirst("#speaker-fields details.reveal.danger");
+        assertThat(fold.hasAttr("open")).isFalse();
+        assertThat(fold.selectFirst("summary").text()).isEqualTo("Referenten löschen");
+        assertThat(fold.selectFirst("button.danger").text())
+                .isEqualTo("„Max Muster“ endgültig löschen");
+    }
+
     @Test
     void aSpeakerWhoNeverSpokeCanBeRemoved() throws Exception {
         Long id = speakers.add(aSpeaker()).id();

@@ -917,6 +917,17 @@ button.danger:hover {
     font-weight: 700;
 }
 
+/* The same fold in red, for the step that cannot be taken back. No plus sign: nothing is
+   being added here. */
+.reveal.danger > summary {
+    color: var(--red);
+    background: var(--red-soft);
+}
+
+.reveal.danger > summary::before {
+    display: none;
+}
+
 .reveal[open] > summary {
     margin-bottom: 1rem;
 }

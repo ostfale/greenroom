@@ -26,4 +26,11 @@ public interface EventRepository extends ListCrudRepository<Event, Long> {
      */
     @Query("select exists(select 1 from talk_speaker where speaker_id = :speakerId)")
     boolean isOnATalk(Long speakerId);
+
+    /**
+     * Whether any evening names that place as its venue. A place that was once gone to keeps
+     * its evenings — only one nobody ever went to can be dropped again.
+     */
+    @Query("select exists(select 1 from event where location_id = :locationId)")
+    boolean isTheVenueOfAnEvent(Long locationId);
 }
