@@ -1773,6 +1773,20 @@ class EventControllerTest {
                 .containsExactly("Letztes Jahr");
     }
 
+    @Test
+    void theYearOffersThisLastAllAndNext() throws Exception {
+        int thisYear = LocalDate.now().getYear();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event"))
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(page.select("select[name=year] option").eachText()).containsExactly(
+                "Dieses Jahr (" + thisYear + ")",
+                "Letztes Jahr (" + (thisYear - 1) + ")",
+                "Alle Jahre",
+                "Nächstes Jahr (" + (thisYear + 1) + ")");
+    }
+
     /** A topic has no date, so it belongs to no year and only shows under "Alle Jahre". */
     @Test
     void aTopicWithoutADateIsNotInAnyYear() throws Exception {

@@ -152,6 +152,7 @@ public class EventController {
         model.addAttribute("filter", filter);
         model.addAttribute("thisYear", thisYear);
         model.addAttribute("lastYear", thisYear - 1);
+        model.addAttribute("nextYear", thisYear + 1);
         // What the list opens with is not a filter somebody picked, so it offers no way back.
         model.addAttribute("filtered", !filter.equals(EventFilter.forYear(thisYear)));
         // An empty table because of a filter is a different sentence from an empty database.

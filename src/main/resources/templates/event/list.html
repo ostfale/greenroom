@@ -38,6 +38,8 @@
                 <option th:value="${lastYear}" th:selected="${filter.year} == ${lastYear}"
                         th:text="|Letztes Jahr (${lastYear})|">Letztes Jahr</option>
                 <option value="" th:selected="${filter.year} == null">Alle Jahre</option>
+                <option th:value="${nextYear}" th:selected="${filter.year} == ${nextYear}"
+                        th:text="|Nächstes Jahr (${nextYear})|">Nächstes Jahr</option>
             </select>
         </label>
 
