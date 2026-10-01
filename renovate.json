@@ -1,0 +1,32 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "schedule:monthly"],
+  "timezone": "Europe/Berlin",
+  "packageRules": [
+    {
+      "description": "Everything below a major version in one pull request, merged once the build is green.",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "non-major dependencies",
+      "groupSlug": "non-major",
+      "automerge": true
+    },
+    {
+      "description": "A major version is read before it goes in, one at a time.",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "description": "A new Postgres major does not start on the old data directory; that move is a dump and a restore on the Pi, not a merge.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["postgres"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Java moves only from one LTS release to the next; java.version in the pom has to follow by hand.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["eclipse-temurin"],
+      "allowedVersions": "/^(25|29|33)(\\D|$)/"
+    }
+  ]
+}
