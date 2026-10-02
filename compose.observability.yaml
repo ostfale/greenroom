@@ -18,7 +18,7 @@ services:
       LOGGING_STRUCTURED_FORMAT_CONSOLE: logstash
 
   prometheus:
-    image: prom/prometheus:v3.14.0
+    image: prom/prometheus:v3.15.0
     restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
@@ -62,7 +62,7 @@ services:
       - /:/host:ro,rslave
 
   loki:
-    image: grafana/loki:3.6.16
+    image: grafana/loki:3.7.8
     restart: unless-stopped
     command: -config.file=/etc/loki/loki.yaml
     volumes:
@@ -72,7 +72,7 @@ services:
   # Reads the container logs off the docker socket and hands them to Loki. Root, and the
   # socket read-only: it is the only way to read what docker wrote, and it writes nothing.
   alloy:
-    image: grafana/alloy:v1.19.2
+    image: grafana/alloy:v1.20.1
     restart: unless-stopped
     user: root
     # The `host` label on every line comes out of this. Without it the container names
@@ -91,7 +91,7 @@ services:
       - loki
 
   grafana:
-    image: grafana/grafana:13.2.1
+    image: grafana/grafana:13.2.3
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set it in .env}
