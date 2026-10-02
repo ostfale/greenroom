@@ -1,6 +1,7 @@
 # greenroom
 
 [![build](https://github.com/ostfale/greenroom/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/ostfale/greenroom/actions/workflows/build.yml)
+[![renovate](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](https://github.com/ostfale/greenroom/issues/2)
 
 Planning tool for the Java User Group Hamburg, replacing an Obsidian vault. It carries one
 evening at a time from a topic somebody mentioned to an announced event, and it is built
