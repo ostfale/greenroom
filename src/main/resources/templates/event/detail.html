@@ -49,6 +49,21 @@
             <div th:replace="~{fragments/event-history :: event-history}"></div>
         </section>
     </div>
+
+    <!-- Like the place and the speaker: irreversible, so it takes a second click. Nothing
+         refuses it, so the answer is the list, not a fragment. -->
+    <details class="reveal danger">
+        <summary>Event löschen</summary>
+        <p class="hint">
+            Mit dem Event verschwinden seine Vorträge und sein Verlauf. Das lässt sich nicht
+            zurückholen. Referenten und Ort bleiben bestehen. Ein Event, das nicht stattfindet,
+            lässt sich auch absagen — dann bleibt es in der Liste.
+        </p>
+        <button type="button" class="danger"
+                th:hx-post="@{/event/{id}/remove(id=${event.id})}"
+                th:text="|„${event.displayName() ?: 'Ohne Titel'}“ endgültig löschen|">„Ohne Titel“
+            endgültig löschen</button>
+    </details>
 </main>
 </body>
 </html>

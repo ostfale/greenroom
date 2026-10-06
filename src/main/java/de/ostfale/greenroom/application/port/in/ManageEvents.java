@@ -39,6 +39,13 @@ public interface ManageEvents {
     Event change(Event event);
 
     /**
+     * Deletes the evening with its talks, its history and whom it named for the room, in
+     * whatever state it is: a duplicate or a typo is no history worth keeping. The speakers
+     * and the venue stay — they are records of their own.
+     */
+    void remove(Long id);
+
+    /**
      * Moves the evening one step on. A step of its own rather than something
      * {@link #change} does, so the guard runs against the status that is stored: the page
      * says where it wants to go, never which status the evening already has.

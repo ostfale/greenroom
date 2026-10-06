@@ -45,6 +45,7 @@ import static de.ostfale.greenroom.Fixtures.anAddress;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -522,6 +523,49 @@ class EventControllerTest {
         assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error").text())
                 .contains("nicht möglich");
         assertThat(events.byId(id).orElseThrow().status()).isEqualTo(EventStatus.DRAFT);
+    }
+
+    // --- dropping an evening ----------------------------------------------------------
+
+    /**
+     * In any state, a held one too: a duplicate or a typo is no history worth keeping. The
+     * talks and the history go with it, the people who spoke stay.
+     */
+    @Test
+    void anEveningCanBeRemovedWithItsTalksAndItsHistory() throws Exception {
+        Long locationId = locations.add(aLocation()).id();
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))
+                .withDate(EVENING)
+                .withLocation(locationId)
+                .moveTo(EventStatus.DATE_CONFIRMED)
+                .moveTo(EventStatus.VENUE_CONFIRMED)
+                .moveTo(EventStatus.PUBLISHED)
+                .moveTo(EventStatus.DONE)).id();
+        activities.append(Activity.of(id, LocalDate.of(2026, 9, 2),
+                ActivityKind.MAIL_SENT, "Termin angefragt"));
+
+        mvc.perform(post("/event/{id}/remove", id).header("HX-Request", "true"))
+                .andExpect(status().isNoContent())
+                .andExpect(header().string("HX-Redirect", "/event"));
+
+        assertThat(events.byId(id)).isEmpty();
+        assertThat(activities.historyOf(id)).isEmpty();
+        assertThat(speakers.byId(speakerId)).isPresent();
+    }
+
+    /** Irreversible, so it takes two clicks: the fold, then the button that names the evening. */
+    @Test
+    void theButtonToDropAnEveningWaitsBehindAFoldAndNamesWhatItDeletes() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withMotto("Java-Herbst")).id();
+
+        Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
+                .andReturn().getResponse().getContentAsString());
+
+        Element fold = page.selectFirst("details.reveal.danger");
+        assertThat(fold.hasAttr("open")).isFalse();
+        assertThat(fold.selectFirst("summary").text()).isEqualTo("Event löschen");
+        assertThat(fold.selectFirst("button.danger").text())
+                .isEqualTo("„Java-Herbst“ endgültig löschen");
     }
 
     // --- the venue ------------------------------------------------------------------

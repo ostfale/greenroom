@@ -12,6 +12,7 @@ import de.ostfale.greenroom.domain.events.EventStatus;
 import de.ostfale.greenroom.domain.events.Talk;
 import de.ostfale.greenroom.domain.locations.Location;
 import de.ostfale.greenroom.domain.speakers.Speaker;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -231,6 +232,17 @@ public class EventController {
     public String moveTo(@PathVariable Long id, @RequestParam EventStatus target, Model model) {
         return page.afterChanging(id, model, "fragments/event-status :: event-status",
                 () -> events.moveTo(id, target));
+    }
+
+    /**
+     * Never refused, so there is no tile to answer with — only the list to go back to. A
+     * redirect would be followed inside the request and its page swapped into this one;
+     * {@code HX-Redirect} has htmx load the list as a page of its own.
+     */
+    @PostMapping("/{id}/remove")
+    public ResponseEntity<Void> remove(@PathVariable Long id) {
+        events.remove(id);
+        return ResponseEntity.noContent().header("HX-Redirect", "/event").build();
     }
 
     /**

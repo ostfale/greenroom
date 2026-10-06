@@ -111,6 +111,13 @@ public class EventService implements ManageEvents {
     }
 
     @Override
+    public void remove(Long id) {
+        // The history and the contacts hang on the event row and go with it by cascade.
+        log.debug("EventService :: remove event {}", id);
+        eventRepository.deleteById(id);
+    }
+
+    @Override
     public Event moveTo(Long eventId, EventStatus target) {
         Event event = known(eventId);
         log.debug("EventService :: move event {} from {} to {}", eventId, event.status(), target);
