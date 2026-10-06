@@ -3,11 +3,7 @@ package de.ostfale.greenroom.application.service;
 import de.ostfale.greenroom.application.port.in.GivenTalk;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.in.PossibleDuplicate;
-import de.ostfale.greenroom.application.port.out.EventRepository;
-import de.ostfale.greenroom.application.port.out.LocationRepository;
-import de.ostfale.greenroom.application.port.out.ScaleImages;
-import de.ostfale.greenroom.application.port.out.SpeakerPhotoRepository;
-import de.ostfale.greenroom.application.port.out.SpeakerRepository;
+import de.ostfale.greenroom.application.port.out.*;
 import de.ostfale.greenroom.domain.Rule;
 import de.ostfale.greenroom.domain.RuleViolated;
 import de.ostfale.greenroom.domain.locations.Location;
@@ -27,11 +23,11 @@ import java.util.stream.Collectors;
 @Transactional
 public class SpeakerService implements ManageSpeakers {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
-
-    /** Big enough for the detail page on a sharp screen, small enough to forget about. */
+    /**
+     * Big enough for the detail page on a sharp screen, small enough to forget about.
+     */
     private static final int PHOTO_EDGE = 600;
-
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final SpeakerRepository speakerRepository;
     private final SpeakerPhotoRepository photoRepository;
     private final ScaleImages images;
@@ -84,15 +80,21 @@ public class SpeakerService implements ManageSpeakers {
     @Transactional(readOnly = true)
     public List<GivenTalk> talksOf(Long speakerId) {
         if (speakerId == null) {
+            log.warn("SpeakerService :: Speaker id is null");
             return List.of();
         }
-        Map<Long, String> places = locationRepository.findAllByOrderByNameAsc().stream()
+        Map<Long, String> places = locationRepository
+                .findAllByOrderByNameAsc()
+                .stream()
                 .collect(Collectors.toMap(Location::id, Location::name));
-        return eventRepository.allNewestFirst().stream()
+        var result = eventRepository.allNewestFirst()
+                .stream()
                 .flatMap(event -> event.talksGivenBy(speakerId).stream()
                         .map(talk -> new GivenTalk(event.id(), event.date(), talk.title(),
                                 places.get(event.locationId()))))
                 .toList();
+        log.debug("SpeakerService :: Talks of speaker id {} are {}", speakerId, result);
+        return result;
     }
 
     @Override
