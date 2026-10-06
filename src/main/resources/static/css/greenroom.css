@@ -168,6 +168,11 @@ h1 {
     align-items: stretch;
 }
 
+/* A fold below the grid keeps the distance the tiles keep from each other. */
+.bento + .reveal {
+    margin-top: 1.125rem;
+}
+
 .tile {
     grid-column: span 4;
     min-width: 0;
@@ -500,9 +505,17 @@ tr.closed td {
     width: 6rem;
 }
 
+/* The name is the one cell that may break: the columns are fixed, so a long title on one
+   line would run over the state beside it. Date and state stay level with its first line. */
 .tile table.halved td:nth-child(2) {
     padding-left: .75rem;
     padding-right: 1rem;
+    white-space: normal;
+    overflow-wrap: break-word;
+}
+
+.tile table.halved td {
+    vertical-align: top;
 }
 
 .tile table.halved td:last-child {
