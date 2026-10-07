@@ -227,17 +227,17 @@ class LocationTest {
     // --- keeping the contacts up to date ---------------------------------------------
 
     @Test
-    void aContactCanBeAddedAndChanged() {
+    void aNewContactComesFirstAndCanBeChanged() {
         Location location = aLocation()
                 .withAdditionalContact(ContactPerson.of("Anna Albers", "anna@example.org"));
 
         assertThat(location.contacts()).extracting(ContactPerson::name)
-                .containsExactly("Max Muster", "Anna Albers");
+                .containsExactly("Anna Albers", "Max Muster");
 
-        Location changed = location.withContactChanged(1,
+        Location changed = location.withContactChanged(0,
                 new ContactPerson("Anna Albers", "anna@nordsee.example", "040 123456"));
-        assertThat(changed.contacts().getLast().email()).isEqualTo("anna@nordsee.example");
-        assertThat(changed.contacts().getLast().phone()).isEqualTo("040 123456");
+        assertThat(changed.contacts().getFirst().email()).isEqualTo("anna@nordsee.example");
+        assertThat(changed.contacts().getFirst().phone()).isEqualTo("040 123456");
     }
 
     @Test
@@ -245,7 +245,7 @@ class LocationTest {
         Location location = aLocation()
                 .withAdditionalContact(ContactPerson.of("Anna Albers", "anna@example.org"));
 
-        assertThat(location.withContactRemoved(0).contacts())
+        assertThat(location.withContactRemoved(1).contacts())
                 .extracting(ContactPerson::name)
                 .containsExactly("Anna Albers");
     }

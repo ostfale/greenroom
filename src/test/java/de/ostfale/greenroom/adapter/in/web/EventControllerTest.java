@@ -1428,7 +1428,7 @@ class EventControllerTest {
 
         String fragment = mvc.perform(post("/event/" + id + "/location")
                         .param("locationId", String.valueOf(place))
-                        .param("contactPosition", "1"))
+                        .param("contactPosition", "0"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
@@ -1437,7 +1437,7 @@ class EventControllerTest {
         assertThat(tile.select("#event-venue p.hint").text()).doesNotContain("mehrere Ansprechpartner");
         // And the box that was ticked comes back ticked.
         assertThat(tile.select("input[name=contactPosition][checked]"))
-                .singleElement().extracting(box -> box.attr("value")).isEqualTo("1");
+                .singleElement().extracting(box -> box.attr("value")).isEqualTo("0");
         assertThat(events.byId(id).orElseThrow().contacts())
                 .extracting(EventContact::email).containsExactly("bea@example.org");
     }
@@ -1453,9 +1453,9 @@ class EventControllerTest {
         Long id = events.add(Event.draftFor(aReadyTalk(speakerId)).withLocation(place.id())).id();
         mvc.perform(post("/event/" + id + "/location")
                 .param("locationId", String.valueOf(place.id()))
-                .param("contactPosition", "1"));
+                .param("contactPosition", "0"));
 
-        locations.changeContact(place.id(), 1, ContactPerson.of("Cem Celik", "cem@example.org"));
+        locations.changeContact(place.id(), 0,ContactPerson.of("Cem Celik", "cem@example.org"));
 
         Document page = Jsoup.parse(mvc.perform(get("/event/" + id))
                 .andReturn().getResponse().getContentAsString());

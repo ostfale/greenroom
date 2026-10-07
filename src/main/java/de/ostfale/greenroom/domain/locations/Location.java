@@ -124,9 +124,10 @@ public record Location(
         return new Location(id, name, website, notes, inUse, addresses, newContacts);
     }
 
+    /** Puts the new contact first: the one added last is the one asked next. */
     public Location withAdditionalContact(ContactPerson contact) {
         List<ContactPerson> more = new ArrayList<>(contacts);
-        more.add(contact);
+        more.addFirst(contact);
         return withContacts(more);
     }
 

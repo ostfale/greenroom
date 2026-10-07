@@ -501,7 +501,7 @@ class LocationControllerTest {
     // --- the contacts on the detail page ---------------------------------------------
 
     @Test
-    void aContactCanBeAddedOnTheDetailPage() throws Exception {
+    void aContactCanBeAddedOnTheDetailPageAndComesFirst() throws Exception {
         Long id = locations.add(aLocation()).id();
 
         String fragment = mvc.perform(post("/location/{id}/contact", id)
@@ -514,7 +514,7 @@ class LocationControllerTest {
         assertThat(fragment.strip()).startsWith("<div").doesNotContain("<html");
         assertThat(locations.byId(id).orElseThrow().contacts())
                 .extracting(ContactPerson::name)
-                .containsExactly("Max Muster", "Anna Albers");
+                .containsExactly("Anna Albers", "Max Muster");
     }
 
     @Test
@@ -539,7 +539,7 @@ class LocationControllerTest {
         Long id = locations.add(aLocation()
                 .withAdditionalContact(ContactPerson.of("Anna Albers", "anna@example.org"))).id();
 
-        mvc.perform(post("/location/{id}/contact/{position}/remove", id, 0))
+        mvc.perform(post("/location/{id}/contact/{position}/remove", id, 1))
                 .andExpect(status().isOk());
 
         assertThat(locations.byId(id).orElseThrow().contacts())
@@ -605,7 +605,7 @@ class LocationControllerTest {
         assertThat(reveal.selectFirst("input[name=contactName]")).isNotNull();
         // The last form is the empty one to add with, so it carries no value at all.
         assertThat(page.select("#contact-list input[name=contactName]").eachAttr("value"))
-                .containsExactly("Max Muster", "Anna Albers");
+                .containsExactly("Anna Albers", "Max Muster");
     }
 
     // --- dropping a place nobody ever went to -------------------------------------------
