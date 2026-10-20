@@ -539,6 +539,40 @@ tr.closed td {
     padding-top: .25rem;
 }
 
+/* The address in its row reads as text; a click folds out its fields to put a typo right. */
+.amend > summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.amend > summary::-webkit-details-marker {
+    display: none;
+}
+
+.amend > summary:hover {
+    text-decoration: underline dotted;
+}
+
+form.amend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .5rem;
+    margin-top: .5rem;
+}
+
+form.amend input {
+    padding: .25rem .375rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    font: inherit;
+}
+
+form.amend input.narrow {
+    width: 5rem;
+}
+
 /* The seat count in an address row: a field, its unit and the way to keep it, all on the
    line the number stood on before. */
 form.seats {

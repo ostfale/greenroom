@@ -102,8 +102,10 @@ The hexagon is about direction of dependency, not about purity:
   `Talk`, not on the evening; `Event.tags()` is the union, derived and never stored.
 - A `Location` keeps every address it ever had — only `Address.active` moves, nothing is
   rewritten or dropped. `capacity` and the position sit on the `Address`, because they are
-  part of what that evening was; `capacity` is the one field on a stored address that may be
-  put right afterwards, on a retired one too. An address that cannot be placed has no
+  part of what that evening was; `capacity` may be put right afterwards, on a retired one too.
+  So may a typo in street, postal code or town: a typo is not a move, it is corrected in its
+  place, keeps seats and active flag, and is looked up again — a move stays a new address
+  (decided 2026-10-20, after a mistyped postal code). An address that cannot be placed has no
   position and the page shows no map — never a reason to refuse writing it down.
 - An `Event` says which of its venue's addresses it was at, by position — the one place this
   project references what it elsewhere copies. Empty means the address the place has today,

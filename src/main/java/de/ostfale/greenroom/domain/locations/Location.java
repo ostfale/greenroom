@@ -97,14 +97,26 @@ public record Location(
      * How many fit in at that address. Somebody counted late, or miscounted — the seat
      * count is written down by hand and stays correctable, on a retired address too.
      *
-     * <p>This is not the address being rewritten: street, town and position stay what they
-     * were, so an evening that points here still points at where it was. Null takes the
+     * <p>This leaves street and town alone, and the position stays what it was, so an
+     * evening that points here still points at where it was. Null takes the
      * count away again, back to nobody having counted.
      */
     public Location withCapacityAt(int position, Integer capacity) {
         Address address = addresses.get(reachable(position));
         List<Address> changed = new ArrayList<>(addresses);
         changed.set(position, address.withCapacity(capacity));
+        return withAddresses(changed);
+    }
+
+    /**
+     * Somebody mistyped the address. A typo is not a move: the text is put right where it
+     * stands, so an evening that points at that position still points at the same place —
+     * only now spelled correctly. A real move is {@link #movedTo}.
+     */
+    public Location withAddressCorrected(int position, String street, String postalCode, String city) {
+        Address address = addresses.get(reachable(position));
+        List<Address> changed = new ArrayList<>(addresses);
+        changed.set(position, address.correctedTo(street, postalCode, city));
         return withAddresses(changed);
     }
 

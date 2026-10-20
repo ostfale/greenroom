@@ -16,9 +16,27 @@
     <table th:unless="${#lists.isEmpty(location.addresses)}">
         <tbody>
         <tr th:each="address, i : ${location.addresses}" th:classappend="${!address.active} ? 'closed'">
-            <td th:text="${address.line()}">Musterweg 1, 22179 Hamburg</td>
-            <!-- The seat count is the one thing on a stored address that may be put right:
-                 it was counted by hand, the address itself stays what it was. -->
+            <!-- A typo is put right where it stands; a move is a new address below. -->
+            <td>
+                <details class="amend">
+                    <summary th:text="${address.line()}"
+                             title="Tippfehler berichtigen">Musterweg 1, 22179 Hamburg</summary>
+                    <form class="amend guarded" method="post"
+                          th:action="@{/location/{id}/address/{pos}/correct(id=${location.id},pos=${i.index})}"
+                          th:hx-post="@{/location/{id}/address/{pos}/correct(id=${location.id},pos=${i.index})}"
+                          hx-target="#address-list"
+                          hx-swap="outerHTML">
+                        <input type="text" name="street" aria-label="Straße und Hausnummer"
+                               placeholder="Straße und Hausnummer" th:value="${address.street}">
+                        <input type="text" name="postalCode" class="narrow" inputmode="numeric"
+                               aria-label="PLZ" placeholder="PLZ" th:value="${address.postalCode}">
+                        <input type="text" name="city" aria-label="Stadt"
+                               placeholder="Stadt" th:value="${address.city}">
+                        <button type="submit" class="link" disabled>Berichtigen</button>
+                    </form>
+                </details>
+            </td>
+            <!-- The seat count was counted by hand and may be put right on its own. -->
             <td class="data">
                 <form class="seats guarded" method="post"
                       th:action="@{/location/{id}/address/{pos}/capacity(id=${location.id},pos=${i.index})}"

@@ -64,6 +64,16 @@ public interface ManageLocations {
      */
     Location setAddressCapacity(Long locationId, int position, Integer capacity);
 
+    /**
+     * Puts a mistyped address right where it stands, on a retired one too, and looks it up
+     * again. A typo is not a move — that is {@link #addAddress}.
+     *
+     * @throws RuleViolated             if there is no address at that position, or nothing
+     *                                  of an address is left
+     * @throws IllegalArgumentException if there is no location with that id
+     */
+    Location correctAddress(Long locationId, int position, String street, String postalCode, String city);
+
     Location addContact(Long locationId, ContactPerson contact);
 
     Location changeContact(Long locationId, int position, ContactPerson contact);

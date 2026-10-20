@@ -7,6 +7,7 @@ import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.application.port.in.ManageLocations;
 import de.ostfale.greenroom.application.port.in.ManageSpeakers;
 import de.ostfale.greenroom.application.port.out.LocationRepository;
+import de.ostfale.greenroom.application.port.out.LookUpAddress;
 import de.ostfale.greenroom.domain.events.Event;
 import de.ostfale.greenroom.domain.locations.Address;
 import de.ostfale.greenroom.domain.locations.ContactPerson;
@@ -285,7 +286,7 @@ class LocationControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         Document page = Jsoup.parse(html);
-        assertThat(page.select("#address-list tbody tr td:first-child").eachText())
+        assertThat(page.select("#address-list tbody tr td:first-child summary").eachText())
                 .containsExactly("Grosser Grasbrook 11, 20457 Hamburg", "Neuer Weg 2, 20095 Hamburg");
         assertThat(page.select("#address-list tbody tr td:nth-child(3)").eachText())
                 .containsExactly("ehemalig", "aktiv");
@@ -469,6 +470,50 @@ class LocationControllerTest {
 
         assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error")).isNotNull();
         assertThat(locations.byId(id).orElseThrow().currentCapacity()).isEqualTo(60);
+    }
+
+    /** A typo is not a move: the address is put right in its place and looked up again. */
+    @Test
+    void aMistypedPostalCodeIsPutRightAndTheAddressLookedUpAgain() throws Exception {
+        Long id = locations.add(aLocation()
+                .movedTo(Address.at("Musterweg 1", "22197", "Hamburg").withCapacity(60))).id();
+        mvc.perform(post("/location/" + id + "/address/0/locate")).andExpect(status().isOk());
+        geocoder.knows(new LookUpAddress.Position(53.6, 10.1));
+
+        String fragment = mvc.perform(post("/location/{id}/address/{position}/correct", id, 0)
+                        .param("street", "Musterweg 1")
+                        .param("postalCode", "22179")
+                        .param("city", "Hamburg")
+                        .header("HX-Request", "true"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Location stored = locations.byId(id).orElseThrow();
+        assertThat(stored.addresses()).hasSize(1);
+        assertThat(stored.currentAddress().line()).isEqualTo("Musterweg 1, 22179 Hamburg");
+        assertThat(stored.currentAddress().latitude()).isEqualTo(53.6);
+        assertThat(stored.currentCapacity()).isEqualTo(60);
+        Document parsed = Jsoup.parseBodyFragment(fragment);
+        assertThat(parsed.selectFirst("#address-list input[name=postalCode]").attr("value"))
+                .isEqualTo("22179");
+        assertThat(parsed.selectFirst("#location-summary").text()).contains("22179");
+    }
+
+    @Test
+    void anAddressCorrectedToNothingSaysSoAndChangesNothing() throws Exception {
+        Long id = locations.add(aLocation()
+                .withAddress("Musterweg 1", "22197", "Hamburg")).id();
+
+        String fragment = mvc.perform(post("/location/{id}/address/{position}/correct", id, 0)
+                        .param("street", "")
+                        .param("postalCode", "")
+                        .param("city", ""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(Jsoup.parseBodyFragment(fragment).selectFirst("p.error")).isNotNull();
+        assertThat(locations.byId(id).orElseThrow().addressLine())
+                .isEqualTo("Musterweg 1, 22197 Hamburg");
     }
 
     /**

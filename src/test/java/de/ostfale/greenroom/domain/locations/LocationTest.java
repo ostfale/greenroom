@@ -224,6 +224,41 @@ class LocationTest {
                 .isEqualTo(Rule.CAPACITY_IS_A_NUMBER_OF_SEATS);
     }
 
+    /**
+     * A typo is not a move: the address is put right where it stands, so an evening that
+     * points at it still points at it. The old position belonged to the wrong text.
+     */
+    @Test
+    void aMistypedAddressIsPutRightInItsPlace() {
+        Location location = aLocation()
+                .withAddress("Musterweg 1", "22197", "Hamburg")
+                .withCapacityAt(0, 60)
+                .movedTo(Address.at("Neuer Weg 2", "20095", "Hamburg"));
+        location = location.withAddresses(List.of(
+                location.addresses().getFirst().at(53.6, 10.1),
+                location.addresses().get(1)));
+
+        Location corrected = location.withAddressCorrected(0, "Musterweg 1", "22179", "Hamburg");
+
+        Address put = corrected.addresses().getFirst();
+        assertThat(corrected.addresses()).hasSize(2);
+        assertThat(put.line()).isEqualTo("Musterweg 1, 22179 Hamburg");
+        assertThat(put.capacity()).isEqualTo(60);
+        assertThat(put.active()).isFalse();
+        assertThat(put.isLocated()).isFalse();
+        assertThat(corrected.addresses().get(1)).isEqualTo(location.addresses().get(1));
+    }
+
+    @Test
+    void aCorrectedAddressStillNeedsAStreetOrATown() {
+        Location location = aLocation().withAddress("Musterweg 1", "22179", "Hamburg");
+
+        assertThat(ruleBrokenBy(() -> location.withAddressCorrected(0, " ", "", null)))
+                .isEqualTo(Rule.ADDRESS_NEEDS_A_STREET_OR_TOWN);
+        assertThat(ruleBrokenBy(() -> location.withAddressCorrected(1, "Musterweg 1", "22179", "Hamburg")))
+                .isEqualTo(Rule.NO_ADDRESS_AT_POSITION);
+    }
+
     // --- keeping the contacts up to date ---------------------------------------------
 
     @Test

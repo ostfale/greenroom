@@ -48,6 +48,14 @@ public record Address(String street, String postalCode, String city, Integer cap
         return new Address(street, postalCode, city, newCapacity, active, latitude, longitude);
     }
 
+    /**
+     * The same address, written the way it should have been. Seats and the active flag stay;
+     * the position goes, because it was looked up from the wrong text.
+     */
+    public Address correctedTo(String newStreet, String newPostalCode, String newCity) {
+        return new Address(newStreet, newPostalCode, newCity, capacity, active, null, null);
+    }
+
     public Address activated() {
         return new Address(street, postalCode, city, capacity, true, latitude, longitude);
     }

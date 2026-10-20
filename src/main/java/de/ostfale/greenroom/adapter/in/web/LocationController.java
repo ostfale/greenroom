@@ -199,6 +199,23 @@ public class LocationController {
         return "fragments/address-list :: address-list-and-summary";
     }
 
+    /** A typo put right in its place. A move is a new address, not this. */
+    @PostMapping("/{id}/address/{position}/correct")
+    public String correctAddress(@PathVariable Long id,
+                                 @PathVariable int position,
+                                 @RequestParam(defaultValue = "") String street,
+                                 @RequestParam(defaultValue = "") String postalCode,
+                                 @RequestParam(defaultValue = "") String city,
+                                 Model model) {
+        try {
+            show(model, locations.correctAddress(id, position, street, postalCode, city));
+        } catch (RuleViolated e) {
+            model.addAttribute("error", errors.german(e));
+            locations.byId(id).ifPresent(location -> show(model, location));
+        }
+        return "fragments/address-list :: address-list-and-summary";
+    }
+
     @PostMapping("/{id}/contact")
     public String addContact(@PathVariable Long id,
                              @RequestParam(defaultValue = "") String contactName,

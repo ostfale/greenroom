@@ -90,13 +90,22 @@ public class LocationService implements ManageLocations {
 
     @Override
     public Location locate(Long locationId, int position) {
-        Location known = known(locationId);
-        if (position < 0 || position >= known.addresses().size()) {
+        return locationRepository.save(locatedAt(known(locationId), position));
+    }
+
+    @Override
+    public Location correctAddress(Long locationId, int position, String street, String postalCode, String city) {
+        Location corrected = known(locationId).withAddressCorrected(position, street, postalCode, city);
+        return locationRepository.save(locatedAt(corrected, position));
+    }
+
+    private Location locatedAt(Location location, int position) {
+        if (position < 0 || position >= location.addresses().size()) {
             throw new RuleViolated(Rule.NO_ADDRESS_AT_POSITION, position);
         }
-        List<Address> addresses = new ArrayList<>(known.addresses());
+        List<Address> addresses = new ArrayList<>(location.addresses());
         addresses.set(position, located(addresses.get(position)));
-        return locationRepository.save(known.withAddresses(addresses));
+        return location.withAddresses(addresses);
     }
 
     @Override
