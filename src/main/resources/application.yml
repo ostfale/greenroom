@@ -8,6 +8,19 @@ spring:
       # so what ends up in the database is a few dozen kilobytes.
       max-file-size: 10MB
       max-request-size: 10MB
+  web:
+    resources:
+      # CSS, scripts and fonts are linked with a hash of their content in the name, so a
+      # deploy that changes one changes its address and the browser cannot hold on to the
+      # old file. What stands under an address never changes, so it may be kept a year.
+      chain:
+        strategy:
+          content:
+            enabled: true
+            paths: /**
+      cache:
+        cachecontrol:
+          max-age: 365d
 
 server:
   port: ${PORT:8383}
