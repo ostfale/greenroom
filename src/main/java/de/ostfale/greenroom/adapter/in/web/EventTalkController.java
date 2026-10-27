@@ -4,6 +4,7 @@ import de.ostfale.greenroom.application.port.in.ManageEvents;
 import de.ostfale.greenroom.domain.events.Talk;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -56,6 +57,9 @@ public class EventTalkController {
      *
      * <p>Nothing ticked sends no parameter at all, which is why the tags may be missing and
      * missing means none. A checkbox that is off has no other way of saying so.
+     *
+     * <p>The biographies come out of the raw parameters: bound to a list, a single value is
+     * split at its commas, and a biography is prose.
      */
     @PostMapping("/{position}")
     public String change(@PathVariable Long id,
@@ -64,11 +68,11 @@ public class EventTalkController {
                          @RequestParam(defaultValue = "") String abstractText,
                          @RequestParam(defaultValue = "") String startsAt,
                          @RequestParam(name = "tag", required = false) List<String> tags,
-                         @RequestParam(name = "announcedBio", required = false) List<String> bios,
+                         @RequestParam MultiValueMap<String, String> form,
                          Model model) {
         return page.afterChanging(id, model, TILE, () ->
                 events.changeTalk(id, position, title, abstractText,
-                        FormValues.time(startsAt), tags, bios));
+                        FormValues.time(startsAt), tags, form.get("announcedBio")));
     }
 
     /** The last one cannot go: an evening without a talk is not an evening. */

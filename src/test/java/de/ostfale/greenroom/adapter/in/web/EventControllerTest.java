@@ -1174,6 +1174,23 @@ class EventControllerTest {
     }
 
     /**
+     * A single value bound to a list is split at its commas, and a biography is prose: one
+     * speaker with a comma in the bio must still be one biography.
+     */
+    @Test
+    void aBiographyWithACommaIsStillOneBiography() throws Exception {
+        Long id = events.add(Event.draftFor(aReadyTalk(speakerId))).id();
+
+        mvc.perform(post("/event/" + id + "/talk/0")
+                        .param("title", "Records in Java 25")
+                        .param("announcedBio", "Entwickler, Trainer und Autor."))
+                .andExpect(status().isOk());
+
+        assertThat(events.byId(id).orElseThrow().talkAt(0).speakers().getFirst().announcedBio())
+                .isEqualTo("Entwickler, Trainer und Autor.");
+    }
+
+    /**
      * The point of the copy: the person keeps rewriting their bio, but what stood on the
      * invitation for that evening stays where it is.
      */
