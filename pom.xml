@@ -11,7 +11,7 @@
 
     <groupId>de.ostfale</groupId>
     <artifactId>greenroom</artifactId>
-    <version>1.7.3</version>
+    <version>1.7.4</version>
     <name>greenroom</name>
     <description>greenroom</description>
 
@@ -202,6 +202,36 @@
                     A report, not a gate: no check goal and no threshold. A number that has
                     to stay green invites tests written for the number. This one is read
                     when it is wanted and says nothing the rest of the time.
+                -->
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-test</id>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/WarningLogIsWrittenTest.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>warning-log</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/WarningLogIsWrittenTest.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+                <!--
+                    The warning log test gets a JVM of its own, as the Pi does: since Boot
+                    4.1.2 a context started after others in the same JVM no longer gets the
+                    file appender, so behind the rest of the suite it tests the suite.
                 -->
             </plugin>
         </plugins>

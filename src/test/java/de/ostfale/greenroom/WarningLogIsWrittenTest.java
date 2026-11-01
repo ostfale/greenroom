@@ -21,6 +21,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Boot assembles from them, and the absence of a {@code logback-spring.xml} — an own
  * Logback configuration replaces Boot's and silently drops the file, with no error to see.
  * That is what happened, and this test fails when it happens again.
+ *
+ * <p>It runs in a JVM of its own, see the {@code warning-log} execution in {@code pom.xml}:
+ * like the Pi, it has to be the first context that sets up logging.
  */
 @SpringBootTest(properties = "logging.file.name=target/warning-log/greenroom.log")
 @Import(TestcontainersConfiguration.class)
